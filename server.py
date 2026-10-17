@@ -70,7 +70,8 @@ register_instance_identity(PromptServer.instance.app, PromptServer.instance.rout
                            folder_paths.get_user_directory(),
                            lambda: {"mediaRootMatches": os.path.realpath(get_gallery_static_root()) == os.path.realpath(
                                os.path.join(folder_paths.get_output_directory(), load_settings().get("relativePath") or "./")),
-                                    "monitorRunning": bool(monitor and monitor.thread and monitor.thread.is_alive())})
+                                    "monitorRunning": bool(monitor and monitor.thread and monitor.thread.is_alive())},
+                           lambda: hydrus_bridge.settings.load())
 
 from .prefix_library import register_prefix_routes
 register_prefix_routes(PromptServer.instance.routes, lambda request: PromptServer.instance.user_manager.get_request_user_filepath(request, "prompt-library.json"))

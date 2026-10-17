@@ -85,6 +85,8 @@ export function HydrusSettingsModal() {
             <Button type="primary" loading={busy === 'save'} disabled={busy === 'test'} onClick={() => submit('save')}>Save connection</Button></Space>}>
         <Alert type="info" showIcon style={{ marginBottom: 16 }} message="Connect your main Hydrus client"
             description="Enable the Client API in Hydrus and grant an API key permission to import files and search/view all files. Add Manage Pages for open-page browsing, plus tags and notes permissions for those features. The address is reached from the ComfyUI server." />
+        <Alert type="info" showIcon style={{ marginBottom: 16 }} message="Hydrus Web connects automatically"
+            description="Save this connection and use the same Hydrus API key in Hydrus Web. Enter this ComfyUI server's address in Hydrus Web once. The running apps complete the handshake automatically; no separate bridge command or token is needed on the Hydrus Web computer." />
         <Form form={form} layout="vertical" disabled={!!busy} onValuesChange={changed => {
             if ('url' in changed || 'access_key' in changed || 'profile' in changed || 'clear_access_key' in changed) {
                 ++serviceRequest.current; setLoadingServices(false); setTest(undefined); setServices([]); setServicesError('');

@@ -282,6 +282,10 @@ Associated prefix images open in the gallery viewer, including Hydrus originals.
 
 ## Hydrus Web interoperability
 
+Updated Hydrus Web dev/server mode manages its connection automatically. Run `npm start` in Hydrus Web and open it through localhost; no separate bridge command or local bridge token is required. Save this ComfyUI server's address in Hydrus Web once, and configure both apps with the same Hydrus API key. Saving Gallery's Hydrus connection allows the running Hydrus Web server to complete its pending handshake automatically. Restart ComfyUI after updating Gallery so `/Gallery/handshake` is available.
+
+The handshake exchanges nonce-bound proofs rather than the API key. Hydrus Web pins this installation's persistent `gallery-instance-id` in the ComfyUI user directory; preserve that file during upgrades. Moving a proxy or changing a URL to another installation blocks transfers until the replacement is confirmed in Hydrus Web. Remote browser/tablet access uses an explicitly authenticated connection; automatic credential-free UI discovery is restricted to the Hydrus Web computer's localhost interface.
+
 Prefix searches display associated Hydrus originals by their saved hashes and follow their descendants, without requiring prefix prompt words to match Hydrus tags. Hydrus media can also start **Find related images** directly. Explicit extra-tag filters and the strict-prefix option still apply. Prompt inheritance adds the standalone `comfyui outputs` tag alongside inherited prompt tags, preserving their selected namespaces.
 
 Hydrus Web's optional integration bridge can read this gallery, transfer media, preserve prompt/provenance metadata, and search saved prefixes and lineage. Uploaded videos use `/Gallery/source/provenance` to retain their metadata without changing their bytes. Restart ComfyUI after updating the Python routes.

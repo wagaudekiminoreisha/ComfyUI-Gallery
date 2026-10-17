@@ -1,6 +1,8 @@
 import importlib.util
 import tempfile
 import unittest
+import hashlib
+import hmac
 from pathlib import Path
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
@@ -13,10 +15,11 @@ spec.loader.exec_module(module)
 class IdentityTests(unittest.IsolatedAsyncioTestCase):
     async def test_identity_persists_and_guard_blocks_wrong_destination(self):
         with tempfile.TemporaryDirectory() as directory:
+            settings = {}
             async def create():
                 app, routes = web.Application(), web.RouteTableDef()
                 writes = []
-                module.register_instance_identity(app, routes, directory, lambda: {'mediaRootMatches': False})
+                module.register_instance_identity(app, routes, directory, lambda: {'mediaRootMatches': False}, lambda: settings)
 
                 @routes.post('/upload/image')
                 async def upload(request):
@@ -32,6 +35,19 @@ class IdentityTests(unittest.IsolatedAsyncioTestCase):
             try:
                 identity = await (await client.get('/Gallery/instance')).json()
                 self.assertFalse(identity['mediaRootMatches'])
+                response = await client.post('/Gallery/handshake', json={})
+                self.assertEqual(response.status, 409)
+                settings['access_key'] = 'fixture-shared-hydrus-key'
+                nonce = 'a' * 64
+                message = 'hydrus-web-handshake-v1\n{}\n' + identity['instanceId'] + '\n' + nonce
+                proof = lambda role: hmac.new(settings['access_key'].encode(), message.format(role).encode(), hashlib.sha256).hexdigest()
+                response = await client.post('/Gallery/handshake', json={'nonce': nonce, 'proof': 'wrong'})
+                self.assertEqual(response.status, 403)
+                response = await client.post('/Gallery/handshake', json={'nonce': nonce, 'proof': proof('client')})
+                self.assertEqual(response.status, 200)
+                result = await response.json()
+                self.assertEqual(result['proof'], proof('server'))
+                self.assertNotIn(settings['access_key'], str(result))
                 response = await client.post('/upload/image', headers={'X-Gallery-Instance': 'wrong'})
                 self.assertEqual(response.status, 409)
                 self.assertEqual(writes, [])
