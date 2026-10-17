@@ -282,6 +282,8 @@ Associated prefix images open in the gallery viewer, including Hydrus originals.
 
 ## Hydrus Web interoperability
 
+Metadata and prefix editing (2026-10-18): The metadata window includes a case-insensitive search across keys, generation data, Hydrus snapshots and JSON notes, with highlighted matching paths and copyable values. Ctrl+F focuses the search in the active metadata window. New prefix names remain editable and clearable in a separate draft-name field after Enter selects them in the dropdown; edits keep the draft terms and only Save persists the prefix.
+
 Prompt editor correction (2026-10-18): Convert contents applies immediately with no selection; selecting chips narrows the same operation. The action menu can reapply the current format. Optional tags (each) adds a single optional wrapper, including when typed tags are already optional or a saved box retains an `each` format. Saved boxes with the old duplicate serialization are recognized and synchronized without discarding names, weights or disabled chips. Reapply Optional tags (each) to repair nested optional syntax stored as plain prefix text. The prompt preview and last encoded prompt now have selectable text fields and Copy buttons.
 
 Updated Hydrus Web dev/server mode manages its connection automatically. Run `npm start` in Hydrus Web and open it through localhost; no separate bridge command or local bridge token is required. Save this ComfyUI server's address in Hydrus Web once, and configure both apps with the same Hydrus API key. Saving Gallery's Hydrus connection allows the running Hydrus Web server to complete its pending handshake automatically. Restart ComfyUI after updating Gallery so `/Gallery/handshake` is available.

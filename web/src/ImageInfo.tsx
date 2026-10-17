@@ -7,7 +7,8 @@ import { useUnsavedPrefix } from './UnsavedPrefix';
  * Both          → the two as tabs of the same window
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Button, Collapse, Descriptions, Empty, Select, Space, Tabs, Tag, Typography, message } from 'antd';
+import { Alert, Button, Collapse, Descriptions, Empty, Input, Select, Space, Tabs, Tag, Typography, message, type InputRef } from 'antd';
+import { findMetadataMatches } from './MetadataSearch';
 import { FloatingPanel, focusPanel } from './FloatingPanel';
 import { BASE_PATH, BASE_Z_INDEX } from './ComfyAppApi';
 import { useHydrus } from './HydrusContext';
@@ -102,6 +103,8 @@ function HydrusDetailsBody({ metadata, item }: { metadata: Record<string, any>; 
 
 /** The metadata window (replaces the separate "Hydrus metadata" and "View metadata" windows). */
 export function ImageInfoPanel() {
+    const [query, setQuery] = useState('');
+    const searchRef = useRef<InputRef>(null);
     const { detailsUrl, setDetailsUrl, imageFiles, items, refresh, requestExport } = useHydrus();
     const [request, setRequest] = useState<InfoRequest>();
     const [tab, setTab] = useState<'generation' | 'hydrus'>('generation');
@@ -109,9 +112,9 @@ export function ImageInfoPanel() {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     // Existing callers open it through setDetailsUrl (the Hydrus badge, older menus) — that means the Hydrus tab.
-    useEffect(() => { if (detailsUrl) { setRequest({ url: detailsUrl, tab: 'hydrus' }); setTab('hydrus'); } }, [detailsUrl]);
+    useEffect(() => { if (detailsUrl) { setRequest({ url: detailsUrl, tab: 'hydrus' }); setTab('hydrus'); setQuery(''); } }, [detailsUrl]);
     useEffect(() => {
-        const open = (event: Event) => { const detail = (event as CustomEvent<InfoRequest>).detail || {}; setRequest(detail); setTab(detail.tab || (detail.url ? 'generation' : 'hydrus')); setError(''); setRaw(false); };
+        const open = (event: Event) => { const detail = (event as CustomEvent<InfoRequest>).detail || {}; setRequest(detail); setTab(detail.tab || (detail.url ? 'generation' : 'hydrus')); setError(''); setRaw(false); setQuery(''); };
         window.addEventListener(IMAGE_INFO_EVENT, open);
         return () => window.removeEventListener(IMAGE_INFO_EVENT, open);
     }, []);
@@ -143,6 +146,15 @@ export function ImageInfoPanel() {
         <MetadataView image={file} onShowRaw={() => setRaw(true)} showRawMetadata={raw} setShowRawMetadata={setRaw} />
     </>;
     const open = !!request && (hasLocal || hasHydrus);
+    useEffect(() => {
+        if (!open) return;
+        const find = (event: KeyboardEvent) => {
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f' && document.activeElement?.closest('[data-panel-key="image-metadata"]')) {
+                event.preventDefault();event.stopPropagation();searchRef.current?.focus({ cursor: 'all' });
+            }
+        };
+        window.addEventListener('keydown', find, true);return () => window.removeEventListener('keydown', find, true);
+    }, [open]);
     return <FloatingPanel panelKey="image-metadata" focusKey={request} title={'Metadata · ' + (file?.name || entry?.name || '')} open={open} zIndex={BASE_Z_INDEX + 20} width={hasLocal ? '85vw' : 780}
         onCancel={close} footer={<Space wrap>
             <Button onClick={close}>Close</Button>
@@ -151,11 +163,35 @@ export function ImageInfoPanel() {
             {url && <Button loading={busy} onClick={refreshOne}>Refresh from Hydrus</Button>}
             {url && <Button type="primary" disabled={busy} onClick={() => { requestExport([url]); close(); }}>Export to Hydrus</Button>}
         </Space>}>
+        <div>
         <Space style={{ marginBottom: 8 }}>{url && <Tag color={badge.color}>{badge.label}</Tag>}<Typography.Text strong>{file?.name || entry?.name}</Typography.Text></Space>
-        {hasLocal && hasHydrus
+        <Input.Search type="search" ref={searchRef} aria-label="Search metadata" placeholder="Search metadata keys or values (Ctrl+F)" allowClear value={query} onChange={event => setQuery(event.target.value)} onSearch={setQuery} style={{ marginBottom: 12 }} />
+        {query.trim() ? <MetadataSearchResults metadata={metadata} query={query} /> : hasLocal && hasHydrus
             ? <Tabs activeKey={tab} onChange={value => setTab(value as 'generation' | 'hydrus')} items={[{ key: 'generation', label: 'Generation', children: generationTab }, { key: 'hydrus', label: 'Hydrus', children: hydrusTab }]} />
             : hasLocal ? generationTab : hydrusTab}
+        </div>
     </FloatingPanel>;
+}
+
+function MetadataSearchResults({ metadata, query }: { metadata: unknown; query: string }) {
+    const { matches, total } = findMetadataMatches(metadata, query);
+    const highlight = (text: string) => {
+        const needle = query.trim().toLowerCase(), parts: React.ReactNode[] = [];
+        let start = 0, index = text.toLowerCase().indexOf(needle);
+        while (index >= 0) { parts.push(text.slice(start, index), <mark key={index}>{text.slice(index, index + needle.length)}</mark>); start = index + needle.length; index = text.toLowerCase().indexOf(needle, start); }
+        parts.push(text.slice(start));return parts;
+    };
+    return <div aria-label="Metadata search results">
+        <Typography.Paragraph role="status">{total ? `${total} match${total === 1 ? '' : 'es'}${total > matches.length ? ` · showing first ${matches.length}` : ''}` : 'No metadata matches.'}</Typography.Paragraph>
+        {matches.map(({ path, text }) => {
+            const index = text.toLowerCase().indexOf(query.trim().toLowerCase()), start = Math.max(0, index - 100);
+            const excerpt = (start ? '…' : '') + text.slice(start, start + 600) + (text.length > start + 600 ? '…' : '');
+            return <div key={path} style={{ borderBottom: '1px solid #8884', padding: '8px 0', overflowWrap: 'anywhere' }}>
+                <Typography.Text code>{highlight(path)}</Typography.Text>
+                <Typography.Paragraph copyable={{ text }} style={{ whiteSpace: 'pre-wrap', margin: '4px 0', userSelect: 'text' }}>{highlight(excerpt)}</Typography.Paragraph>
+            </div>;
+        })}
+    </div>;
 }
 /** Kept for the existing import in GalleryModal. */
 export const HydrusDetailsModal = ImageInfoPanel;
@@ -265,6 +301,7 @@ export function SourcePrefixPanel() {
             {!!pairedWith.length && <div style={{ marginBottom: 8 }}><Typography.Text>Paired with: </Typography.Text>{pairedWith.map(id => <Tag key={id} closable onClose={event => { event.preventDefault(); void unpair(id); }}>{library.prefixes.find(item => item.id === id)?.name || 'deleted prefix'}</Tag>)}</div>}
             {/* One box: pick an existing prefix, or type a new name — it is kept (and shown) until the prefix is created. */}
             <Select showSearch allowClear aria-label="Prefix for these images" placeholder="Type a new prefix name, or pick an existing prefix" style={{ width: '100%' }}
+                disabled={busy}
                 value={prefix ? prefix.id : name ? 'new:' + name : undefined} searchValue={typed} onSearch={setTyped} autoClearSearchValue
                 filterOption={(input, option) => String(option?.value).startsWith('new:') || String(option?.label).toLowerCase().includes(input.trim().toLowerCase())}
                 onChange={(value?: string) => { setTyped(''); if (!value) { setPrefixId(undefined); setName(''); } else if (value.startsWith('new:')) { setPrefixId(undefined); setName(value.slice(4)); } else setPrefixId(value); }}
@@ -274,6 +311,8 @@ export function SourcePrefixPanel() {
                     ...(!prefix && name && name !== typedName ? [{ value: 'new:' + name, label: 'New prefix “' + name + '” (created when you save)' }] : []),
                     ...library.prefixes.map(item => ({ value: item.id, label: item.name + ' · ' + sidesLabel(item) })),
                 ]} />
+            {!prefix && <Input aria-label="New prefix name" placeholder="New prefix name — editable until saved" value={name} allowClear disabled={busy} style={{ marginTop: 8 }}
+                onChange={event => { setName(event.target.value); setTyped(''); }} onKeyDown={event => { if (event.key === 'Enter') event.preventDefault(); }} />}
             <Typography.Paragraph type="secondary" style={{ margin: '6px 0 4px' }}>{prefix ? 'Editing “' + prefix.name + '”: its tags are on the right. Saving changes them and pairs the image(s); “Pair only” pairs without changing anything.' : 'A new prefix starts with the image’s positive prompt. Saving creates it and pairs the image(s).'} Tag spelling follows Settings.</Typography.Paragraph>
             <Tabs size="small" activeKey={side} onChange={key => setSide(key as 'positive' | 'negative')} items={(['positive', 'negative'] as const).map(key => ({ key, label: `${key === 'positive' ? 'Positive' : 'Negative'} (${(key === 'positive' ? positive : negative).length})` }))} />
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
