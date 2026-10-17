@@ -1,5 +1,5 @@
 import { useUnsavedPrefix } from './UnsavedPrefix';
-import { FloatingPanel } from './FloatingPanel';
+import { FloatingPanel, focusPanel } from './FloatingPanel';
 import { getPromptTargets, writePromptTarget } from './ImageSourceBridge';
 import { formatPromptTerms, prepareInsertion } from './PromptSpelling';
 import { PromptPalette } from './PromptPalette';
@@ -33,9 +33,11 @@ export function LocalPromptSearch({ onLocalSearch, managerOnly = false }: { onLo
     const [prefixTags, setPrefixTags] = useState<string[]>([]);
     const [negativeTags, setNegativeTags] = useState<string[]>([]);
     const [saving, setSaving] = useState(false);
-    const [open, setOpen] = useState(false);
+    const [open, updateOpen] = useState(false);
+    const setOpen = (value: boolean) => { updateOpen(value); if (value) focusPanel('prompt-library'); };
     /** The prefix editor is its own window, so a prefix can be edited while appending to the workflow (and vice versa). */
-    const [editorOpen, setEditorOpen] = useState(false);
+    const [editorOpen, updateEditorOpen] = useState(false);
+    const setEditorOpen = (value: boolean) => { updateEditorOpen(value); if (value) focusPanel('prefix-editor'); };
     /** Where the palette's Append buttons send tags: the workflow, or the prefix being edited. */
     const [paletteTarget, setPaletteTarget] = useState<'workflow' | 'positive' | 'negative'>('workflow');
     const openRef = useRef(open || editorOpen); openRef.current = open || editorOpen;

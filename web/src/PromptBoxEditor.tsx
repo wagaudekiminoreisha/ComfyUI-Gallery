@@ -43,7 +43,7 @@ function Btn({ label, onClick, disabled, children }: { label: string; onClick: (
     return <button type="button" aria-label={label} title={label} disabled={disabled} onClick={onClick} style={{ ...S.btn, opacity: disabled ? .4 : 1 }}>{children}</button>;
 }
 
-const KIND_COLORS: Record<GroupingKind, string> = { tag: border, alternatives: '#4096ff', optional: '#d89614', group: '#49aa19' };
+const KIND_COLORS: Record<GroupingKind, string> = { tag: '#8c8c8c', alternatives: '#4096ff', optional: '#d89614', group: '#49aa19' };
 
 /** Colour of a chip's kind; single optional tags (`each`) share the optional group's green. */
 const modeColor = (mode: AddMode) => KIND_COLORS[mode === 'each' ? 'group' : mode];
@@ -135,7 +135,7 @@ function ChipView({ chip, selected, picked, onSelect, onPick, onRemove, onDrop, 
         onDragOver={event => { if (!onDrop || dragging?.kind !== 'chip' || dragging.chip === chip) return; event.preventDefault(); event.stopPropagation(); setMark(right(event) ? 'after' : 'before'); }}
         onDragLeave={() => setMark(undefined)}
         onDrop={event => { if (!onDrop || dragging?.kind !== 'chip') return; event.preventDefault(); event.stopPropagation(); const after = right(event), current = dragging; setMark(undefined); if (current.chip !== chip) onDrop(current.chip, after); }}
-        style={{ ...S.chip, ...(grouped ? { flexDirection: 'column', alignItems: 'stretch', gap: 0, padding: 0, borderRadius: 6, borderColor: color, overflow: 'visible' } : {}), ...(selected ? S.selected : {}), ...(picked ? { outline: `2px dashed ${accent}` } : {}), opacity: chip.enabled ? 1 : .45, textDecoration: chip.enabled ? 'none' : 'line-through', userSelect: 'none', cursor: 'grab', boxShadow: mark === 'before' ? `inset 3px 0 0 ${accent}` : mark === 'after' ? `inset -3px 0 0 ${accent}` : undefined }}>
+        style={{ ...S.chip, borderColor: color, ...(grouped ? { flexDirection: 'column', alignItems: 'stretch', gap: 0, padding: 0, borderRadius: 6, borderColor: color, overflow: 'visible' } : {}), ...(selected ? S.selected : {}), ...(picked ? { outline: `2px dashed ${accent}` } : {}), opacity: chip.enabled ? 1 : .45, textDecoration: chip.enabled ? 'none' : 'line-through', userSelect: 'none', cursor: 'grab', boxShadow: mark === 'before' ? `inset 3px 0 0 ${accent}` : mark === 'after' ? `inset -3px 0 0 ${accent}` : undefined }}>
         {grouped
             ? <>
                 {/* The header names the grouping (and changes it); the body keeps the separators. */}
@@ -302,13 +302,9 @@ function AddInput({ onBackspace, target, onTargetMode, placeholder, suggest, onT
 }
 
 /** Actions apply only to the selected chips, leaving the rest of the box alone. */
-function MergeBar({ count, onFormat, onEnabled, onRemove, onClear }: { count: number; onFormat: (mode: AddMode) => void; onEnabled: (enabled: boolean) => void; onRemove: () => void; onClear: () => void }) {
+function MergeBar({ count, onEnabled, onRemove, onClear }: { count: number; onEnabled: (enabled: boolean) => void; onRemove: () => void; onClear: () => void }) {
     return <div role="group" aria-label="Selected chip actions" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4 }}>
         <small>{count} selected</small>
-        <select aria-label="Selected chips format" value="" onChange={event => onFormat(event.target.value as AddMode)} style={S.input}>
-            <option value="" disabled>Convert selection…</option>
-            {ADD_MODES.map(mode => <option key={mode.value} value={mode.value}>{mode.name}</option>)}
-        </select>
         <Btn label="Enable selected chips" onClick={() => onEnabled(true)}>Enable</Btn>
         <Btn label="Disable selected chips" onClick={() => onEnabled(false)}>Disable</Btn>
         <Btn label="Remove selected chips" onClick={onRemove}>Remove</Btn>
@@ -370,6 +366,15 @@ function GroupView({ box, index, count, state, onChange, suggest, bare, placehol
     };
     const patch = (value: Partial<Omit<GroupBox, 'kind' | 'id'>>) => onChange(updateBox(state, box.id, value));
     const remove = (id: string) => { setSelected(undefined); setActiveChipId(undefined); setPicked(old => old.filter(value => value !== id)); onChange(editChips(state, box.id, chips => chips.filter(item => item.id !== id))); };
+    const formatChips = pickedIds.length ? box.chips.filter(item => pickedIds.includes(item.id)) : box.chips;
+    const modes = new Set(formatChips.map(addModeOf));
+    const currentFormat = !pickedIds.length && box.format && box.format !== 'tag' ? box.format : modes.size === 1 ? [...modes][0] : 'mixed';
+    const convert = (mode: AddMode) => {
+        if (pickedIds.length) onChange(applyBatchTags(state, box.id, pickedIds, blacklist, 'format', mode));
+        else if (box.format && box.format !== 'tag') patch({ format: mode }); // Explicitly change the legacy outer wrapper, retaining all chip data.
+        else onChange(formatSelectedChips(state, box.id, box.chips.map(item => item.id), mode));
+        clearSelection();
+    };
     const preview = formatBoxTerms(box.chips.map(compileChip).filter(Boolean), box.format).join(', ');
     return <div ref={ref} tabIndex={0} aria-label={bare ? 'Prefix tag box' : 'Tag box ' + box.name}
         onKeyDownCapture={event => {
@@ -396,7 +401,7 @@ function GroupView({ box, index, count, state, onChange, suggest, bare, placehol
             if (current.kind === 'box') { if (current.id !== box.id) onChange(moveBoxTo(state, current.id, { boxId: box.id, after: lower(event) })); }
             else onChange(dropPromptChip(state, current.chip, box.id));
         }}
-        style={{ ...S.box, pointerEvents: 'auto', ...(focused ? { borderColor: accent } : {}), ...(bare ? { paddingTop: 6 } : {}), opacity: box.enabled ? 1 : .6, boxShadow: mark === 'before' ? `0 -3px 0 ${accent}` : mark === 'after' ? `0 3px 0 ${accent}` : undefined }}>
+        style={{ ...S.box, borderColor: currentFormat === 'mixed' ? border : modeColor(currentFormat), pointerEvents: 'auto', ...(focused ? { borderColor: accent } : {}), ...(bare ? { paddingTop: 6 } : {}), opacity: box.enabled ? 1 : .6, boxShadow: mark === 'before' ? `0 -3px 0 ${accent}` : mark === 'after' ? `0 3px 0 ${accent}` : undefined }}>
         {!bare && <div style={S.header}>
             <BoxGrip id={box.id} name={box.name || 'untitled'} boxRef={ref} onEnd={() => setMark(undefined)} />
             <Btn label={box.collapsed ? 'Expand box' : 'Collapse box'} onClick={() => patch({ collapsed: !box.collapsed })}>{box.collapsed ? '▸' : '▾'}</Btn>
@@ -411,16 +416,18 @@ function GroupView({ box, index, count, state, onChange, suggest, bare, placehol
             <Btn label="Delete box" onClick={() => onChange(removeBox(state, box.id))}>×</Btn>
         </div>}
         <div style={S.header}>
-            <label>Box format <select aria-label="Box format" value={box.format || 'tag'} onChange={event => { patch({ format: event.target.value as AddMode }); setSelected(undefined); setActiveChipId(undefined); }} style={S.input}>
-                {ADD_MODES.map(mode => <option key={mode.value} value={mode.value}>{mode.value === 'tag' ? 'Comma-separated tags' : mode.name}</option>)}
+            <label>{pickedIds.length ? 'Convert selection' : 'Convert contents'} <select aria-label="Convert prompt format" value={currentFormat} onChange={event => convert(event.target.value as AddMode)} style={{ ...S.input, borderColor: currentFormat === 'mixed' ? border : modeColor(currentFormat) }}>
+                <option value="mixed" disabled>{formatChips.length ? 'Mixed content' : 'Empty'}</option>
+                {ADD_MODES.map(mode => <option key={mode.value} value={mode.value}>{mode.name}</option>)}
             </select></label>
+            {box.format && box.format !== 'tag' && <small title="This loaded workflow wraps the enabled contents; editing chips preserves that wrapper.">Outer group: {box.format}</small>}
             <button type="button" aria-label="Select chips" aria-pressed={selecting} onClick={() => { setSelecting(!selecting); clearSelection(); }} style={S.btn}>Select chips</button>
             <Btn label="Select all chips" disabled={!eligible.length} onClick={() => { setPicked(eligible); setSelected(undefined); setActiveChipId(undefined); }}>Select all</Btn>
         </div>
         <Btn label={box.chipsCollapsed ? 'Expand tag groups' : 'Collapse tag groups'} onClick={() => patch({ chipsCollapsed: !box.chipsCollapsed })}>{box.chipsCollapsed ? '▸' : '▾'} Tag groups ({box.chips.length})</Btn>
         <BatchBlacklistEditor chips={box.chips} />
         {eligible.length < box.chips.length && <small style={S.muted}>{box.chips.length - eligible.length} chip(s) excluded from batch selection</small>}
-        {!!pickedIds.length && <MergeBar count={selectedCount} onClear={clearSelection} onFormat={mode => { onChange(applyBatchTags(state, box.id, pickedIds, blacklist, 'format', mode)); clearSelection(); }}
+        {!!pickedIds.length && <MergeBar count={selectedCount} onClear={clearSelection}
             onEnabled={enabled => { const next = applyBatchTags(state, box.id, pickedIds, blacklist, enabled ? 'enable' : 'disable'); const ids = new Set(box.chips.map(chip => chip.id)); setPicked(next.boxes.flatMap(item => item.kind === 'group' && item.id === box.id ? item.chips.filter(chip => (!ids.has(chip.id) || pickedIds.includes(chip.id)) && eligibleBatchIds([chip], blacklist).includes(chip.id)).map(chip => chip.id) : [])); onChange(next); }} onRemove={removePicked} />}
         {box.collapsed
             ? !!preview && <div style={S.preview} title={preview}>{preview}</div>

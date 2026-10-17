@@ -123,7 +123,7 @@ export function HydrusExportModal() {
     });
     const ready = !!settings?.has_access_key && (!hasTags || !!serviceKey) && !invalidTags && (!danbooru || dictionaryReady === urlsKey);
 
-    return <FloatingPanel panelKey="hydrus-export" title={`Export to Hydrus · ${exportUrls.length} image${exportUrls.length === 1 ? '' : 's'}`}
+    return <FloatingPanel panelKey="hydrus-export" focusKey={exportUrls} title={`Export to Hydrus · ${exportUrls.length} image${exportUrls.length === 1 ? '' : 's'}`}
         open={exportUrls.length > 0} zIndex={BASE_Z_INDEX + 20} width={680}
         styles={{ body: { maxHeight: '65vh', overflowY: 'auto', paddingRight: 8 } }}
         onCancel={() => { if (!running) setExportUrls([]); }} maskClosable={!running} closable={!running}

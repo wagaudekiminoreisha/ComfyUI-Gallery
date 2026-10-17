@@ -1,3 +1,4 @@
+import { focusPanel } from './FloatingPanel';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useGalleryContext } from './GalleryContext';
@@ -31,9 +32,11 @@ export function HydrusProvider({ children }: { children: ReactNode }) {
     const [settings, setSettings] = useState<HydrusSettings>();
     const [settingsError, setSettingsError] = useState('');
     const [items, setItems] = useState<Record<string, HydrusItem>>({});
-    const [settingsOpen, setSettingsOpen] = useState(false);
+    const [settingsOpen, updateSettingsOpen] = useState(false);
+    const setSettingsOpen = useCallback((open: boolean) => { updateSettingsOpen(open); if (open) focusPanel('hydrus-settings'); }, []);
     const [exportUrls, setExportUrls] = useState<string[]>([]);
-    const [detailsUrl, setDetailsUrl] = useState<string>();
+    const [detailsUrl, updateDetailsUrl] = useState<string>();
+    const setDetailsUrl = useCallback((url?: string) => { updateDetailsUrl(url); if (url) focusPanel('image-metadata'); }, []);
     const [revision, setRevision] = useState(0);
     const targetVersion = useRef(0);
     const connectionTarget = useRef<string | undefined>(undefined);

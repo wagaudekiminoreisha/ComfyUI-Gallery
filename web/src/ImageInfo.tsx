@@ -8,7 +8,7 @@ import { useUnsavedPrefix } from './UnsavedPrefix';
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Button, Collapse, Descriptions, Empty, Select, Space, Tabs, Tag, Typography, message } from 'antd';
-import { FloatingPanel } from './FloatingPanel';
+import { FloatingPanel, focusPanel } from './FloatingPanel';
 import { BASE_PATH, BASE_Z_INDEX } from './ComfyAppApi';
 import { useHydrus } from './HydrusContext';
 import { hydrusStatus, type HydrusItem } from './HydrusApi';
@@ -32,9 +32,9 @@ export const IMAGE_INFO_EVENT = 'gallery-image-info';
 export const SOURCE_PREFIX_EVENT = 'gallery-source-prefix';
 type InfoRequest = { url?: string; remote?: RemoteImage; tab?: 'generation' | 'hydrus' };
 /** Open the metadata window for a local file (`url`) or a Hydrus-only file (`remote`). */
-export const openImageInfo = (request: InfoRequest) => window.dispatchEvent(new CustomEvent(IMAGE_INFO_EVENT, { detail: request }));
+export const openImageInfo = (request: InfoRequest) => { window.dispatchEvent(new CustomEvent(IMAGE_INFO_EVENT, { detail: request })); focusPanel('image-metadata'); };
 /** Open the "Use for prefix" flow for gallery entries, or for local files by URL. */
-export const openSourcePrefix = (entries: GalleryEntry[] | string[]) => window.dispatchEvent(new CustomEvent(SOURCE_PREFIX_EVENT, { detail: entries }));
+export const openSourcePrefix = (entries: GalleryEntry[] | string[]) => { window.dispatchEvent(new CustomEvent(SOURCE_PREFIX_EVENT, { detail: entries })); focusPanel('source-prefix'); };
 export const localEntry = (file: GalleryEntry['local'] & object, hash?: string): GalleryEntry => ({ id: 'local:' + file.url, source: 'local', name: file.name, local: file, hash });
 
 const formatTime = (value?: string) => value ? new Date(value).toLocaleString() : 'Never';
@@ -143,7 +143,7 @@ export function ImageInfoPanel() {
         <MetadataView image={file} onShowRaw={() => setRaw(true)} showRawMetadata={raw} setShowRawMetadata={setRaw} />
     </>;
     const open = !!request && (hasLocal || hasHydrus);
-    return <FloatingPanel panelKey="image-metadata" title={'Metadata · ' + (file?.name || entry?.name || '')} open={open} zIndex={BASE_Z_INDEX + 20} width={hasLocal ? '85vw' : 780}
+    return <FloatingPanel panelKey="image-metadata" focusKey={request} title={'Metadata · ' + (file?.name || entry?.name || '')} open={open} zIndex={BASE_Z_INDEX + 20} width={hasLocal ? '85vw' : 780}
         onCancel={close} footer={<Space wrap>
             <Button onClick={close}>Close</Button>
             {entry && <Button onClick={() => openSourcePrefix([entry])}>Use for prefix…</Button>}
@@ -253,7 +253,7 @@ export function SourcePrefixPanel() {
     const total = positive.length + negative.length;
     return <>
         {drafts.dialog}
-        <FloatingPanel panelKey="source-prefix" title={'Use for prefix · ' + entries.length + ' image' + (entries.length === 1 ? '' : 's')} open={entries.length > 0} onCancel={close} width={980} zIndex={BASE_Z_INDEX + 30}
+        <FloatingPanel panelKey="source-prefix" focusKey={entries} title={'Use for prefix · ' + entries.length + ' image' + (entries.length === 1 ? '' : 's')} open={entries.length > 0} onCancel={close} width={980} zIndex={BASE_Z_INDEX + 30}
             footer={<Space wrap>
                 <Button onClick={close}>Close</Button>
                 <Button onClick={() => { drafts.guard(() => { setAppending(entries); setEntries([]); }); }}>Append images and prompts…</Button>
