@@ -84,7 +84,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
         const notes = [notice,
             ...(mode === 'together' ? neverTogether(state, conflicts).map(ids => 'Never together: ' + names(ids)) : []),
             ...(mode !== 'off' ? alwaysTogether(state, conflicts).map(([a, b]) => `${a} and ${b} are both always used (make one optional)`) : [])].filter(Boolean);
-        root.render(<PromptBoxEditor state={state} source={source} preview={composeWithSource(compiledNow(), source.text)} suggest={suggest} onChange={commit} notice={notes.join(' · ')} />);
+        root.render(<PromptBoxEditor state={state} source={source} preview={composeWithSource(compiledNow(), source.text)} suggest={suggest} onChange={commit} lastEncodedPrompt={node.__galleryEffectivePrompt} notice={notes.join(' · ')} />);
     };
     window.addEventListener(EXCLUSIVE_MODE_EVENT, () => { sync(); render(); });
     /** Shown under the boxes after an edit, e.g. which tags "Exclusive tags" turned off. */
@@ -111,7 +111,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
             const next = reconcileText(state, text.value, String(widget('source_mode')?.value ?? 'boxes'), hasSource(), together());
             if (next !== state) { commit(next); return; }
         }
-        render();
+        sync(); render();
     };
 
     hideWidget(widget('text')); hideWidget(widget('source_mode'));
@@ -134,6 +134,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
     const executed = node.onExecuted;
     node.onExecuted = function (data: any) {
         const result = executed?.call(this, data);
+        if (Array.isArray(data?.effective_prompt) && typeof data.effective_prompt[0] === 'string') node.__galleryEffectivePrompt = data.effective_prompt[0];
         if (Array.isArray(data?.source_text) && typeof data.source_text[0] === 'string') node.__galleryRuntimeSource = data.source_text[0];
         render();
         return result;

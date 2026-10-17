@@ -10,6 +10,23 @@ from tag_dictionary import format_terms, prompt_tags, browse_vocabulary, term_al
 
 
 class LibraryTests(unittest.TestCase):
+    def test_each_optional_tag_can_be_included_or_omitted_independently(self):
+        import itertools
+
+        class Picks:
+            def __init__(self, indices): self.indices = iter(indices)
+            def choice(self, options):
+                self_options = ['long hair', ''] if options[0] == 'long hair' else ['sidelocks', '']
+                self_test.assertEqual(options, self_options)
+                return options[next(self.indices)]
+
+        self_test = self
+        for hair, sidelocks in itertools.product((0, 1), repeat=2):
+            resolved, choices = resolve_dynamic('1girl, {long hair|}, {sidelocks|}', Picks((hair, sidelocks)))
+            self.assertEqual('long hair' in resolved, hair == 0)
+            self.assertEqual('sidelocks' in resolved, sidelocks == 0)
+            self.assertEqual(len(choices), 2)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

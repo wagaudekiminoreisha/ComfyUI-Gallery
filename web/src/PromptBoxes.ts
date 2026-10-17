@@ -148,7 +148,7 @@ export function alwaysTogether(state: BoxState, conflicts: Conflicts): [string, 
 }
 
 /** The prompt string stored in the node. The source box becomes SOURCE_MARKER at its position. With `conflicts`, see neverTogether. */
-export function compileBoxes(state: BoxState, conflicts?: Conflicts): string {
+export function compileBoxes(state: BoxState, conflicts?: Conflicts, legacyEach = false): string {
     const merged = new Map<string, string>(), skipped = new Set<string>();
     if (conflicts) {
         const chips = new Map(state.boxes.flatMap(box => box.kind === 'group' ? box.chips.map(chip => [chip.id, chip] as const) : []));
@@ -162,7 +162,7 @@ export function compileBoxes(state: BoxState, conflicts?: Conflicts): string {
     for (const box of state.boxes) {
         if (!box.enabled) continue;
         if (box.kind === 'source') parts.push(sourceMarker(box.excluded));
-        else parts.push(...formatBoxTerms(box.chips.filter(chip => !skipped.has(chip.id)).map(chip => merged.get(chip.id) ?? compileChip(chip)).filter(Boolean), box.format));
+        else parts.push(...formatBoxTerms(box.chips.filter(chip => !skipped.has(chip.id)).map(chip => merged.get(chip.id) ?? compileChip(chip)).filter(Boolean), box.format, legacyEach));
     }
     return parts.join(', ');
 }
@@ -207,7 +207,9 @@ export function stateFromText(text: string, mode = 'after', hasSource = true): B
 
 /** Keep the boxes unless the stored text no longer matches them (changed by an API call or another extension). */
 export function reconcileText(state: BoxState, text: string, mode: string, hasSource: boolean, conflicts?: Conflicts): BoxState {
-    return compileBoxes(state, conflicts) === text || compileBoxes(state) === text ? state : stateFromText(text, mode, hasSource);
+    // Recognize the old duplicate-wrapper serialization so repairing it does
+    // not discard a saved workflow's boxes, weights, names or disabled chips.
+    return compileBoxes(state, conflicts) === text || compileBoxes(state) === text || compileBoxes(state, conflicts, true) === text || compileBoxes(state, undefined, true) === text ? state : stateFromText(text, mode, hasSource);
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value);
@@ -564,7 +566,11 @@ export function groupChip(kind: GroupingKind, tags: string[]): Chip | undefined 
 /** The chips an "Add as" mode makes from tags: one grouped chip, or (each) one optional chip per tag. */
 export function groupChips(mode: AddMode, tags: string[]): Chip[] {
     const clean = [...new Set(tags.map(tag => tag.trim()).filter(Boolean))];
-    if (mode === 'each') return clean.map(tag => ({ id: newId(), kind: 'or', options: [tag], optional: true, enabled: true }));
+    if (mode === 'each') {
+        const box = emptyGroup('', clean.flatMap(parsePrompt));
+        const converted = formatSelectedChips({ version: 1, boxes: [box] }, box.id, box.chips.map(chip => chip.id), mode);
+        return (converted.boxes[0] as GroupBox).chips;
+    }
     if (mode === 'tag') return clean.flatMap(tag => parsePrompt(tag));
     const chip = groupChip(mode, clean);
     return chip ? [chip] : [];
@@ -580,9 +586,14 @@ export function addBoxWithChip(state: BoxState, chip: Chip | Chip[]): BoxState {
 }
 
 /** A box's format applies to its enabled chips and to tags added later, without rewriting chip data. */
-export function formatBoxTerms(terms: string[], mode: AddMode = 'tag'): string[] {
+export function formatBoxTerms(terms: string[], mode: AddMode = 'tag', legacyEach = false): string[] {
     if (!terms.length || mode === 'tag') return terms;
-    if (mode === 'each') return terms.map(term => '{' + term + '|}');
+    if (mode === 'each') return terms.map(term => {
+        const parsed = parsePrompt(term);
+        // Legacy boxes can already contain individually optional chips. A box's
+        // inferred/retained format must not add a second inclusion decision.
+        return !legacyEach && parsed.length === 1 && addModeOf(parsed[0]) === 'each' ? term : '{' + term + '|}';
+    });
     return ['{' + terms.join(mode === 'group' ? ', ' : '|') + (mode === 'alternatives' ? '' : '|') + '}'];
 }
 

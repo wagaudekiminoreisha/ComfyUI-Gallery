@@ -1,4 +1,4 @@
-import { compileChip, editChips, formatSelectedChips, newId, parsePrompt, splitTop, type AddMode, type BoxState, type Chip } from './PromptBoxes';
+import { compileChip, editChips, formatSelectedChips, newId, parsePrompt, splitTop, updateBox, type AddMode, type BoxState, type Chip } from './PromptBoxes';
 import { tagKey } from './TagConflicts';
 
 export const BATCH_BLACKLIST_KEY = 'comfy-gallery-batch-tag-blacklist';
@@ -43,4 +43,18 @@ export function applyBatchTags(state: BoxState, boxId: string, ids: string[], bl
         return [...(remaining ? [remaining] : []), ...made];
     }));
     return action === 'format' ? formatSelectedChips(partitioned, boxId, [...eligible], mode) : partitioned;
+}
+
+/** Contents and an explicit full selection must use the same conversion semantics.
+ * A deliberate whole-box conversion replaces legacy outer syntax; retaining it
+ * would wrap optional leaves again and change their inclusion probabilities.
+ * Loading/editing a workflow alone never rewrites that syntax.
+ */
+export function convertBoxContents(state: BoxState, boxId: string, selectedIds: string[], blacklist: readonly string[], mode: AddMode): BoxState {
+    const box = state.boxes.find(item => item.id === boxId);
+    if (!box || box.kind !== 'group') return state;
+    const ids = selectedIds.length ? selectedIds : eligibleBatchIds(box.chips, blacklist);
+    const all = box.chips.every(chip => ids.includes(chip.id)) && batchTagItems(box.chips).every(item => !blacklist.some(tag => key(tag) === batchTagName(item)));
+    const base = all && box.format ? updateBox(state, boxId, { format: undefined }) : state;
+    return applyBatchTags(base, boxId, ids, blacklist, 'format', mode);
 }

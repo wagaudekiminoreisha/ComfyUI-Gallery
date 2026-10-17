@@ -1,10 +1,10 @@
 import { BatchBlacklistEditor, useBatchTagBlacklist } from './BatchBlacklistEditor';
-import { applyBatchTags, batchTagItems, batchTagName, removeTagsFromChip, availableBatchTags, eligibleBatchIds } from './BatchTagBlacklist';
+import { convertBoxContents, applyBatchTags, batchTagItems, batchTagName, removeTagsFromChip, availableBatchTags, eligibleBatchIds } from './BatchTagBlacklist';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { theme } from 'antd';
 import { dropPromptChip, PROMPT_CHIP_TYPE } from './PromptDrag';
-import { addBox, addBoxWithChip, addChips, addModeOf, ADD_MODES, chipItems, convertChip, withItems, balanced, chipTerms, closesChip, compileChip, editChips, expandKeywords, closeBraces, groupChips, groupingKind, groupingName, GROUPING_LABELS, formatBoxTerms, formatSelectedChips, moveBox, moveBoxTo, moveItem, parsePrompt, parseTyped, pendingKeyword, removeBox, sourceKey, splitChip, splitTop, typingToken, updateBox, type AddMode, type BoxState, type Chip, type GroupBox, type GroupingKind, type OrChip, type SourceBox } from './PromptBoxes';
+import { addBox, addBoxWithChip, addChips, addModeOf, ADD_MODES, chipItems, convertChip, withItems, balanced, chipTerms, closesChip, compileChip, editChips, expandKeywords, closeBraces, groupChips, groupingKind, groupingName, GROUPING_LABELS, formatBoxTerms, moveBox, moveBoxTo, moveItem, parsePrompt, parseTyped, pendingKeyword, removeBox, sourceKey, splitChip, splitTop, typingToken, updateBox, type AddMode, type BoxState, type Chip, type GroupBox, type GroupingKind, type OrChip, type SourceBox } from './PromptBoxes';
 
 export type Suggestion = { label: string; kind: 'tag' | 'prefix'; terms?: string[] };
 /** What the node's `source_text` input currently provides. `text` is known for Gallery Image Source and after a run. */
@@ -370,9 +370,7 @@ function GroupView({ box, index, count, state, onChange, suggest, bare, placehol
     const modes = new Set(formatChips.map(addModeOf));
     const currentFormat = !pickedIds.length && box.format && box.format !== 'tag' ? box.format : modes.size === 1 ? [...modes][0] : 'mixed';
     const convert = (mode: AddMode) => {
-        if (pickedIds.length) onChange(applyBatchTags(state, box.id, pickedIds, blacklist, 'format', mode));
-        else if (box.format && box.format !== 'tag') patch({ format: mode }); // Explicitly change the legacy outer wrapper, retaining all chip data.
-        else onChange(formatSelectedChips(state, box.id, box.chips.map(item => item.id), mode));
+        onChange(convertBoxContents(state, box.id, pickedIds, blacklist, mode));
         clearSelection();
     };
     const preview = formatBoxTerms(box.chips.map(compileChip).filter(Boolean), box.format).join(', ');
@@ -416,10 +414,11 @@ function GroupView({ box, index, count, state, onChange, suggest, bare, placehol
             <Btn label="Delete box" onClick={() => onChange(removeBox(state, box.id))}>×</Btn>
         </div>}
         <div style={S.header}>
-            <label>{pickedIds.length ? 'Convert selection' : 'Convert contents'} <select aria-label="Convert prompt format" value={currentFormat} onChange={event => convert(event.target.value as AddMode)} style={{ ...S.input, borderColor: currentFormat === 'mixed' ? border : modeColor(currentFormat) }}>
-                <option value="mixed" disabled>{formatChips.length ? 'Mixed content' : 'Empty'}</option>
+            <label>{pickedIds.length ? 'Convert selection' : 'Convert contents'} <select aria-label="Convert prompt format" value="" onChange={event => convert(event.target.value as AddMode)} style={{ ...S.input, borderColor: currentFormat === 'mixed' ? border : modeColor(currentFormat) }}>
+                <option value="" disabled>Choose conversion…</option>
                 {ADD_MODES.map(mode => <option key={mode.value} value={mode.value}>{mode.name}</option>)}
             </select></label>
+            <small aria-label="Current prompt format">{currentFormat === 'mixed' ? (formatChips.length ? 'Mixed content' : 'Empty') : ADD_MODES.find(mode => mode.value === currentFormat)?.name}</small>
             {box.format && box.format !== 'tag' && <small title="This loaded workflow wraps the enabled contents; editing chips preserves that wrapper.">Outer group: {box.format}</small>}
             <button type="button" aria-label="Select chips" aria-pressed={selecting} onClick={() => { setSelecting(!selecting); clearSelection(); }} style={S.btn}>Select chips</button>
             <Btn label="Select all chips" disabled={!eligible.length} onClick={() => { setPicked(eligible); setSelected(undefined); setActiveChipId(undefined); }}>Select all</Btn>
@@ -515,7 +514,25 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
     </div>;
 }
 
-export function PromptBoxEditor({ state, source, preview, suggest, onChange, notice }: { state: BoxState; source: SourceInfo; preview: string; suggest: (query: string) => Promise<Suggestion[]>; onChange: (state: BoxState) => void; notice?: string }) {
+function CopyablePrompt({ title, value }: { title: string; value: string }) {
+    const ref = useRef<HTMLTextAreaElement>(null);
+    const [status, setStatus] = useState('');
+    useEffect(() => setStatus(''), [value]);
+    const copy = async () => {
+        try {
+            if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(value);
+            else { ref.current?.focus(); ref.current?.select(); if (!document.execCommand('copy')) throw new Error(); }
+            setStatus('Copied');
+        } catch { ref.current?.focus(); ref.current?.select(); setStatus('Prompt selected. Press Ctrl+C to copy.'); }
+    };
+    return <details><summary style={{ cursor: 'pointer', opacity: .8 }}>{title}</summary>
+        <textarea ref={ref} aria-label={title} readOnly value={value} rows={3} style={{ ...S.input, width: '100%', boxSizing: 'border-box', resize: 'vertical', userSelect: 'text' }} />
+        <button type="button" style={S.btn} onClick={() => void copy()}>Copy {title === 'Prompt sent to the encoder' ? 'prompt' : 'encoded prompt'}</button>
+        {status && <small role="status">{status}</small>}
+    </details>;
+}
+
+export function PromptBoxEditor({ state, source, preview, suggest, onChange, notice, lastEncodedPrompt }: { state: BoxState; source: SourceInfo; preview: string; suggest: (query: string) => Promise<Suggestion[]>; onChange: (state: BoxState) => void; notice?: string; lastEncodedPrompt?: string }) {
     return <div style={S.root} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
         {state.boxes.map((box, index) => box.kind === 'source'
             ? <SourceView key={box.id} box={box} index={index} count={state.boxes.length} state={state} onChange={onChange} source={source} suggest={suggest} />
@@ -524,10 +541,8 @@ export function PromptBoxEditor({ state, source, preview, suggest, onChange, not
             onGroup={(mode, tags) => { const made = groupChips(mode, tags); if (made.length) onChange(addBoxWithChip(state, made)); }}
             onPrefix={(item, head) => onChange(addBox(head ? addBox(state, undefined, head) : state, item.label, (item.terms || []).join(', ')))} />
         {notice && <div role="status" style={{ opacity: .8, color: '#d89614' }}>{notice}</div>}
-        <details>
-            <summary style={{ cursor: 'pointer', opacity: .8 }}>Prompt sent to the encoder</summary>
-            <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', padding: '4px 0', opacity: .85 }}>{preview || '—'}</div>
-        </details>
+        <CopyablePrompt title="Prompt sent to the encoder" value={preview} />
+        {lastEncodedPrompt !== undefined && <CopyablePrompt title="Last encoded prompt (after optional choices)" value={lastEncodedPrompt} />}
     </div>;
 }
 
