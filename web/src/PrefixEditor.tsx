@@ -56,7 +56,7 @@ export function PrefixEditor({ onLoad, shared, seed, active, name, setName, posi
                 <Tabs size="small" items={[
                     { key: 'positive', label: 'Positive terms (' + positive.length + ')', children: <Space direction="vertical" style={{ width: '100%' }}>
                         {(!!seed.positive || !!seed.hydrus) && <Space wrap>{(['positive', 'hydrus'] as const).map(side => <Button key={side} disabled={!seed[side]?.length} onClick={() => add(side)}>Add image {side} ({seed[side]?.length || 0})</Button>)}</Space>}
-                        <TermsEditor value={positive} onChange={terms => setPositive(terms)} suggest={suggest} placeholder="Terms: tags, {a|} or a OPT, a OR b, (tag:0.5), @prefix" />
+                        <TermsEditor clothingReview value={positive} onChange={terms => setPositive(terms)} suggest={suggest} placeholder="Terms: tags, {a|} or a OPT, a OR b, (tag:0.5), @prefix" />
                         <Button size="small" disabled={!positive.length} onClick={() => setPositive([])}>Clear positive terms</Button>
                     </Space> },
                     { key: 'negative', label: 'Negative terms (' + negative.length + ')', children: <Space direction="vertical" style={{ width: '100%' }}>

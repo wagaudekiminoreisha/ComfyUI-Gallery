@@ -1,0 +1,492 @@
+{
+  "version": 1,
+  "status": "draft_candidates_not_for_automatic_enforcement",
+  "source_vocabulary": "data/danbooru-source.json",
+  "facets": [
+    {
+      "id": "hair.presence",
+      "scope_kind": "scalp",
+      "cardinality": "contextual",
+      "status": "candidate",
+      "members": [
+        "bald",
+        "balding"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "hair.length",
+      "scope_kind": "hair_region",
+      "cardinality": "contextual",
+      "status": "candidate",
+      "members": [
+        "very_short_hair",
+        "short_hair",
+        "medium_hair",
+        "long_hair",
+        "very_long_hair",
+        "absurdly_long_hair",
+        "short_hair_with_long_locks"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "hair.colour",
+      "scope_kind": "hair_region",
+      "cardinality": "many",
+      "status": "candidate",
+      "members": [
+        "blonde_hair",
+        "black_hair",
+        "blue_hair",
+        "brown_hair",
+        "green_hair",
+        "grey_hair",
+        "orange_hair",
+        "pink_hair",
+        "purple_hair",
+        "red_hair",
+        "white_hair",
+        "aqua_hair"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "hair.colour_distribution",
+      "scope_kind": "hair_region",
+      "cardinality": "many",
+      "status": "candidate",
+      "members": [
+        "multicolored_hair",
+        "two-tone_hair",
+        "gradient_hair",
+        "streaked_hair",
+        "colored_inner_hair",
+        "split-color_hair"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "hair.arrangement",
+      "scope_kind": "hair_region",
+      "cardinality": "many",
+      "status": "candidate",
+      "members": [
+        "ponytail",
+        "side_ponytail",
+        "twintails",
+        "braid",
+        "twin_braids",
+        "single_braid",
+        "hair_bun",
+        "double_bun",
+        "half_updo",
+        "drill_hair"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "hair.texture",
+      "scope_kind": "hair_region",
+      "cardinality": "many",
+      "status": "candidate",
+      "members": [
+        "straight_hair",
+        "wavy_hair",
+        "curly_hair",
+        "messy_hair",
+        "spiked_hair"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "hair.detail",
+      "scope_kind": "hair_region",
+      "cardinality": "many",
+      "status": "candidate",
+      "members": [
+        "sidelocks",
+        "ahoge",
+        "antenna_hair",
+        "blunt_bangs",
+        "parted_bangs",
+        "swept_bangs",
+        "hair_over_one_eye",
+        "hair_intakes"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "hair.accessory",
+      "scope_kind": "item",
+      "cardinality": "many",
+      "status": "candidate",
+      "members": [
+        "hair_ribbon",
+        "hair_bow",
+        "hairband",
+        "hairclip",
+        "hair_flower",
+        "scrunchie",
+        "hair_tie",
+        "hair_rings",
+        "hair_bell"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "eyes.colour",
+      "scope_kind": "eye",
+      "cardinality": "contextual",
+      "status": "candidate",
+      "members": [
+        "blue_eyes",
+        "brown_eyes",
+        "green_eyes",
+        "red_eyes",
+        "grey_eyes",
+        "purple_eyes",
+        "yellow_eyes",
+        "heterochromia",
+        "multicolored_eyes"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "eyes.state",
+      "scope_kind": "eye",
+      "cardinality": "contextual",
+      "status": "candidate",
+      "members": [
+        "closed_eyes",
+        "half-closed_eyes",
+        "one_eye_closed",
+        "winking_(animated)",
+        "wide-eyed"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "eyes.gaze",
+      "scope_kind": "subject",
+      "cardinality": "contextual",
+      "status": "candidate",
+      "members": [
+        "looking_at_viewer",
+        "looking_up",
+        "looking_down",
+        "looking_back"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "face.expression",
+      "scope_kind": "subject",
+      "cardinality": "many",
+      "status": "candidate",
+      "members": [
+        "smile",
+        "crying",
+        "laughing",
+        "angry",
+        "sad",
+        "embarrassed",
+        "expressionless",
+        "nervous"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "face.mouth",
+      "scope_kind": "mouth",
+      "cardinality": "many",
+      "status": "candidate",
+      "members": [
+        "open_mouth",
+        "closed_mouth",
+        "parted_lips",
+        "tongue_out",
+        "clenched_teeth"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "body.primary_posture",
+      "scope_kind": "subject_at_instant",
+      "cardinality": "contextual",
+      "status": "candidate",
+      "members": [
+        "standing",
+        "sitting",
+        "kneeling",
+        "lying",
+        "squatting",
+        "all_fours"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "body.locomotion",
+      "scope_kind": "subject_at_instant",
+      "cardinality": "contextual",
+      "status": "candidate",
+      "members": [
+        "walking",
+        "running",
+        "jumping",
+        "crawling",
+        "swimming",
+        "flying"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "body.arm_pose",
+      "scope_kind": "arm",
+      "cardinality": "contextual",
+      "status": "candidate",
+      "members": [
+        "arms_up",
+        "arms_behind_back",
+        "crossed_arms",
+        "hand_on_own_hip",
+        "outstretched_arms"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "clothing.garment",
+      "scope_kind": "item",
+      "cardinality": "many",
+      "status": "candidate",
+      "members": [
+        "shirt",
+        "jacket",
+        "coat",
+        "dress",
+        "skirt",
+        "pants",
+        "shorts",
+        "sweater",
+        "hoodie",
+        "vest"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "clothing.material",
+      "scope_kind": "item",
+      "cardinality": "many",
+      "status": "candidate",
+      "members": [
+        "leather",
+        "latex",
+        "denim",
+        "silk",
+        "wool",
+        "see-through_clothes"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "clothing.pattern",
+      "scope_kind": "item_region",
+      "cardinality": "many",
+      "status": "candidate",
+      "members": [
+        "striped_clothes",
+        "polka_dot",
+        "floral_print",
+        "checkered_clothes"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "accessory.item",
+      "scope_kind": "item",
+      "cardinality": "many",
+      "status": "candidate",
+      "members": [
+        "glasses",
+        "sunglasses",
+        "necklace",
+        "earrings",
+        "bracelet",
+        "gloves",
+        "hat",
+        "scarf"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "scene.weather",
+      "scope_kind": "scene_region_at_instant",
+      "cardinality": "many",
+      "status": "candidate",
+      "members": [
+        "rain",
+        "snow",
+        "fog",
+        "cloudy_sky",
+        "clear_sky",
+        "wind",
+        "storm",
+        "lightning",
+        "rainbow"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "scene.time",
+      "scope_kind": "scene_region_at_instant",
+      "cardinality": "contextual",
+      "status": "candidate",
+      "members": [
+        "day",
+        "night",
+        "dusk",
+        "dawn",
+        "sunrise",
+        "sunset",
+        "twilight"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "lighting.effect",
+      "scope_kind": "scene_region",
+      "cardinality": "many",
+      "status": "candidate",
+      "members": [
+        "backlighting",
+        "sidelighting",
+        "underlighting",
+        "dappled_sunlight"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "framing.crop",
+      "scope_kind": "view",
+      "cardinality": "contextual",
+      "status": "candidate",
+      "members": [
+        "close-up",
+        "upper_body",
+        "full_body",
+        "cowboy_shot",
+        "portrait"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "framing.viewpoint",
+      "scope_kind": "subject_view",
+      "cardinality": "contextual",
+      "status": "candidate",
+      "members": [
+        "from_above",
+        "from_below",
+        "from_side",
+        "from_behind",
+        "dutch_angle",
+        "foreshortening"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "scene.subject_count",
+      "scope_kind": "scene",
+      "cardinality": "contextual",
+      "status": "candidate",
+      "members": [
+        "solo",
+        "1girl",
+        "2girls",
+        "3girls",
+        "1boy",
+        "2boys",
+        "3boys",
+        "multiple_girls",
+        "multiple_boys"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    },
+    {
+      "id": "render.medium",
+      "scope_kind": "image_region",
+      "cardinality": "many",
+      "status": "candidate",
+      "members": [
+        "traditional_media",
+        "watercolor_(medium)",
+        "oil_painting_(medium)",
+        "sketch",
+        "lineart",
+        "monochrome",
+        "greyscale",
+        "photorealistic"
+      ],
+      "note": "Topic/facet candidates only. This list is not an exclusive set and must not generate pairwise exclusions."
+    }
+  ],
+  "unmapped_candidates": [
+    {
+      "facet": "eyes.gaze",
+      "requested_name": "looking_away"
+    },
+    {
+      "facet": "clothing.pattern",
+      "requested_name": "plaid"
+    },
+    {
+      "facet": "lighting.effect",
+      "requested_name": "rim_lighting"
+    },
+    {
+      "facet": "lighting.effect",
+      "requested_name": "volumetric_lighting"
+    },
+    {
+      "facet": "lighting.effect",
+      "requested_name": "colored_lighting"
+    },
+    {
+      "facet": "framing.crop",
+      "requested_name": "face_focus"
+    },
+    {
+      "facet": "render.medium",
+      "requested_name": "digital_media"
+    }
+  ],
+  "relationship_examples": [
+    {
+      "tags": [
+        "sidelocks",
+        "blonde_hair"
+      ],
+      "judgement": "compatible_example",
+      "scope": "same subject; hair detail and colour",
+      "status": "candidate"
+    },
+    {
+      "tags": [
+        "short_hair",
+        "long_hair"
+      ],
+      "judgement": "conditional",
+      "scope": "same subject, same hair region; consider long locks and extensions",
+      "status": "candidate"
+    },
+    {
+      "tags": [
+        "sitting",
+        "standing"
+      ],
+      "judgement": "conditional_conflict",
+      "scope": "same subject, same instant, one primary pose",
+      "status": "candidate"
+    }
+  ]
+}

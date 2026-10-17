@@ -1,0 +1,5431 @@
+{
+  "version": 1,
+  "id": "gallery-global-rules",
+  "revision": "2026-10-18.1",
+  "provenance": {
+    "vocabulary": {
+      "repository": "DominikDoom/a1111-sd-webui-tagcomplete",
+      "commit": "4170882f90b47be130a0ff9314f663c230b9153d",
+      "url": "https://raw.githubusercontent.com/DominikDoom/a1111-sd-webui-tagcomplete/4170882f90b47be130a0ff9314f663c230b9153d/tags/danbooru.csv",
+      "sha256": "f936684fa0b041e9a55d35f2052588e28d95eef8672be6829241f8b1a7214732",
+      "rows": 140782,
+      "retrieved": "2026-10-01"
+    },
+    "semantics": "Gallery authored candidate heuristics; not Danbooru wiki assertions or corpus-derived probabilities."
+  },
+  "defaults": {
+    "missing_relation": "unknown",
+    "enforcement": "advisory",
+    "missing_scope": "conditional",
+    "negative_prompt": "separate",
+    "alternatives": "branch_local"
+  },
+  "facets": [
+    {
+      "id": "hair.length",
+      "label": "Hair length",
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "mode": "one",
+      "rationale": "Primary lengths compete only for the same hair region; longer subtypes are not mutually exclusive with long hair.",
+      "members": [
+        {
+          "tag": "very_short_hair",
+          "value": "short"
+        },
+        {
+          "tag": "short_hair",
+          "value": "short"
+        },
+        {
+          "tag": "medium_hair",
+          "value": "medium"
+        },
+        {
+          "tag": "long_hair",
+          "value": "long"
+        },
+        {
+          "tag": "very_long_hair",
+          "value": "long"
+        },
+        {
+          "tag": "absurdly_long_hair",
+          "value": "long"
+        }
+      ]
+    },
+    {
+      "id": "hair.colour",
+      "label": "Hair colour",
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "mode": "mix",
+      "rationale": "Multiple colours can describe dyed sections, gradients or different subjects. Colour is not globally exclusive.",
+      "members": [
+        {
+          "tag": "black_hair",
+          "value": "black"
+        },
+        {
+          "tag": "blonde_hair",
+          "value": "blonde"
+        },
+        {
+          "tag": "brown_hair",
+          "value": "brown"
+        },
+        {
+          "tag": "blue_hair",
+          "value": "blue"
+        },
+        {
+          "tag": "aqua_hair",
+          "value": "aqua"
+        },
+        {
+          "tag": "green_hair",
+          "value": "green"
+        },
+        {
+          "tag": "grey_hair",
+          "value": "grey"
+        },
+        {
+          "tag": "orange_hair",
+          "value": "orange"
+        },
+        {
+          "tag": "pink_hair",
+          "value": "pink"
+        },
+        {
+          "tag": "purple_hair",
+          "value": "purple"
+        },
+        {
+          "tag": "red_hair",
+          "value": "red"
+        },
+        {
+          "tag": "white_hair",
+          "value": "white"
+        },
+        {
+          "tag": "light_blue_hair",
+          "value": "light_blue"
+        },
+        {
+          "tag": "dark_blue_hair",
+          "value": "dark_blue"
+        }
+      ]
+    },
+    {
+      "id": "hair.distribution",
+      "label": "Hair colour distribution",
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "multicolored_hair",
+          "value": "mixed"
+        },
+        {
+          "tag": "two-tone_hair",
+          "value": "mixed"
+        },
+        {
+          "tag": "split-color_hair",
+          "value": "mixed"
+        },
+        {
+          "tag": "gradient_hair",
+          "value": "gradient"
+        },
+        {
+          "tag": "streaked_hair",
+          "value": "streaks"
+        },
+        {
+          "tag": "colored_inner_hair",
+          "value": "inner"
+        }
+      ]
+    },
+    {
+      "id": "hair.presence",
+      "label": "Scalp hair presence",
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "bald",
+          "value": "absent"
+        },
+        {
+          "tag": "balding",
+          "value": "partial"
+        }
+      ]
+    },
+    {
+      "id": "hair.arrangement",
+      "label": "Hair arrangement",
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "ponytail",
+          "value": "ponytail"
+        },
+        {
+          "tag": "high_ponytail",
+          "value": "ponytail"
+        },
+        {
+          "tag": "low_ponytail",
+          "value": "ponytail"
+        },
+        {
+          "tag": "side_ponytail",
+          "value": "ponytail"
+        },
+        {
+          "tag": "twintails",
+          "value": "tails"
+        },
+        {
+          "tag": "low_twintails",
+          "value": "tails"
+        },
+        {
+          "tag": "short_twintails",
+          "value": "tails"
+        },
+        {
+          "tag": "braid",
+          "value": "braid"
+        },
+        {
+          "tag": "single_braid",
+          "value": "braid"
+        },
+        {
+          "tag": "twin_braids",
+          "value": "braid"
+        },
+        {
+          "tag": "side_braid",
+          "value": "braid"
+        },
+        {
+          "tag": "crown_braid",
+          "value": "braid"
+        },
+        {
+          "tag": "hair_bun",
+          "value": "bun"
+        },
+        {
+          "tag": "double_bun",
+          "value": "bun"
+        },
+        {
+          "tag": "single_hair_bun",
+          "value": "bun"
+        },
+        {
+          "tag": "hair_down",
+          "value": "loose"
+        },
+        {
+          "tag": "updo",
+          "value": "up"
+        }
+      ]
+    },
+    {
+      "id": "hair.texture",
+      "label": "Hair texture",
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "straight_hair",
+          "value": "straight"
+        },
+        {
+          "tag": "wavy_hair",
+          "value": "wavy"
+        },
+        {
+          "tag": "curly_hair",
+          "value": "curly"
+        },
+        {
+          "tag": "drill_hair",
+          "value": "drill"
+        },
+        {
+          "tag": "messy_hair",
+          "value": "messy"
+        }
+      ]
+    },
+    {
+      "id": "hair.details",
+      "label": "Hair details",
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "sidelocks",
+          "value": "locks"
+        },
+        {
+          "tag": "long_sidelocks",
+          "value": "locks"
+        },
+        {
+          "tag": "short_sidelocks",
+          "value": "locks"
+        },
+        {
+          "tag": "blunt_bangs",
+          "value": "bangs"
+        },
+        {
+          "tag": "parted_bangs",
+          "value": "bangs"
+        },
+        {
+          "tag": "swept_bangs",
+          "value": "bangs"
+        },
+        {
+          "tag": "asymmetrical_bangs",
+          "value": "bangs"
+        },
+        {
+          "tag": "ahoge",
+          "value": "strands"
+        },
+        {
+          "tag": "antenna_hair",
+          "value": "strands"
+        },
+        {
+          "tag": "hair_flaps",
+          "value": "strands"
+        }
+      ]
+    },
+    {
+      "id": "hair.alteration",
+      "label": "Hair additions and regional differences",
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "wig",
+          "value": "added"
+        },
+        {
+          "tag": "hair_extensions",
+          "value": "added"
+        },
+        {
+          "tag": "short_hair_with_long_locks",
+          "value": "regional"
+        },
+        {
+          "tag": "asymmetrical_hair",
+          "value": "regional"
+        }
+      ]
+    },
+    {
+      "id": "hair.bangs-length",
+      "label": "Bangs length",
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "mode": "one",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "short_bangs",
+          "value": "short"
+        },
+        {
+          "tag": "long_bangs",
+          "value": "long"
+        }
+      ]
+    },
+    {
+      "id": "eyes.colour",
+      "label": "Eye colour",
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "mode": "mix",
+      "rationale": "Different eyes and multicoloured irises permit multiple colours.",
+      "members": [
+        {
+          "tag": "black_eyes",
+          "value": "black"
+        },
+        {
+          "tag": "blue_eyes",
+          "value": "blue"
+        },
+        {
+          "tag": "brown_eyes",
+          "value": "brown"
+        },
+        {
+          "tag": "green_eyes",
+          "value": "green"
+        },
+        {
+          "tag": "grey_eyes",
+          "value": "grey"
+        },
+        {
+          "tag": "orange_eyes",
+          "value": "orange"
+        },
+        {
+          "tag": "pink_eyes",
+          "value": "pink"
+        },
+        {
+          "tag": "purple_eyes",
+          "value": "purple"
+        },
+        {
+          "tag": "red_eyes",
+          "value": "red"
+        },
+        {
+          "tag": "white_eyes",
+          "value": "white"
+        },
+        {
+          "tag": "yellow_eyes",
+          "value": "yellow"
+        },
+        {
+          "tag": "aqua_eyes",
+          "value": "aqua"
+        }
+      ]
+    },
+    {
+      "id": "eyes.aperture",
+      "label": "Eye openness",
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "mode": "one",
+      "rationale": "Different eyes can differ; warnings assume the same eye and instant.",
+      "members": [
+        {
+          "tag": "closed_eyes",
+          "value": "closed"
+        },
+        {
+          "tag": "wide-eyed",
+          "value": "open"
+        }
+      ]
+    },
+    {
+      "id": "eyes.details",
+      "label": "Eye details",
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "heterochromia",
+          "value": "mixed"
+        },
+        {
+          "tag": "multicolored_eyes",
+          "value": "mixed"
+        },
+        {
+          "tag": "slit_pupils",
+          "value": "pupils"
+        },
+        {
+          "tag": "horizontal_pupils",
+          "value": "pupils"
+        },
+        {
+          "tag": "heart-shaped_pupils",
+          "value": "pupils"
+        },
+        {
+          "tag": "star-shaped_pupils",
+          "value": "pupils"
+        },
+        {
+          "tag": "eyelashes",
+          "value": "lashes"
+        },
+        {
+          "tag": "long_eyelashes",
+          "value": "lashes"
+        },
+        {
+          "tag": "glasses",
+          "value": "eyewear"
+        },
+        {
+          "tag": "sunglasses",
+          "value": "eyewear"
+        },
+        {
+          "tag": "monocle",
+          "value": "eyewear"
+        }
+      ]
+    },
+    {
+      "id": "mouth.openness",
+      "label": "Mouth openness",
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "mode": "one",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "open_mouth",
+          "value": "open"
+        },
+        {
+          "tag": "closed_mouth",
+          "value": "closed"
+        }
+      ]
+    },
+    {
+      "id": "expression.emotion",
+      "label": "Expression and emotion",
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Emotions can blend; crying and smiling are deliberately compatible.",
+      "members": [
+        {
+          "tag": "smile",
+          "value": "happy"
+        },
+        {
+          "tag": "grin",
+          "value": "happy"
+        },
+        {
+          "tag": "laughing",
+          "value": "happy"
+        },
+        {
+          "tag": "happy",
+          "value": "happy"
+        },
+        {
+          "tag": "sad",
+          "value": "sad"
+        },
+        {
+          "tag": "crying",
+          "value": "sad"
+        },
+        {
+          "tag": "tears",
+          "value": "sad"
+        },
+        {
+          "tag": "angry",
+          "value": "angry"
+        },
+        {
+          "tag": "frown",
+          "value": "angry"
+        },
+        {
+          "tag": "scowl",
+          "value": "angry"
+        },
+        {
+          "tag": "surprised",
+          "value": "surprised"
+        },
+        {
+          "tag": "blush",
+          "value": "embarrassed"
+        },
+        {
+          "tag": "embarrassed",
+          "value": "embarrassed"
+        },
+        {
+          "tag": "expressionless",
+          "value": "calm"
+        },
+        {
+          "tag": "bored",
+          "value": "calm"
+        },
+        {
+          "tag": "sleepy",
+          "value": "calm"
+        },
+        {
+          "tag": "crying_with_eyes_open",
+          "value": "mixed"
+        },
+        {
+          "tag": "nervous_smile",
+          "value": "mixed"
+        },
+        {
+          "tag": "evil_smile",
+          "value": "mixed"
+        },
+        {
+          "tag": "smug",
+          "value": "mixed"
+        }
+      ]
+    },
+    {
+      "id": "skin.colour",
+      "label": "Skin colour",
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "mode": "mix",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "pale_skin",
+          "value": "light"
+        },
+        {
+          "tag": "dark_skin",
+          "value": "dark"
+        },
+        {
+          "tag": "dark-skinned_female",
+          "value": "dark"
+        },
+        {
+          "tag": "dark-skinned_male",
+          "value": "dark"
+        },
+        {
+          "tag": "tan",
+          "value": "tan"
+        },
+        {
+          "tag": "blue_skin",
+          "value": "blue"
+        },
+        {
+          "tag": "green_skin",
+          "value": "green"
+        },
+        {
+          "tag": "red_skin",
+          "value": "red"
+        },
+        {
+          "tag": "grey_skin",
+          "value": "grey"
+        },
+        {
+          "tag": "white_skin",
+          "value": "white"
+        },
+        {
+          "tag": "purple_skin",
+          "value": "purple"
+        }
+      ]
+    },
+    {
+      "id": "skin.details",
+      "label": "Skin details",
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "freckles",
+          "value": "marks"
+        },
+        {
+          "tag": "mole",
+          "value": "marks"
+        },
+        {
+          "tag": "scar",
+          "value": "marks"
+        },
+        {
+          "tag": "tattoo",
+          "value": "marks"
+        },
+        {
+          "tag": "birthmark",
+          "value": "marks"
+        },
+        {
+          "tag": "sweat",
+          "value": "surface"
+        },
+        {
+          "tag": "wet",
+          "value": "surface"
+        },
+        {
+          "tag": "shiny_skin",
+          "value": "surface"
+        },
+        {
+          "tag": "tanlines",
+          "value": "pattern"
+        },
+        {
+          "tag": "bodypaint",
+          "value": "pattern"
+        },
+        {
+          "tag": "colored_skin",
+          "value": "pattern"
+        }
+      ]
+    },
+    {
+      "id": "body.build",
+      "label": "Body build",
+      "scope": [
+        "subject",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "skinny",
+          "value": "slim"
+        },
+        {
+          "tag": "muscular",
+          "value": "muscular"
+        },
+        {
+          "tag": "muscular_female",
+          "value": "muscular"
+        },
+        {
+          "tag": "muscular_male",
+          "value": "muscular"
+        },
+        {
+          "tag": "plump",
+          "value": "soft"
+        },
+        {
+          "tag": "fat",
+          "value": "soft"
+        },
+        {
+          "tag": "tall",
+          "value": "tall"
+        },
+        {
+          "tag": "tall_female",
+          "value": "tall"
+        },
+        {
+          "tag": "tall_male",
+          "value": "tall"
+        },
+        {
+          "tag": "short_male",
+          "value": "short"
+        }
+      ]
+    },
+    {
+      "id": "body.features",
+      "label": "Body features",
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Fantasy, hybrid anatomy and prostheses are not contradictions with human features.",
+      "members": [
+        {
+          "tag": "pointy_ears",
+          "value": "ears"
+        },
+        {
+          "tag": "animal_ears",
+          "value": "ears"
+        },
+        {
+          "tag": "cat_ears",
+          "value": "ears"
+        },
+        {
+          "tag": "fox_ears",
+          "value": "ears"
+        },
+        {
+          "tag": "rabbit_ears",
+          "value": "ears"
+        },
+        {
+          "tag": "horns",
+          "value": "horns"
+        },
+        {
+          "tag": "antlers",
+          "value": "horns"
+        },
+        {
+          "tag": "tail",
+          "value": "tail"
+        },
+        {
+          "tag": "multiple_tails",
+          "value": "tail"
+        },
+        {
+          "tag": "wings",
+          "value": "wings"
+        },
+        {
+          "tag": "multiple_wings",
+          "value": "wings"
+        },
+        {
+          "tag": "prosthesis",
+          "value": "artificial"
+        },
+        {
+          "tag": "mechanical_arms",
+          "value": "artificial"
+        },
+        {
+          "tag": "mechanical_legs",
+          "value": "artificial"
+        }
+      ]
+    },
+    {
+      "id": "body.handedness",
+      "label": "Handedness",
+      "scope": [
+        "subject",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "left-handed",
+          "value": "left"
+        }
+      ]
+    },
+    {
+      "id": "body.visibility",
+      "label": "Visible body regions",
+      "scope": [
+        "subject",
+        "view",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "feet",
+          "value": "feet"
+        },
+        {
+          "tag": "torso",
+          "value": "torso"
+        },
+        {
+          "tag": "legs",
+          "value": "legs"
+        }
+      ]
+    },
+    {
+      "id": "pose.support",
+      "label": "Primary body support",
+      "scope": [
+        "subject",
+        "frame"
+      ],
+      "mode": "one",
+      "rationale": "Primary support differs only for one body at one instant; transitional poses and kneeling seats require context.",
+      "members": [
+        {
+          "tag": "standing",
+          "value": "standing"
+        },
+        {
+          "tag": "sitting",
+          "value": "sitting"
+        },
+        {
+          "tag": "lying",
+          "value": "lying"
+        },
+        {
+          "tag": "kneeling",
+          "value": "kneeling"
+        },
+        {
+          "tag": "squatting",
+          "value": "squatting"
+        }
+      ]
+    },
+    {
+      "id": "pose.lying-direction",
+      "label": "Lying direction",
+      "scope": [
+        "subject",
+        "frame"
+      ],
+      "mode": "one",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "on_back",
+          "value": "back"
+        },
+        {
+          "tag": "on_stomach",
+          "value": "front"
+        },
+        {
+          "tag": "on_side",
+          "value": "side"
+        }
+      ]
+    },
+    {
+      "id": "pose.gait",
+      "label": "Movement",
+      "scope": [
+        "subject",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Actions can overlap or be transitional; this is not an exclusive list.",
+      "members": [
+        {
+          "tag": "walking",
+          "value": "walking"
+        },
+        {
+          "tag": "running",
+          "value": "running"
+        },
+        {
+          "tag": "jumping",
+          "value": "jumping"
+        },
+        {
+          "tag": "flying",
+          "value": "flying"
+        },
+        {
+          "tag": "swimming",
+          "value": "swimming"
+        },
+        {
+          "tag": "dancing",
+          "value": "dancing"
+        }
+      ]
+    },
+    {
+      "id": "pose.arms",
+      "label": "Arm pose",
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "arms_up",
+          "value": "up"
+        },
+        {
+          "tag": "arm_up",
+          "value": "up"
+        },
+        {
+          "tag": "arms_at_sides",
+          "value": "down"
+        },
+        {
+          "tag": "crossed_arms",
+          "value": "crossed"
+        },
+        {
+          "tag": "arms_behind_back",
+          "value": "behind"
+        },
+        {
+          "tag": "arms_behind_head",
+          "value": "behind"
+        },
+        {
+          "tag": "outstretched_arms",
+          "value": "forward"
+        }
+      ]
+    },
+    {
+      "id": "pose.legs",
+      "label": "Leg pose",
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "crossed_legs",
+          "value": "crossed"
+        },
+        {
+          "tag": "spread_legs",
+          "value": "spread"
+        },
+        {
+          "tag": "legs_together",
+          "value": "together"
+        },
+        {
+          "tag": "leg_up",
+          "value": "raised"
+        },
+        {
+          "tag": "bent_knees",
+          "value": "bent"
+        }
+      ]
+    },
+    {
+      "id": "pose.hand",
+      "label": "Hand gestures",
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Gestures belong to individual hands; two hands can perform different gestures.",
+      "members": [
+        {
+          "tag": "clenched_hand",
+          "value": "fist"
+        },
+        {
+          "tag": "open_hand",
+          "value": "open"
+        },
+        {
+          "tag": "spread_fingers",
+          "value": "open"
+        },
+        {
+          "tag": "pointing",
+          "value": "point"
+        },
+        {
+          "tag": "pointing_at_viewer",
+          "value": "point"
+        },
+        {
+          "tag": "v",
+          "value": "sign"
+        },
+        {
+          "tag": "double_v",
+          "value": "sign"
+        },
+        {
+          "tag": "thumbs_up",
+          "value": "sign"
+        },
+        {
+          "tag": "finger_gun",
+          "value": "sign"
+        },
+        {
+          "tag": "holding",
+          "value": "hold"
+        },
+        {
+          "tag": "holding_hands",
+          "value": "hold"
+        }
+      ]
+    },
+    {
+      "id": "gaze.direction",
+      "label": "Gaze direction",
+      "scope": [
+        "subject",
+        "region",
+        "view",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Head direction, eye direction and different eyes are not conflated into an exclusive list.",
+      "members": [
+        {
+          "tag": "looking_at_viewer",
+          "value": "viewer"
+        },
+        {
+          "tag": "looking_up",
+          "value": "up"
+        },
+        {
+          "tag": "looking_down",
+          "value": "down"
+        },
+        {
+          "tag": "looking_to_the_side",
+          "value": "side"
+        },
+        {
+          "tag": "looking_back",
+          "value": "back"
+        }
+      ]
+    },
+    {
+      "id": "interaction.action",
+      "label": "Interactions",
+      "scope": [
+        "subject",
+        "target",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "hug",
+          "value": "embrace"
+        },
+        {
+          "tag": "kiss",
+          "value": "kiss"
+        },
+        {
+          "tag": "fighting",
+          "value": "fight"
+        },
+        {
+          "tag": "carrying",
+          "value": "carry"
+        },
+        {
+          "tag": "princess_carry",
+          "value": "carry"
+        },
+        {
+          "tag": "piggyback",
+          "value": "carry"
+        },
+        {
+          "tag": "hand_on_another's_head",
+          "value": "touch"
+        },
+        {
+          "tag": "headpat",
+          "value": "touch"
+        },
+        {
+          "tag": "talking",
+          "value": "talk"
+        }
+      ]
+    },
+    {
+      "id": "clothes.upper-colour",
+      "label": "Upper garment colour",
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "mode": "mix",
+      "rationale": "Colours may occupy separate panels, layers or accessories, including one patterned garment.",
+      "members": [
+        {
+          "tag": "black_shirt",
+          "value": "black"
+        },
+        {
+          "tag": "white_shirt",
+          "value": "white"
+        },
+        {
+          "tag": "grey_shirt",
+          "value": "grey"
+        },
+        {
+          "tag": "brown_shirt",
+          "value": "brown"
+        },
+        {
+          "tag": "blue_shirt",
+          "value": "blue"
+        },
+        {
+          "tag": "green_shirt",
+          "value": "green"
+        },
+        {
+          "tag": "red_shirt",
+          "value": "red"
+        },
+        {
+          "tag": "pink_shirt",
+          "value": "pink"
+        },
+        {
+          "tag": "purple_shirt",
+          "value": "purple"
+        },
+        {
+          "tag": "yellow_shirt",
+          "value": "yellow"
+        },
+        {
+          "tag": "orange_shirt",
+          "value": "orange"
+        },
+        {
+          "tag": "aqua_shirt",
+          "value": "aqua"
+        },
+        {
+          "tag": "multicolored_shirt",
+          "value": "multicolored"
+        }
+      ]
+    },
+    {
+      "id": "clothes.skirt-colour",
+      "label": "Skirt colour",
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "mode": "mix",
+      "rationale": "Colours may occupy separate panels, layers or accessories, including one patterned garment.",
+      "members": [
+        {
+          "tag": "black_skirt",
+          "value": "black"
+        },
+        {
+          "tag": "white_skirt",
+          "value": "white"
+        },
+        {
+          "tag": "grey_skirt",
+          "value": "grey"
+        },
+        {
+          "tag": "brown_skirt",
+          "value": "brown"
+        },
+        {
+          "tag": "blue_skirt",
+          "value": "blue"
+        },
+        {
+          "tag": "green_skirt",
+          "value": "green"
+        },
+        {
+          "tag": "red_skirt",
+          "value": "red"
+        },
+        {
+          "tag": "pink_skirt",
+          "value": "pink"
+        },
+        {
+          "tag": "purple_skirt",
+          "value": "purple"
+        },
+        {
+          "tag": "yellow_skirt",
+          "value": "yellow"
+        },
+        {
+          "tag": "orange_skirt",
+          "value": "orange"
+        },
+        {
+          "tag": "aqua_skirt",
+          "value": "aqua"
+        },
+        {
+          "tag": "silver_skirt",
+          "value": "silver"
+        },
+        {
+          "tag": "multicolored_skirt",
+          "value": "multicolored"
+        }
+      ]
+    },
+    {
+      "id": "clothes.dress-colour",
+      "label": "Dress colour",
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "mode": "mix",
+      "rationale": "Colours may occupy separate panels, layers or accessories, including one patterned garment.",
+      "members": [
+        {
+          "tag": "black_dress",
+          "value": "black"
+        },
+        {
+          "tag": "white_dress",
+          "value": "white"
+        },
+        {
+          "tag": "grey_dress",
+          "value": "grey"
+        },
+        {
+          "tag": "brown_dress",
+          "value": "brown"
+        },
+        {
+          "tag": "blue_dress",
+          "value": "blue"
+        },
+        {
+          "tag": "green_dress",
+          "value": "green"
+        },
+        {
+          "tag": "red_dress",
+          "value": "red"
+        },
+        {
+          "tag": "pink_dress",
+          "value": "pink"
+        },
+        {
+          "tag": "purple_dress",
+          "value": "purple"
+        },
+        {
+          "tag": "yellow_dress",
+          "value": "yellow"
+        },
+        {
+          "tag": "orange_dress",
+          "value": "orange"
+        },
+        {
+          "tag": "aqua_dress",
+          "value": "aqua"
+        },
+        {
+          "tag": "gold_dress",
+          "value": "gold"
+        },
+        {
+          "tag": "silver_dress",
+          "value": "silver"
+        },
+        {
+          "tag": "multicolored_dress",
+          "value": "multicolored"
+        }
+      ]
+    },
+    {
+      "id": "clothes.pants-colour",
+      "label": "Trouser colour",
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "mode": "mix",
+      "rationale": "Colours may occupy separate panels, layers or accessories, including one patterned garment.",
+      "members": [
+        {
+          "tag": "black_pants",
+          "value": "black"
+        },
+        {
+          "tag": "white_pants",
+          "value": "white"
+        },
+        {
+          "tag": "grey_pants",
+          "value": "grey"
+        },
+        {
+          "tag": "brown_pants",
+          "value": "brown"
+        },
+        {
+          "tag": "blue_pants",
+          "value": "blue"
+        },
+        {
+          "tag": "green_pants",
+          "value": "green"
+        },
+        {
+          "tag": "red_pants",
+          "value": "red"
+        },
+        {
+          "tag": "pink_pants",
+          "value": "pink"
+        },
+        {
+          "tag": "purple_pants",
+          "value": "purple"
+        },
+        {
+          "tag": "yellow_pants",
+          "value": "yellow"
+        },
+        {
+          "tag": "orange_pants",
+          "value": "orange"
+        },
+        {
+          "tag": "aqua_pants",
+          "value": "aqua"
+        },
+        {
+          "tag": "multicolored_pants",
+          "value": "multicolored"
+        }
+      ]
+    },
+    {
+      "id": "clothes.outer-colour",
+      "label": "Outerwear colour",
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "mode": "mix",
+      "rationale": "Colours may occupy separate panels, layers or accessories, including one patterned garment.",
+      "members": [
+        {
+          "tag": "black_jacket",
+          "value": "black"
+        },
+        {
+          "tag": "white_jacket",
+          "value": "white"
+        },
+        {
+          "tag": "grey_jacket",
+          "value": "grey"
+        },
+        {
+          "tag": "brown_jacket",
+          "value": "brown"
+        },
+        {
+          "tag": "blue_jacket",
+          "value": "blue"
+        },
+        {
+          "tag": "green_jacket",
+          "value": "green"
+        },
+        {
+          "tag": "red_jacket",
+          "value": "red"
+        },
+        {
+          "tag": "pink_jacket",
+          "value": "pink"
+        },
+        {
+          "tag": "purple_jacket",
+          "value": "purple"
+        },
+        {
+          "tag": "yellow_jacket",
+          "value": "yellow"
+        },
+        {
+          "tag": "orange_jacket",
+          "value": "orange"
+        },
+        {
+          "tag": "aqua_jacket",
+          "value": "aqua"
+        },
+        {
+          "tag": "gold_jacket",
+          "value": "gold"
+        },
+        {
+          "tag": "multicolored_jacket",
+          "value": "multicolored"
+        }
+      ]
+    },
+    {
+      "id": "clothes.shoe-colour",
+      "label": "Footwear colour",
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "mode": "mix",
+      "rationale": "Colours may occupy separate panels, layers or accessories, including one patterned garment.",
+      "members": [
+        {
+          "tag": "black_footwear",
+          "value": "black"
+        },
+        {
+          "tag": "white_footwear",
+          "value": "white"
+        },
+        {
+          "tag": "grey_footwear",
+          "value": "grey"
+        },
+        {
+          "tag": "brown_footwear",
+          "value": "brown"
+        },
+        {
+          "tag": "blue_footwear",
+          "value": "blue"
+        },
+        {
+          "tag": "green_footwear",
+          "value": "green"
+        },
+        {
+          "tag": "red_footwear",
+          "value": "red"
+        },
+        {
+          "tag": "pink_footwear",
+          "value": "pink"
+        },
+        {
+          "tag": "purple_footwear",
+          "value": "purple"
+        },
+        {
+          "tag": "yellow_footwear",
+          "value": "yellow"
+        },
+        {
+          "tag": "orange_footwear",
+          "value": "orange"
+        },
+        {
+          "tag": "aqua_footwear",
+          "value": "aqua"
+        },
+        {
+          "tag": "gold_footwear",
+          "value": "gold"
+        },
+        {
+          "tag": "silver_footwear",
+          "value": "silver"
+        },
+        {
+          "tag": "multicolored_footwear",
+          "value": "multicolored"
+        }
+      ]
+    },
+    {
+      "id": "clothes.legwear-colour",
+      "label": "Legwear colour",
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "mode": "mix",
+      "rationale": "Colours may occupy separate panels, layers or accessories, including one patterned garment.",
+      "members": [
+        {
+          "tag": "silver_legwear",
+          "value": "silver"
+        }
+      ]
+    },
+    {
+      "id": "clothes.headwear-colour",
+      "label": "Headwear colour",
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "mode": "mix",
+      "rationale": "Colours may occupy separate panels, layers or accessories, including one patterned garment.",
+      "members": [
+        {
+          "tag": "gold_headwear",
+          "value": "gold"
+        }
+      ]
+    },
+    {
+      "id": "accessory.ribbon-colour",
+      "label": "Ribbon colour",
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "mode": "mix",
+      "rationale": "Colours may occupy separate panels, layers or accessories, including one patterned garment.",
+      "members": [
+        {
+          "tag": "black_ribbon",
+          "value": "black"
+        },
+        {
+          "tag": "white_ribbon",
+          "value": "white"
+        },
+        {
+          "tag": "grey_ribbon",
+          "value": "grey"
+        },
+        {
+          "tag": "brown_ribbon",
+          "value": "brown"
+        },
+        {
+          "tag": "blue_ribbon",
+          "value": "blue"
+        },
+        {
+          "tag": "green_ribbon",
+          "value": "green"
+        },
+        {
+          "tag": "red_ribbon",
+          "value": "red"
+        },
+        {
+          "tag": "pink_ribbon",
+          "value": "pink"
+        },
+        {
+          "tag": "purple_ribbon",
+          "value": "purple"
+        },
+        {
+          "tag": "yellow_ribbon",
+          "value": "yellow"
+        },
+        {
+          "tag": "orange_ribbon",
+          "value": "orange"
+        },
+        {
+          "tag": "aqua_ribbon",
+          "value": "aqua"
+        },
+        {
+          "tag": "gold_ribbon",
+          "value": "gold"
+        },
+        {
+          "tag": "multicolored_ribbon",
+          "value": "multicolored"
+        }
+      ]
+    },
+    {
+      "id": "clothes.upper",
+      "label": "Upper garments",
+      "scope": [
+        "subject",
+        "garment",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Multiple upper garments are commonly layered. Garment identity must precede any local restriction.",
+      "members": [
+        {
+          "tag": "shirt",
+          "value": "shirt"
+        },
+        {
+          "tag": "collared_shirt",
+          "value": "shirt"
+        },
+        {
+          "tag": "t-shirt",
+          "value": "shirt"
+        },
+        {
+          "tag": "blouse",
+          "value": "shirt"
+        },
+        {
+          "tag": "camisole",
+          "value": "shirt"
+        },
+        {
+          "tag": "tank_top",
+          "value": "shirt"
+        },
+        {
+          "tag": "crop_top",
+          "value": "shirt"
+        },
+        {
+          "tag": "sweater",
+          "value": "knit"
+        },
+        {
+          "tag": "cardigan",
+          "value": "knit"
+        },
+        {
+          "tag": "turtleneck",
+          "value": "knit"
+        },
+        {
+          "tag": "hoodie",
+          "value": "hoodie"
+        },
+        {
+          "tag": "vest",
+          "value": "vest"
+        },
+        {
+          "tag": "waistcoat",
+          "value": "vest"
+        },
+        {
+          "tag": "corset",
+          "value": "bodice"
+        },
+        {
+          "tag": "bustier",
+          "value": "bodice"
+        }
+      ]
+    },
+    {
+      "id": "clothes.lower",
+      "label": "Lower garments",
+      "scope": [
+        "subject",
+        "garment",
+        "frame"
+      ],
+      "mode": "layer",
+      "rationale": "Skirts over trousers or shorts are valid; ask for layer order rather than prohibit the pair.",
+      "members": [
+        {
+          "tag": "skirt",
+          "value": "skirt"
+        },
+        {
+          "tag": "miniskirt",
+          "value": "skirt"
+        },
+        {
+          "tag": "long_skirt",
+          "value": "skirt"
+        },
+        {
+          "tag": "pleated_skirt",
+          "value": "skirt"
+        },
+        {
+          "tag": "pencil_skirt",
+          "value": "skirt"
+        },
+        {
+          "tag": "pants",
+          "value": "pants"
+        },
+        {
+          "tag": "jeans",
+          "value": "pants"
+        },
+        {
+          "tag": "sweatpants",
+          "value": "pants"
+        },
+        {
+          "tag": "track_pants",
+          "value": "pants"
+        },
+        {
+          "tag": "cargo_pants",
+          "value": "pants"
+        },
+        {
+          "tag": "shorts",
+          "value": "shorts"
+        },
+        {
+          "tag": "bike_shorts",
+          "value": "shorts"
+        },
+        {
+          "tag": "short_shorts",
+          "value": "shorts"
+        },
+        {
+          "tag": "leggings",
+          "value": "leggings"
+        }
+      ]
+    },
+    {
+      "id": "clothes.dress",
+      "label": "Dresses and one-piece garments",
+      "scope": [
+        "subject",
+        "garment",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "An outer dress or robe may coexist with inner garments.",
+      "members": [
+        {
+          "tag": "dress",
+          "value": "dress"
+        },
+        {
+          "tag": "sundress",
+          "value": "dress"
+        },
+        {
+          "tag": "evening_gown",
+          "value": "dress"
+        },
+        {
+          "tag": "cocktail_dress",
+          "value": "dress"
+        },
+        {
+          "tag": "jumpsuit",
+          "value": "onepiece"
+        },
+        {
+          "tag": "romper",
+          "value": "onepiece"
+        },
+        {
+          "tag": "leotard",
+          "value": "onepiece"
+        },
+        {
+          "tag": "bodysuit",
+          "value": "onepiece"
+        },
+        {
+          "tag": "robe",
+          "value": "robe"
+        },
+        {
+          "tag": "kimono",
+          "value": "robe"
+        },
+        {
+          "tag": "yukata",
+          "value": "robe"
+        }
+      ]
+    },
+    {
+      "id": "clothes.ensemble",
+      "label": "Ensembles",
+      "scope": [
+        "subject",
+        "garment",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Ensembles have parts and can be remixed; membership does not occupy a single exclusive slot.",
+      "members": [
+        {
+          "tag": "suit",
+          "value": "suit"
+        },
+        {
+          "tag": "business_suit",
+          "value": "suit"
+        },
+        {
+          "tag": "school_uniform",
+          "value": "uniform"
+        },
+        {
+          "tag": "military_uniform",
+          "value": "uniform"
+        },
+        {
+          "tag": "police_uniform",
+          "value": "uniform"
+        },
+        {
+          "tag": "nurse",
+          "value": "uniform"
+        },
+        {
+          "tag": "kimono",
+          "value": "traditional"
+        },
+        {
+          "tag": "yukata",
+          "value": "traditional"
+        },
+        {
+          "tag": "hanfu",
+          "value": "traditional"
+        },
+        {
+          "tag": "maid",
+          "value": "costume"
+        },
+        {
+          "tag": "wedding_dress",
+          "value": "costume"
+        },
+        {
+          "tag": "santa_costume",
+          "value": "costume"
+        }
+      ]
+    },
+    {
+      "id": "clothes.outer",
+      "label": "Outer layers",
+      "scope": [
+        "subject",
+        "garment",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "jacket",
+          "value": "jacket"
+        },
+        {
+          "tag": "track_jacket",
+          "value": "jacket"
+        },
+        {
+          "tag": "bomber_jacket",
+          "value": "jacket"
+        },
+        {
+          "tag": "blazer",
+          "value": "jacket"
+        },
+        {
+          "tag": "denim_jacket",
+          "value": "jacket"
+        },
+        {
+          "tag": "coat",
+          "value": "coat"
+        },
+        {
+          "tag": "long_coat",
+          "value": "coat"
+        },
+        {
+          "tag": "trench_coat",
+          "value": "coat"
+        },
+        {
+          "tag": "cape",
+          "value": "cape"
+        },
+        {
+          "tag": "capelet",
+          "value": "cape"
+        },
+        {
+          "tag": "cloak",
+          "value": "cape"
+        },
+        {
+          "tag": "poncho",
+          "value": "cape"
+        },
+        {
+          "tag": "armor",
+          "value": "protective"
+        },
+        {
+          "tag": "breastplate",
+          "value": "protective"
+        },
+        {
+          "tag": "raincoat",
+          "value": "protective"
+        }
+      ]
+    },
+    {
+      "id": "clothes.legwear",
+      "label": "Legwear",
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Different layers and legs can have different legwear; socks over tights are allowed.",
+      "members": [
+        {
+          "tag": "pantyhose",
+          "value": "tights"
+        },
+        {
+          "tag": "thighhighs",
+          "value": "stockings"
+        },
+        {
+          "tag": "kneehighs",
+          "value": "stockings"
+        },
+        {
+          "tag": "socks",
+          "value": "socks"
+        },
+        {
+          "tag": "ankle_socks",
+          "value": "socks"
+        },
+        {
+          "tag": "loose_socks",
+          "value": "socks"
+        },
+        {
+          "tag": "leg_warmers",
+          "value": "warmers"
+        }
+      ]
+    },
+    {
+      "id": "clothes.footwear",
+      "label": "Footwear",
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Barefoot may refer to one foot or a removed shoe. No unscoped footwear exclusion.",
+      "members": [
+        {
+          "tag": "boots",
+          "value": "boots"
+        },
+        {
+          "tag": "ankle_boots",
+          "value": "boots"
+        },
+        {
+          "tag": "knee_boots",
+          "value": "boots"
+        },
+        {
+          "tag": "thigh_boots",
+          "value": "boots"
+        },
+        {
+          "tag": "shoes",
+          "value": "shoes"
+        },
+        {
+          "tag": "sneakers",
+          "value": "shoes"
+        },
+        {
+          "tag": "loafers",
+          "value": "shoes"
+        },
+        {
+          "tag": "mary_janes",
+          "value": "shoes"
+        },
+        {
+          "tag": "sandals",
+          "value": "sandals"
+        },
+        {
+          "tag": "flip-flops",
+          "value": "sandals"
+        },
+        {
+          "tag": "high_heels",
+          "value": "heels"
+        },
+        {
+          "tag": "pumps",
+          "value": "heels"
+        },
+        {
+          "tag": "barefoot",
+          "value": "none"
+        }
+      ]
+    },
+    {
+      "id": "clothes.headwear",
+      "label": "Headwear",
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Headwear, ornaments and hoods can layer or be carried.",
+      "members": [
+        {
+          "tag": "hat",
+          "value": "hat"
+        },
+        {
+          "tag": "baseball_cap",
+          "value": "hat"
+        },
+        {
+          "tag": "beret",
+          "value": "hat"
+        },
+        {
+          "tag": "fedora",
+          "value": "hat"
+        },
+        {
+          "tag": "sun_hat",
+          "value": "hat"
+        },
+        {
+          "tag": "top_hat",
+          "value": "hat"
+        },
+        {
+          "tag": "hood",
+          "value": "hood"
+        },
+        {
+          "tag": "hood_up",
+          "value": "hood"
+        },
+        {
+          "tag": "helmet",
+          "value": "helmet"
+        },
+        {
+          "tag": "hairband",
+          "value": "ornament"
+        },
+        {
+          "tag": "headband",
+          "value": "ornament"
+        },
+        {
+          "tag": "tiara",
+          "value": "ornament"
+        },
+        {
+          "tag": "crown",
+          "value": "ornament"
+        },
+        {
+          "tag": "hair_bow",
+          "value": "ornament"
+        },
+        {
+          "tag": "hair_ornament",
+          "value": "ornament"
+        }
+      ]
+    },
+    {
+      "id": "clothes.handwear",
+      "label": "Handwear",
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Handwear can differ between hands or be partly removed.",
+      "members": [
+        {
+          "tag": "gloves",
+          "value": "gloves"
+        },
+        {
+          "tag": "fingerless_gloves",
+          "value": "gloves"
+        },
+        {
+          "tag": "elbow_gloves",
+          "value": "gloves"
+        },
+        {
+          "tag": "mittens",
+          "value": "gloves"
+        },
+        {
+          "tag": "detached_sleeves",
+          "value": "sleeves"
+        },
+        {
+          "tag": "arm_warmers",
+          "value": "sleeves"
+        }
+      ]
+    },
+    {
+      "id": "clothes.material",
+      "label": "Clothing material",
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Mixed materials and trim are compatible; material values are not global alternatives.",
+      "members": [
+        {
+          "tag": "denim",
+          "value": "denim"
+        },
+        {
+          "tag": "leather",
+          "value": "leather"
+        },
+        {
+          "tag": "latex",
+          "value": "latex"
+        },
+        {
+          "tag": "lace",
+          "value": "lace"
+        },
+        {
+          "tag": "silk",
+          "value": "silk"
+        },
+        {
+          "tag": "knit_sweater",
+          "value": "knit"
+        },
+        {
+          "tag": "cable_knit",
+          "value": "knit"
+        },
+        {
+          "tag": "fur_trim",
+          "value": "fur"
+        }
+      ]
+    },
+    {
+      "id": "clothes.pattern",
+      "label": "Clothing patterns",
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Patterns can coexist on panels or layers; no global pattern exclusion.",
+      "members": [
+        {
+          "tag": "striped_clothes",
+          "value": "stripes"
+        },
+        {
+          "tag": "polka_dot",
+          "value": "dots"
+        },
+        {
+          "tag": "floral_print",
+          "value": "floral"
+        },
+        {
+          "tag": "animal_print",
+          "value": "animal"
+        },
+        {
+          "tag": "leopard_print",
+          "value": "animal"
+        },
+        {
+          "tag": "tiger_print",
+          "value": "animal"
+        }
+      ]
+    },
+    {
+      "id": "clothes.sleeve-length",
+      "label": "Sleeve length",
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "mode": "one",
+      "rationale": "Only the same sleeve of the same garment competes. An inner long sleeve and outer sleeveless garment are valid.",
+      "members": [
+        {
+          "tag": "sleeveless",
+          "value": "none"
+        },
+        {
+          "tag": "short_sleeves",
+          "value": "short"
+        },
+        {
+          "tag": "long_sleeves",
+          "value": "long"
+        }
+      ]
+    },
+    {
+      "id": "clothes.skirt-length",
+      "label": "Skirt length",
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "mode": "one",
+      "rationale": "Different skirts and asymmetrical hems are exceptions; ordinary skirt is a compatible superclass.",
+      "members": [
+        {
+          "tag": "miniskirt",
+          "value": "short"
+        },
+        {
+          "tag": "microskirt",
+          "value": "short"
+        },
+        {
+          "tag": "long_skirt",
+          "value": "long"
+        }
+      ]
+    },
+    {
+      "id": "clothes.fit",
+      "label": "Clothing fit",
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "mode": "one",
+      "rationale": "Fit is local to a garment and body region; tight inner and loose outer layers can coexist.",
+      "members": [
+        {
+          "tag": "tight_clothes",
+          "value": "tight"
+        },
+        {
+          "tag": "baggy_clothes",
+          "value": "loose"
+        },
+        {
+          "tag": "oversized_clothes",
+          "value": "loose"
+        },
+        {
+          "tag": "loose_clothes",
+          "value": "loose"
+        }
+      ]
+    },
+    {
+      "id": "clothes.fastening",
+      "label": "Garment fastening",
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "mode": "one",
+      "rationale": "Different fasteners and partial opening require local context.",
+      "members": [
+        {
+          "tag": "open_clothes",
+          "value": "open"
+        },
+        {
+          "tag": "unbuttoned",
+          "value": "open"
+        },
+        {
+          "tag": "unzipped",
+          "value": "open"
+        }
+      ]
+    },
+    {
+      "id": "clothes.condition",
+      "label": "Clothing condition",
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Condition and removal describe states or actions, not a prohibition on garment tags.",
+      "members": [
+        {
+          "tag": "wet_clothes",
+          "value": "wet"
+        },
+        {
+          "tag": "torn_clothes",
+          "value": "torn"
+        },
+        {
+          "tag": "dirty_clothes",
+          "value": "dirty"
+        },
+        {
+          "tag": "clothes_lift",
+          "value": "lifted"
+        },
+        {
+          "tag": "shirt_lift",
+          "value": "lifted"
+        },
+        {
+          "tag": "skirt_lift",
+          "value": "lifted"
+        }
+      ]
+    },
+    {
+      "id": "accessory.items",
+      "label": "Accessories",
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "necklace",
+          "value": "neck"
+        },
+        {
+          "tag": "choker",
+          "value": "neck"
+        },
+        {
+          "tag": "necktie",
+          "value": "neck"
+        },
+        {
+          "tag": "bowtie",
+          "value": "neck"
+        },
+        {
+          "tag": "scarf",
+          "value": "neck"
+        },
+        {
+          "tag": "earrings",
+          "value": "ear"
+        },
+        {
+          "tag": "ear_piercing",
+          "value": "ear"
+        },
+        {
+          "tag": "bracelet",
+          "value": "wrist"
+        },
+        {
+          "tag": "wristwatch",
+          "value": "wrist"
+        },
+        {
+          "tag": "wristband",
+          "value": "wrist"
+        },
+        {
+          "tag": "belt",
+          "value": "waist"
+        },
+        {
+          "tag": "sash",
+          "value": "waist"
+        },
+        {
+          "tag": "waist_bow",
+          "value": "waist"
+        },
+        {
+          "tag": "bag",
+          "value": "carry"
+        },
+        {
+          "tag": "handbag",
+          "value": "carry"
+        },
+        {
+          "tag": "backpack",
+          "value": "carry"
+        },
+        {
+          "tag": "umbrella",
+          "value": "carry"
+        },
+        {
+          "tag": "mask",
+          "value": "face"
+        },
+        {
+          "tag": "mouth_mask",
+          "value": "face"
+        },
+        {
+          "tag": "veil",
+          "value": "face"
+        }
+      ]
+    },
+    {
+      "id": "count.girls",
+      "label": "Female character count",
+      "scope": [
+        "scene",
+        "frame"
+      ],
+      "mode": "one",
+      "rationale": "Exact counts compete within the same scene; counts of different categories are independent.",
+      "members": [
+        {
+          "tag": "1girl",
+          "value": "1"
+        },
+        {
+          "tag": "2girls",
+          "value": "2"
+        },
+        {
+          "tag": "3girls",
+          "value": "3"
+        },
+        {
+          "tag": "4girls",
+          "value": "4"
+        },
+        {
+          "tag": "5girls",
+          "value": "5"
+        }
+      ]
+    },
+    {
+      "id": "count.boys",
+      "label": "Male character count",
+      "scope": [
+        "scene",
+        "frame"
+      ],
+      "mode": "one",
+      "rationale": "Exact counts compete within the same scene; counts of different categories are independent.",
+      "members": [
+        {
+          "tag": "1boy",
+          "value": "1"
+        },
+        {
+          "tag": "2boys",
+          "value": "2"
+        },
+        {
+          "tag": "3boys",
+          "value": "3"
+        },
+        {
+          "tag": "4boys",
+          "value": "4"
+        },
+        {
+          "tag": "5boys",
+          "value": "5"
+        }
+      ]
+    },
+    {
+      "id": "count.others",
+      "label": "Other character count",
+      "scope": [
+        "scene",
+        "frame"
+      ],
+      "mode": "one",
+      "rationale": "Exact counts compete within the same scene; counts of different categories are independent.",
+      "members": [
+        {
+          "tag": "1other",
+          "value": "1"
+        },
+        {
+          "tag": "2others",
+          "value": "2"
+        },
+        {
+          "tag": "3others",
+          "value": "3"
+        },
+        {
+          "tag": "4others",
+          "value": "4"
+        },
+        {
+          "tag": "5others",
+          "value": "5"
+        }
+      ]
+    },
+    {
+      "id": "count.composition",
+      "label": "Subject count composition",
+      "scope": [
+        "scene",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Solo and group require subject interpretation; projected images and background people can qualify the count.",
+      "members": [
+        {
+          "tag": "solo",
+          "value": "solo"
+        },
+        {
+          "tag": "crowd",
+          "value": "group"
+        }
+      ]
+    },
+    {
+      "id": "count.more",
+      "label": "Open-ended counts",
+      "scope": [
+        "scene",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "multiple_girls",
+          "value": "girls"
+        },
+        {
+          "tag": "6+girls",
+          "value": "girls"
+        },
+        {
+          "tag": "multiple_boys",
+          "value": "boys"
+        },
+        {
+          "tag": "6+boys",
+          "value": "boys"
+        },
+        {
+          "tag": "multiple_others",
+          "value": "others"
+        },
+        {
+          "tag": "6+others",
+          "value": "others"
+        }
+      ]
+    },
+    {
+      "id": "composition.crop",
+      "label": "Framing",
+      "scope": [
+        "subject",
+        "view",
+        "frame"
+      ],
+      "mode": "one",
+      "rationale": "Framing differs by subject and panel; detailed insets do not contradict a full-body view.",
+      "members": [
+        {
+          "tag": "full_body",
+          "value": "full"
+        },
+        {
+          "tag": "upper_body",
+          "value": "upper"
+        },
+        {
+          "tag": "cowboy_shot",
+          "value": "cowboy"
+        },
+        {
+          "tag": "close-up",
+          "value": "close"
+        }
+      ]
+    },
+    {
+      "id": "composition.azimuth",
+      "label": "Subject view",
+      "scope": [
+        "subject",
+        "view",
+        "frame"
+      ],
+      "mode": "one",
+      "rationale": "Only the same depicted surface in the same view competes; reflection and turned heads require context.",
+      "members": [
+        {
+          "tag": "from_behind",
+          "value": "back"
+        },
+        {
+          "tag": "profile",
+          "value": "side"
+        }
+      ]
+    },
+    {
+      "id": "composition.elevation",
+      "label": "Camera elevation",
+      "scope": [
+        "subject",
+        "view",
+        "frame"
+      ],
+      "mode": "one",
+      "rationale": "Above and below can describe different cameras, panels or subjects.",
+      "members": [
+        {
+          "tag": "from_above",
+          "value": "above"
+        },
+        {
+          "tag": "from_below",
+          "value": "below"
+        }
+      ]
+    },
+    {
+      "id": "composition.angle",
+      "label": "Camera treatment",
+      "scope": [
+        "view",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Lens, angle, crop and focus are independent facets, not exclusive styles.",
+      "members": [
+        {
+          "tag": "dutch_angle",
+          "value": "tilt"
+        },
+        {
+          "tag": "wide_shot",
+          "value": "wide"
+        },
+        {
+          "tag": "fisheye",
+          "value": "lens"
+        },
+        {
+          "tag": "depth_of_field",
+          "value": "focus"
+        },
+        {
+          "tag": "blurry_background",
+          "value": "focus"
+        },
+        {
+          "tag": "bokeh",
+          "value": "focus"
+        },
+        {
+          "tag": "isometric",
+          "value": "ortho"
+        }
+      ]
+    },
+    {
+      "id": "composition.layout",
+      "label": "Image layout",
+      "scope": [
+        "scene",
+        "view",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "comic",
+          "value": "panels"
+        },
+        {
+          "tag": "4koma",
+          "value": "panels"
+        },
+        {
+          "tag": "multiple_views",
+          "value": "panels"
+        },
+        {
+          "tag": "collage",
+          "value": "panels"
+        },
+        {
+          "tag": "split_screen",
+          "value": "panels"
+        },
+        {
+          "tag": "inset",
+          "value": "inset"
+        }
+      ]
+    },
+    {
+      "id": "composition.focus",
+      "label": "Subject focus",
+      "scope": [
+        "subject",
+        "view",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "A focus is not a ban on all other subjects or regions.",
+      "members": [
+        {
+          "tag": "portrait",
+          "value": "face"
+        },
+        {
+          "tag": "hand_focus",
+          "value": "hands"
+        },
+        {
+          "tag": "object_focus",
+          "value": "object"
+        },
+        {
+          "tag": "food_focus",
+          "value": "object"
+        },
+        {
+          "tag": "vehicle_focus",
+          "value": "object"
+        },
+        {
+          "tag": "male_focus",
+          "value": "character"
+        },
+        {
+          "tag": "no_humans",
+          "value": "none"
+        }
+      ]
+    },
+    {
+      "id": "scene.location",
+      "label": "Scene enclosure",
+      "scope": [
+        "scene",
+        "region",
+        "frame"
+      ],
+      "mode": "one",
+      "rationale": "A scene can cross a threshold or show outdoors through a window. Do not impose image-wide exclusion.",
+      "members": [
+        {
+          "tag": "indoors",
+          "value": "inside"
+        },
+        {
+          "tag": "outdoors",
+          "value": "outside"
+        }
+      ]
+    },
+    {
+      "id": "scene.place",
+      "label": "Scene locations",
+      "scope": [
+        "scene",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Locations nest and combine; a beach and ocean are compatible.",
+      "members": [
+        {
+          "tag": "city",
+          "value": "urban"
+        },
+        {
+          "tag": "street",
+          "value": "urban"
+        },
+        {
+          "tag": "alley",
+          "value": "urban"
+        },
+        {
+          "tag": "rooftop",
+          "value": "urban"
+        },
+        {
+          "tag": "bedroom",
+          "value": "home"
+        },
+        {
+          "tag": "bathroom",
+          "value": "home"
+        },
+        {
+          "tag": "kitchen",
+          "value": "home"
+        },
+        {
+          "tag": "living_room",
+          "value": "home"
+        },
+        {
+          "tag": "classroom",
+          "value": "public"
+        },
+        {
+          "tag": "school",
+          "value": "public"
+        },
+        {
+          "tag": "office",
+          "value": "public"
+        },
+        {
+          "tag": "library",
+          "value": "public"
+        },
+        {
+          "tag": "restaurant",
+          "value": "public"
+        },
+        {
+          "tag": "shop",
+          "value": "public"
+        },
+        {
+          "tag": "forest",
+          "value": "nature"
+        },
+        {
+          "tag": "mountain",
+          "value": "nature"
+        },
+        {
+          "tag": "beach",
+          "value": "nature"
+        },
+        {
+          "tag": "ocean",
+          "value": "nature"
+        },
+        {
+          "tag": "river",
+          "value": "nature"
+        },
+        {
+          "tag": "lake",
+          "value": "nature"
+        },
+        {
+          "tag": "field",
+          "value": "nature"
+        },
+        {
+          "tag": "desert",
+          "value": "nature"
+        },
+        {
+          "tag": "space",
+          "value": "fantasy"
+        },
+        {
+          "tag": "underwater",
+          "value": "fantasy"
+        },
+        {
+          "tag": "dungeon",
+          "value": "fantasy"
+        },
+        {
+          "tag": "castle",
+          "value": "fantasy"
+        }
+      ]
+    },
+    {
+      "id": "scene.time",
+      "label": "Time of day",
+      "scope": [
+        "scene",
+        "frame"
+      ],
+      "mode": "one",
+      "rationale": "Time labels may span transitions, separate panels or hemispheres; warn only for one scene instant.",
+      "members": [
+        {
+          "tag": "day",
+          "value": "day"
+        },
+        {
+          "tag": "night",
+          "value": "night"
+        },
+        {
+          "tag": "sunset",
+          "value": "twilight"
+        },
+        {
+          "tag": "sunrise",
+          "value": "twilight"
+        },
+        {
+          "tag": "twilight",
+          "value": "twilight"
+        },
+        {
+          "tag": "dusk",
+          "value": "twilight"
+        },
+        {
+          "tag": "dawn",
+          "value": "twilight"
+        }
+      ]
+    },
+    {
+      "id": "scene.season",
+      "label": "Season",
+      "scope": [
+        "scene",
+        "region",
+        "frame"
+      ],
+      "mode": "one",
+      "rationale": "Seasons are local to one place and time; mixed seasonal motifs are not necessarily a contradiction.",
+      "members": [
+        {
+          "tag": "summer",
+          "value": "summer"
+        },
+        {
+          "tag": "autumn",
+          "value": "autumn"
+        },
+        {
+          "tag": "winter",
+          "value": "winter"
+        }
+      ]
+    },
+    {
+      "id": "scene.weather",
+      "label": "Weather",
+      "scope": [
+        "scene",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Sun showers, mixed precipitation and local weather coexist; no pairwise weather prohibition.",
+      "members": [
+        {
+          "tag": "rain",
+          "value": "rain"
+        },
+        {
+          "tag": "snow",
+          "value": "snow"
+        },
+        {
+          "tag": "snowing",
+          "value": "snow"
+        },
+        {
+          "tag": "fog",
+          "value": "fog"
+        },
+        {
+          "tag": "clear_sky",
+          "value": "clear"
+        },
+        {
+          "tag": "cloud",
+          "value": "cloud"
+        },
+        {
+          "tag": "cloudy_sky",
+          "value": "cloud"
+        },
+        {
+          "tag": "overcast",
+          "value": "cloud"
+        },
+        {
+          "tag": "storm",
+          "value": "storm"
+        },
+        {
+          "tag": "lightning",
+          "value": "storm"
+        },
+        {
+          "tag": "wind",
+          "value": "wind"
+        }
+      ]
+    },
+    {
+      "id": "scene.background",
+      "label": "Background treatment",
+      "scope": [
+        "scene",
+        "region",
+        "view",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Background treatments can differ across panels and regions; white and transparent are not universally exclusive tags.",
+      "members": [
+        {
+          "tag": "simple_background",
+          "value": "plain"
+        },
+        {
+          "tag": "white_background",
+          "value": "white"
+        },
+        {
+          "tag": "black_background",
+          "value": "black"
+        },
+        {
+          "tag": "transparent_background",
+          "value": "transparent"
+        },
+        {
+          "tag": "gradient_background",
+          "value": "gradient"
+        },
+        {
+          "tag": "patterned_background",
+          "value": "pattern"
+        }
+      ]
+    },
+    {
+      "id": "light.source",
+      "label": "Light sources",
+      "scope": [
+        "scene",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Multiple light sources are normal and should not be mutually exclusive.",
+      "members": [
+        {
+          "tag": "sunlight",
+          "value": "sun"
+        },
+        {
+          "tag": "sunbeam",
+          "value": "sun"
+        },
+        {
+          "tag": "moonlight",
+          "value": "moon"
+        },
+        {
+          "tag": "candlelight",
+          "value": "fire"
+        },
+        {
+          "tag": "neon_lights",
+          "value": "artificial"
+        },
+        {
+          "tag": "glowing",
+          "value": "self"
+        },
+        {
+          "tag": "bioluminescence",
+          "value": "self"
+        }
+      ]
+    },
+    {
+      "id": "light.direction",
+      "label": "Light direction",
+      "scope": [
+        "subject",
+        "region",
+        "view",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Fill lights, rim lights and key lights can coexist.",
+      "members": [
+        {
+          "tag": "backlighting",
+          "value": "back"
+        },
+        {
+          "tag": "sidelighting",
+          "value": "side"
+        },
+        {
+          "tag": "underlighting",
+          "value": "below"
+        }
+      ]
+    },
+    {
+      "id": "light.quality",
+      "label": "Light quality",
+      "scope": [
+        "scene",
+        "region",
+        "view",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Different sources and regions have different light qualities.",
+      "members": [
+        {
+          "tag": "dim_lighting",
+          "value": "dim"
+        },
+        {
+          "tag": "high_contrast",
+          "value": "contrast"
+        },
+        {
+          "tag": "chiaroscuro",
+          "value": "contrast"
+        }
+      ]
+    },
+    {
+      "id": "art.medium",
+      "label": "Art medium",
+      "scope": [
+        "image",
+        "region"
+      ],
+      "mode": "many",
+      "rationale": "Mixed media, overpainting and stylised rendering are deliberate artistic choices.",
+      "members": [
+        {
+          "tag": "photorealistic",
+          "value": "photo"
+        },
+        {
+          "tag": "realistic",
+          "value": "photo"
+        },
+        {
+          "tag": "sketch",
+          "value": "drawing"
+        },
+        {
+          "tag": "ink",
+          "value": "drawing"
+        },
+        {
+          "tag": "pixel_art",
+          "value": "pixel"
+        },
+        {
+          "tag": "3d",
+          "value": "render"
+        }
+      ]
+    },
+    {
+      "id": "art.palette",
+      "label": "Palette",
+      "scope": [
+        "image",
+        "region"
+      ],
+      "mode": "many",
+      "rationale": "Spot colour and regional colouring invalidate a global monochrome-versus-colour exclusion.",
+      "members": [
+        {
+          "tag": "monochrome",
+          "value": "mono"
+        },
+        {
+          "tag": "greyscale",
+          "value": "mono"
+        },
+        {
+          "tag": "limited_palette",
+          "value": "limited"
+        },
+        {
+          "tag": "colorful",
+          "value": "colour"
+        },
+        {
+          "tag": "spot_color",
+          "value": "accent"
+        },
+        {
+          "tag": "partially_colored",
+          "value": "accent"
+        },
+        {
+          "tag": "pastel_colors",
+          "value": "pastel"
+        },
+        {
+          "tag": "sepia",
+          "value": "sepia"
+        }
+      ]
+    },
+    {
+      "id": "art.technique",
+      "label": "Art technique",
+      "scope": [
+        "image",
+        "region"
+      ],
+      "mode": "many",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement.",
+      "members": [
+        {
+          "tag": "lineart",
+          "value": "line"
+        },
+        {
+          "tag": "hatching",
+          "value": "hatch"
+        },
+        {
+          "tag": "halftone",
+          "value": "texture"
+        },
+        {
+          "tag": "screentones",
+          "value": "texture"
+        },
+        {
+          "tag": "flat_color",
+          "value": "flat"
+        }
+      ]
+    },
+    {
+      "id": "text.content",
+      "label": "Text and symbols",
+      "scope": [
+        "image",
+        "region"
+      ],
+      "mode": "many",
+      "rationale": "Text may exist on one panel while another is text-free; languages and signatures can coexist.",
+      "members": [
+        {
+          "tag": "speech_bubble",
+          "value": "text"
+        },
+        {
+          "tag": "thought_bubble",
+          "value": "text"
+        },
+        {
+          "tag": "caption",
+          "value": "text"
+        },
+        {
+          "tag": "signature",
+          "value": "signature"
+        },
+        {
+          "tag": "watermark",
+          "value": "signature"
+        },
+        {
+          "tag": "artist_name",
+          "value": "signature"
+        },
+        {
+          "tag": "english_text",
+          "value": "language"
+        },
+        {
+          "tag": "chinese_text",
+          "value": "language"
+        },
+        {
+          "tag": "korean_text",
+          "value": "language"
+        }
+      ]
+    },
+    {
+      "id": "objects.presence",
+      "label": "Objects",
+      "scope": [
+        "scene",
+        "region",
+        "frame"
+      ],
+      "mode": "many",
+      "rationale": "Object types coexist; recognition is not a requirement to list every object.",
+      "members": [
+        {
+          "tag": "sword",
+          "value": "weapon"
+        },
+        {
+          "tag": "gun",
+          "value": "weapon"
+        },
+        {
+          "tag": "bow_(weapon)",
+          "value": "weapon"
+        },
+        {
+          "tag": "spear",
+          "value": "weapon"
+        },
+        {
+          "tag": "staff",
+          "value": "weapon"
+        },
+        {
+          "tag": "shield",
+          "value": "weapon"
+        },
+        {
+          "tag": "chair",
+          "value": "furniture"
+        },
+        {
+          "tag": "table",
+          "value": "furniture"
+        },
+        {
+          "tag": "bed",
+          "value": "furniture"
+        },
+        {
+          "tag": "couch",
+          "value": "furniture"
+        },
+        {
+          "tag": "bench",
+          "value": "furniture"
+        },
+        {
+          "tag": "car",
+          "value": "vehicle"
+        },
+        {
+          "tag": "bicycle",
+          "value": "vehicle"
+        },
+        {
+          "tag": "motorcycle",
+          "value": "vehicle"
+        },
+        {
+          "tag": "train",
+          "value": "vehicle"
+        },
+        {
+          "tag": "airplane",
+          "value": "vehicle"
+        },
+        {
+          "tag": "boat",
+          "value": "vehicle"
+        },
+        {
+          "tag": "flower",
+          "value": "plant"
+        },
+        {
+          "tag": "tree",
+          "value": "plant"
+        },
+        {
+          "tag": "grass",
+          "value": "plant"
+        },
+        {
+          "tag": "cat",
+          "value": "animal"
+        },
+        {
+          "tag": "dog",
+          "value": "animal"
+        },
+        {
+          "tag": "bird",
+          "value": "animal"
+        },
+        {
+          "tag": "horse",
+          "value": "animal"
+        },
+        {
+          "tag": "fish",
+          "value": "animal"
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "hair.length.values",
+      "label": "Hair length",
+      "kind": "distinct_values",
+      "facets": [
+        "hair.length"
+      ],
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "exceptions": [
+        "short_hair_with_long_locks",
+        "hair_extensions",
+        "asymmetrical_hair"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "Primary lengths compete only for the same hair region; longer subtypes are not mutually exclusive with long hair."
+    },
+    {
+      "id": "hair.colour.values",
+      "label": "Hair colour",
+      "kind": "compatible_values",
+      "facets": [
+        "hair.colour"
+      ],
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "exceptions": [
+        "multicolored_hair",
+        "two-tone_hair",
+        "gradient_hair",
+        "streaked_hair",
+        "colored_inner_hair",
+        "split-color_hair"
+      ],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Multiple colours can describe dyed sections, gradients or different subjects. Colour is not globally exclusive."
+    },
+    {
+      "id": "hair.bangs-length.values",
+      "label": "Bangs length",
+      "kind": "distinct_values",
+      "facets": [
+        "hair.bangs-length"
+      ],
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "exceptions": [
+        "asymmetrical_bangs"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement."
+    },
+    {
+      "id": "eyes.colour.values",
+      "label": "Eye colour",
+      "kind": "compatible_values",
+      "facets": [
+        "eyes.colour"
+      ],
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "exceptions": [
+        "heterochromia",
+        "multicolored_eyes"
+      ],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Different eyes and multicoloured irises permit multiple colours."
+    },
+    {
+      "id": "eyes.aperture.values",
+      "label": "Eye openness",
+      "kind": "distinct_values",
+      "facets": [
+        "eyes.aperture"
+      ],
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "exceptions": [
+        "one_eye_closed"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "Different eyes can differ; warnings assume the same eye and instant."
+    },
+    {
+      "id": "mouth.openness.values",
+      "label": "Mouth openness",
+      "kind": "distinct_values",
+      "facets": [
+        "mouth.openness"
+      ],
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "exceptions": [],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement."
+    },
+    {
+      "id": "skin.colour.values",
+      "label": "Skin colour",
+      "kind": "compatible_values",
+      "facets": [
+        "skin.colour"
+      ],
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "exceptions": [
+        "multicolored_skin"
+      ],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement."
+    },
+    {
+      "id": "pose.support.values",
+      "label": "Primary body support",
+      "kind": "distinct_values",
+      "facets": [
+        "pose.support"
+      ],
+      "scope": [
+        "subject",
+        "frame"
+      ],
+      "exceptions": [
+        "multiple_views",
+        "seiza",
+        "on_one_knee"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "Primary support differs only for one body at one instant; transitional poses and kneeling seats require context.",
+      "exception_values": {
+        "seiza": [
+          "sitting",
+          "kneeling"
+        ],
+        "on_one_knee": [
+          "standing",
+          "kneeling"
+        ]
+      }
+    },
+    {
+      "id": "pose.lying-direction.values",
+      "label": "Lying direction",
+      "kind": "distinct_values",
+      "facets": [
+        "pose.lying-direction"
+      ],
+      "scope": [
+        "subject",
+        "frame"
+      ],
+      "exceptions": [
+        "multiple_views"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "Different values may need separate instances, regions or views; scope must be established before enforcement."
+    },
+    {
+      "id": "clothes.upper-colour.values",
+      "label": "Upper garment colour",
+      "kind": "compatible_values",
+      "facets": [
+        "clothes.upper-colour"
+      ],
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "exceptions": [],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Colours may occupy separate panels, layers or accessories, including one patterned garment."
+    },
+    {
+      "id": "clothes.skirt-colour.values",
+      "label": "Skirt colour",
+      "kind": "compatible_values",
+      "facets": [
+        "clothes.skirt-colour"
+      ],
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "exceptions": [],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Colours may occupy separate panels, layers or accessories, including one patterned garment."
+    },
+    {
+      "id": "clothes.dress-colour.values",
+      "label": "Dress colour",
+      "kind": "compatible_values",
+      "facets": [
+        "clothes.dress-colour"
+      ],
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "exceptions": [],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Colours may occupy separate panels, layers or accessories, including one patterned garment."
+    },
+    {
+      "id": "clothes.pants-colour.values",
+      "label": "Trouser colour",
+      "kind": "compatible_values",
+      "facets": [
+        "clothes.pants-colour"
+      ],
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "exceptions": [],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Colours may occupy separate panels, layers or accessories, including one patterned garment."
+    },
+    {
+      "id": "clothes.outer-colour.values",
+      "label": "Outerwear colour",
+      "kind": "compatible_values",
+      "facets": [
+        "clothes.outer-colour"
+      ],
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "exceptions": [],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Colours may occupy separate panels, layers or accessories, including one patterned garment."
+    },
+    {
+      "id": "clothes.shoe-colour.values",
+      "label": "Footwear colour",
+      "kind": "compatible_values",
+      "facets": [
+        "clothes.shoe-colour"
+      ],
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "exceptions": [],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Colours may occupy separate panels, layers or accessories, including one patterned garment."
+    },
+    {
+      "id": "accessory.ribbon-colour.values",
+      "label": "Ribbon colour",
+      "kind": "compatible_values",
+      "facets": [
+        "accessory.ribbon-colour"
+      ],
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "exceptions": [],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Colours may occupy separate panels, layers or accessories, including one patterned garment."
+    },
+    {
+      "id": "clothes.sleeve-length.values",
+      "label": "Sleeve length",
+      "kind": "distinct_values",
+      "facets": [
+        "clothes.sleeve-length"
+      ],
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "exceptions": [
+        "asymmetrical_clothes",
+        "single_sleeve",
+        "detached_sleeves"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "Only the same sleeve of the same garment competes. An inner long sleeve and outer sleeveless garment are valid."
+    },
+    {
+      "id": "clothes.skirt-length.values",
+      "label": "Skirt length",
+      "kind": "distinct_values",
+      "facets": [
+        "clothes.skirt-length"
+      ],
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "exceptions": [
+        "asymmetrical_clothes",
+        "layered_skirt"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "Different skirts and asymmetrical hems are exceptions; ordinary skirt is a compatible superclass."
+    },
+    {
+      "id": "clothes.fit.values",
+      "label": "Clothing fit",
+      "kind": "distinct_values",
+      "facets": [
+        "clothes.fit"
+      ],
+      "scope": [
+        "subject",
+        "garment",
+        "region",
+        "frame"
+      ],
+      "exceptions": [
+        "asymmetrical_clothes"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "Fit is local to a garment and body region; tight inner and loose outer layers can coexist."
+    },
+    {
+      "id": "count.girls.values",
+      "label": "Female character count",
+      "kind": "distinct_values",
+      "facets": [
+        "count.girls"
+      ],
+      "scope": [
+        "scene",
+        "frame"
+      ],
+      "exceptions": [
+        "multiple_views"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "Exact counts compete within the same scene; counts of different categories are independent."
+    },
+    {
+      "id": "count.boys.values",
+      "label": "Male character count",
+      "kind": "distinct_values",
+      "facets": [
+        "count.boys"
+      ],
+      "scope": [
+        "scene",
+        "frame"
+      ],
+      "exceptions": [
+        "multiple_views"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "Exact counts compete within the same scene; counts of different categories are independent."
+    },
+    {
+      "id": "count.others.values",
+      "label": "Other character count",
+      "kind": "distinct_values",
+      "facets": [
+        "count.others"
+      ],
+      "scope": [
+        "scene",
+        "frame"
+      ],
+      "exceptions": [
+        "multiple_views"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "Exact counts compete within the same scene; counts of different categories are independent."
+    },
+    {
+      "id": "composition.crop.values",
+      "label": "Framing",
+      "kind": "distinct_values",
+      "facets": [
+        "composition.crop"
+      ],
+      "scope": [
+        "subject",
+        "view",
+        "frame"
+      ],
+      "exceptions": [
+        "multiple_views",
+        "comic",
+        "collage"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "Framing differs by subject and panel; detailed insets do not contradict a full-body view."
+    },
+    {
+      "id": "composition.azimuth.values",
+      "label": "Subject view",
+      "kind": "distinct_values",
+      "facets": [
+        "composition.azimuth"
+      ],
+      "scope": [
+        "subject",
+        "view",
+        "frame"
+      ],
+      "exceptions": [
+        "multiple_views",
+        "mirror",
+        "reflection"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "Only the same depicted surface in the same view competes; reflection and turned heads require context."
+    },
+    {
+      "id": "composition.elevation.values",
+      "label": "Camera elevation",
+      "kind": "distinct_values",
+      "facets": [
+        "composition.elevation"
+      ],
+      "scope": [
+        "subject",
+        "view",
+        "frame"
+      ],
+      "exceptions": [
+        "multiple_views",
+        "comic",
+        "reflection"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "Above and below can describe different cameras, panels or subjects."
+    },
+    {
+      "id": "scene.location.values",
+      "label": "Scene enclosure",
+      "kind": "distinct_values",
+      "facets": [
+        "scene.location"
+      ],
+      "scope": [
+        "scene",
+        "region",
+        "frame"
+      ],
+      "exceptions": [
+        "window",
+        "doorway",
+        "balcony",
+        "open_door",
+        "split_screen",
+        "multiple_views"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "A scene can cross a threshold or show outdoors through a window. Do not impose image-wide exclusion."
+    },
+    {
+      "id": "scene.time.values",
+      "label": "Time of day",
+      "kind": "distinct_values",
+      "facets": [
+        "scene.time"
+      ],
+      "scope": [
+        "scene",
+        "frame"
+      ],
+      "exceptions": [
+        "split_screen",
+        "multiple_views"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "Time labels may span transitions, separate panels or hemispheres; warn only for one scene instant."
+    },
+    {
+      "id": "scene.season.values",
+      "label": "Season",
+      "kind": "distinct_values",
+      "facets": [
+        "scene.season"
+      ],
+      "scope": [
+        "scene",
+        "region",
+        "frame"
+      ],
+      "exceptions": [
+        "split_screen",
+        "multiple_views"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "Seasons are local to one place and time; mixed seasonal motifs are not necessarily a contradiction."
+    },
+    {
+      "id": "hair.absent-length",
+      "label": "Scalp hair presence and length",
+      "kind": "cross_values",
+      "facets": [
+        "hair.presence",
+        "hair.length"
+      ],
+      "values": [
+        [
+          "absent"
+        ],
+        []
+      ],
+      "scope": [
+        "subject",
+        "region",
+        "frame"
+      ],
+      "exceptions": [
+        "wig",
+        "hair_extensions"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "Bald scalp and scalp hair length need region or wig context."
+    },
+    {
+      "id": "count.solo-girls",
+      "label": "Solo and multiple female characters",
+      "kind": "cross_values",
+      "facets": [
+        "count.composition",
+        "count.girls"
+      ],
+      "values": [
+        [
+          "solo"
+        ],
+        [
+          "2",
+          "3",
+          "4",
+          "5"
+        ]
+      ],
+      "scope": [
+        "scene",
+        "frame"
+      ],
+      "exceptions": [
+        "multiple_views"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "Solo can coexist with multiple views of one character; otherwise clarify scene count."
+    },
+    {
+      "id": "count.solo-boys",
+      "label": "Solo and multiple male characters",
+      "kind": "cross_values",
+      "facets": [
+        "count.composition",
+        "count.boys"
+      ],
+      "values": [
+        [
+          "solo"
+        ],
+        [
+          "2",
+          "3",
+          "4",
+          "5"
+        ]
+      ],
+      "scope": [
+        "scene",
+        "frame"
+      ],
+      "exceptions": [
+        "multiple_views"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "Solo versus multiple characters needs scene identity."
+    },
+    {
+      "id": "count.solo-others",
+      "label": "Solo and multiple other characters",
+      "kind": "cross_values",
+      "facets": [
+        "count.composition",
+        "count.others"
+      ],
+      "values": [
+        [
+          "solo"
+        ],
+        [
+          "2",
+          "3",
+          "4",
+          "5"
+        ]
+      ],
+      "scope": [
+        "scene",
+        "frame"
+      ],
+      "exceptions": [
+        "multiple_views"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "Solo versus multiple characters needs scene identity."
+    },
+    {
+      "id": "count.solo-open",
+      "label": "Solo and open-ended multiple counts",
+      "kind": "cross_values",
+      "facets": [
+        "count.composition",
+        "count.more"
+      ],
+      "values": [
+        [
+          "solo"
+        ],
+        []
+      ],
+      "scope": [
+        "scene",
+        "frame"
+      ],
+      "exceptions": [
+        "multiple_views"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "An open-ended multiple count and solo need clarification for the same scene."
+    },
+    {
+      "id": "count.solo-mixed",
+      "label": "Solo and mixed-category counts",
+      "kind": "solo_total",
+      "facets": [
+        "count.composition",
+        "count.girls",
+        "count.boys",
+        "count.others"
+      ],
+      "scope": [
+        "scene",
+        "frame"
+      ],
+      "exceptions": [
+        "multiple_views"
+      ],
+      "policy": "warn",
+      "status": "candidate",
+      "rationale": "Solo plus positive counts in different categories implies more than one character in the same scene. This is a multi-tag rule, not pairwise exclusion."
+    },
+    {
+      "id": "hair.colour+hair.length",
+      "label": "Colour and length are independent attributes.",
+      "kind": "compatible_facets",
+      "facets": [
+        "hair.colour",
+        "hair.length"
+      ],
+      "scope": [],
+      "exceptions": [],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Colour and length are independent attributes."
+    },
+    {
+      "id": "hair.colour+hair.details",
+      "label": "Sidelocks and bangs coexist with hair colours.",
+      "kind": "compatible_facets",
+      "facets": [
+        "hair.colour",
+        "hair.details"
+      ],
+      "scope": [],
+      "exceptions": [],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Sidelocks and bangs coexist with hair colours."
+    },
+    {
+      "id": "hair.length+hair.arrangement",
+      "label": "Length and styling are distinct; a bun does not require short hair.",
+      "kind": "compatible_facets",
+      "facets": [
+        "hair.length",
+        "hair.arrangement"
+      ],
+      "scope": [],
+      "exceptions": [],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Length and styling are distinct; a bun does not require short hair."
+    },
+    {
+      "id": "expression.emotion+eyes.aperture",
+      "label": "Emotion does not determine eye openness.",
+      "kind": "compatible_facets",
+      "facets": [
+        "expression.emotion",
+        "eyes.aperture"
+      ],
+      "scope": [],
+      "exceptions": [],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Emotion does not determine eye openness."
+    },
+    {
+      "id": "clothes.lower+clothes.dress",
+      "label": "Dresses and skirts may be worn over trousers or shorts.",
+      "kind": "compatible_facets",
+      "facets": [
+        "clothes.lower",
+        "clothes.dress"
+      ],
+      "scope": [],
+      "exceptions": [],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Dresses and skirts may be worn over trousers or shorts."
+    },
+    {
+      "id": "clothes.upper+clothes.outer",
+      "label": "Shirts, sweaters and jackets can layer.",
+      "kind": "compatible_facets",
+      "facets": [
+        "clothes.upper",
+        "clothes.outer"
+      ],
+      "scope": [],
+      "exceptions": [],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Shirts, sweaters and jackets can layer."
+    },
+    {
+      "id": "clothes.legwear+clothes.footwear",
+      "label": "Legwear and footwear coexist.",
+      "kind": "compatible_facets",
+      "facets": [
+        "clothes.legwear",
+        "clothes.footwear"
+      ],
+      "scope": [],
+      "exceptions": [],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Legwear and footwear coexist."
+    },
+    {
+      "id": "clothes.ensemble+clothes.lower",
+      "label": "Ensembles can be remixed with other garments.",
+      "kind": "compatible_facets",
+      "facets": [
+        "clothes.ensemble",
+        "clothes.lower"
+      ],
+      "scope": [],
+      "exceptions": [],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Ensembles can be remixed with other garments."
+    },
+    {
+      "id": "clothes.material+clothes.pattern",
+      "label": "Material and pattern are independent.",
+      "kind": "compatible_facets",
+      "facets": [
+        "clothes.material",
+        "clothes.pattern"
+      ],
+      "scope": [],
+      "exceptions": [],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Material and pattern are independent."
+    },
+    {
+      "id": "clothes.sleeve-length+clothes.upper-colour",
+      "label": "Sleeve length does not constrain colour.",
+      "kind": "compatible_facets",
+      "facets": [
+        "clothes.sleeve-length",
+        "clothes.upper-colour"
+      ],
+      "scope": [],
+      "exceptions": [],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Sleeve length does not constrain colour."
+    },
+    {
+      "id": "pose.support+pose.arms",
+      "label": "Body support and arm pose are independent.",
+      "kind": "compatible_facets",
+      "facets": [
+        "pose.support",
+        "pose.arms"
+      ],
+      "scope": [],
+      "exceptions": [],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Body support and arm pose are independent."
+    },
+    {
+      "id": "composition.crop+composition.elevation",
+      "label": "Crop and camera elevation are independent.",
+      "kind": "compatible_facets",
+      "facets": [
+        "composition.crop",
+        "composition.elevation"
+      ],
+      "scope": [],
+      "exceptions": [],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Crop and camera elevation are independent."
+    },
+    {
+      "id": "scene.time+scene.weather",
+      "label": "Weather does not determine time of day.",
+      "kind": "compatible_facets",
+      "facets": [
+        "scene.time",
+        "scene.weather"
+      ],
+      "scope": [],
+      "exceptions": [],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Weather does not determine time of day."
+    },
+    {
+      "id": "scene.location+light.source",
+      "label": "Indoor scenes can receive sunlight and outdoor scenes artificial light.",
+      "kind": "compatible_facets",
+      "facets": [
+        "scene.location",
+        "light.source"
+      ],
+      "scope": [],
+      "exceptions": [],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Indoor scenes can receive sunlight and outdoor scenes artificial light."
+    },
+    {
+      "id": "art.medium+art.palette",
+      "label": "Palette is independent of medium.",
+      "kind": "compatible_facets",
+      "facets": [
+        "art.medium",
+        "art.palette"
+      ],
+      "scope": [],
+      "exceptions": [],
+      "policy": "inform",
+      "status": "candidate",
+      "rationale": "Palette is independent of medium."
+    }
+  ],
+  "aliases": {
+    "/abb": "arms_behind_back",
+    "/acl": "asymmetrical_clothes",
+    "/blackbg": "black_background",
+    "/blackh": "black_hair",
+    "/blondeh": "blonde_hair",
+    "/blueh": "blue_hair",
+    "/brownh": "brown_hair",
+    "/cat": "cat_ears",
+    "/dof": "depth_of_field",
+    "/dsleeves": "detached_sleeves",
+    "/eg": "elbow_gloves",
+    "/fox": "fox_ears",
+    "/gbg": "gradient_background",
+    "/gradientbg": "gradient_background",
+    "/greenh": "green_hair",
+    "/hornament": "hair_ornament",
+    "/lav": "looking_at_viewer",
+    "/lh": "long_hair",
+    "/lsleeves": "long_sleeves",
+    "/m": "monochrome",
+    "/nboys": "multiple_boys",
+    "/ngirls": "multiple_girls",
+    "/pec": "looking_at_viewer",
+    "/pinkh": "pink_hair",
+    "/purpleh": "purple_hair",
+    "/redh": "red_hair",
+    "/s": "school_uniform",
+    "/sbg": "simple_background",
+    "/shl": "shirt_lift",
+    "/simplebg": "simple_background",
+    "/sk": "sketch",
+    "/skl": "skirt_lift",
+    "/ssleeves": "short_sleeves",
+    "/t": "thighhighs",
+    "/tbg": "transparent_background",
+    "/transparentbg": "transparent_background",
+    "/tt": "twintails",
+    "/tth": "two-tone_hair",
+    "/vlh": "very_long_hair",
+    "/wbg": "white_background",
+    "/whitebg": "white_background",
+    "1boys": "1boy",
+    "1girls": "1girl",
+    "2_girls": "2girls",
+    "2boy": "2boys",
+    "2girl": "2girls",
+    "3boy": "3boys",
+    "3dcg": "3d",
+    "3girl": "3girls",
+    "4boy": "4boys",
+    "4coma": "4koma",
+    "4girl": "4girls",
+    "5boy": "5boys",
+    "5girl": "5girls",
+    "6+boy": "6+boys",
+    "6+girl": "6+girls",
+    "6boy": "6+boys",
+    "6boys": "6+boys",
+    "6girl": "6+girls",
+    "6girls": "6+girls",
+    "6others": "6+others",
+    "7girls": "6+girls",
+    "8girls": "6+girls",
+    "9girls": "6+girls",
+    ":(": "frown",
+    ":)": "smile",
+    ":{": "frown",
+    ":}": "smile",
+    "aerial_view": "from_above",
+    "aeroplane": "airplane",
+    "airplanes": "airplane",
+    "amber_eyes": "yellow_eyes",
+    "anger": "angry",
+    "animal_tail": "tail",
+    "animalprint": "animal_print",
+    "antennae_hair": "antenna_hair",
+    "aqua_blouse": "aqua_shirt",
+    "aqua_earrings": "earrings",
+    "aqua_shoes": "aqua_footwear",
+    "arm_raised": "arm_up",
+    "armour": "armor",
+    "arms_above": "arms_up",
+    "arms_above_head": "arms_up",
+    "arms_behind": "arms_behind_back",
+    "arms_crossed": "crossed_arms",
+    "arms_folded": "crossed_arms",
+    "arms_outstretched": "outstretched_arms",
+    "arms_raised": "arms_up",
+    "armsleeves": "detached_sleeves",
+    "armwarmers": "arm_warmers",
+    "artist_signature": "signature",
+    "asymmetric_bangs": "asymmetrical_bangs",
+    "asymmetrical_clothing": "asymmetrical_clothes",
+    "autograph": "signature",
+    "b&w": "greyscale",
+    "back_pack": "backpack",
+    "backlit": "backlighting",
+    "bags": "bag",
+    "bare_feet": "barefoot",
+    "bare_foot": "barefoot",
+    "barefeet": "barefoot",
+    "beauty_mark": "mole",
+    "bed_head": "messy_hair",
+    "belts": "belt",
+    "bike": "bicycle",
+    "biker_shorts": "bike_shorts",
+    "birds": "bird",
+    "black-hair": "black_hair",
+    "black_and_white": "greyscale",
+    "black_blazer": "black_jacket",
+    "black_blouse": "black_shirt",
+    "black_boots": "black_footwear",
+    "black_earrings": "earrings",
+    "black_shoes": "black_footwear",
+    "blackhair": "black_hair",
+    "blond": "blonde_hair",
+    "blond_hair": "blonde_hair",
+    "blonde": "blonde_hair",
+    "blondehair": "blonde_hair",
+    "blue_blazer": "blue_jacket",
+    "blue_blouse": "blue_shirt",
+    "blue_boots": "blue_footwear",
+    "blue_earrings": "earrings",
+    "blue_jeans": "jeans",
+    "blue_shoes": "blue_footwear",
+    "blueeyes": "blue_eyes",
+    "bluehair": "blue_hair",
+    "blushing": "blush",
+    "body_paint": "bodypaint",
+    "body_suit": "bodysuit",
+    "boot": "boots",
+    "booty_shorts": "short_shorts",
+    "bow_and_arrow": "bow_(weapon)",
+    "bow_tie": "bowtie",
+    "boys_only": "male_focus",
+    "bracelets": "bracelet",
+    "braided_hair": "braid",
+    "braids": "braid",
+    "breast_plate": "breastplate",
+    "bridal_carry": "princess_carry",
+    "bright_background": "backlighting",
+    "brown-hair": "brown_hair",
+    "brown_blazer": "brown_jacket",
+    "brown_blouse": "brown_shirt",
+    "brown_boots": "brown_footwear",
+    "brown_earrings": "earrings",
+    "brown_shoes": "brown_footwear",
+    "brown_skin": "dark_skin",
+    "browneyes": "brown_eyes",
+    "brownhair": "brown_hair",
+    "brunette": "brown_hair",
+    "bun": "single_hair_bun",
+    "bunny_ear": "rabbit_ears",
+    "bunny_ears": "rabbit_ears",
+    "buns": "double_bun",
+    "bust": "upper_body",
+    "carry": "carrying",
+    "carrying_on_back": "piggyback",
+    "cars": "car",
+    "cat_eyes": "slit_pupils",
+    "catears": "cat_ears",
+    "cats": "cat",
+    "chairs": "chair",
+    "chest_plate": "breastplate",
+    "chestplate": "breastplate",
+    "chinese": "chinese_text",
+    "chocolate_hair": "brown_hair",
+    "chubby": "plump",
+    "class_room": "classroom",
+    "clenched_fist": "clenched_hand",
+    "close_up": "close-up",
+    "closed_fist": "clenched_hand",
+    "closeup": "close-up",
+    "clouds": "cloud",
+    "collared_blouse": "collared_shirt",
+    "comics": "comic",
+    "coveralls": "jumpsuit",
+    "crepuscular_rays": "sunbeam",
+    "crossed_legs_(lying)": "crossed_legs",
+    "crossed_legs_(sitting)": "crossed_legs",
+    "crossed_legs_(standing)": "crossed_legs",
+    "crouch": "squatting",
+    "crouched": "squatting",
+    "crouching": "squatting",
+    "cry": "crying",
+    "curls": "curly_hair",
+    "cyan_eyes": "aqua_eyes",
+    "cyan_hair": "aqua_hair",
+    "dance": "dancing",
+    "dark_blue_dress": "blue_dress",
+    "dark_eyes": "black_eyes",
+    "dark_hair": "black_hair",
+    "dark_skin_female": "dark_skin",
+    "dark_skinned_male": "dark-skinned_male",
+    "darkskin": "dark_skin",
+    "detached_sleeve": "detached_sleeves",
+    "dogs": "dog",
+    "doriru": "drill_hair",
+    "double_ahoge": "antenna_hair",
+    "double_braid": "twin_braids",
+    "double_buns": "double_bun",
+    "double_hair_bun": "double_bun",
+    "double_peace": "double_v",
+    "drillhair": "drill_hair",
+    "ear_ring": "earrings",
+    "ear_rings": "earrings",
+    "earring": "earrings",
+    "embarassed": "embarrassed",
+    "embarrased": "embarrassed",
+    "embarrassing": "embarrassed",
+    "embarrassment": "embarrassed",
+    "embrace": "hug",
+    "emotionless": "expressionless",
+    "english": "english_text",
+    "evening_dress": "evening_gown",
+    "extra_wings": "multiple_wings",
+    "extremely_long_hair": "absurdly_long_hair",
+    "eye_lashes": "eyelashes",
+    "eyes_closed": "closed_eyes",
+    "eyes_wide": "wide-eyed",
+    "face_mask": "mouth_mask",
+    "fall_(season)": "autumn",
+    "falling_snow": "snowing",
+    "female_solo": "solo",
+    "fight": "fighting",
+    "fingerless_glove": "fingerless_gloves",
+    "firearm": "gun",
+    "fist": "clenched_hand",
+    "flat_colors": "flat_color",
+    "flight_jacket": "bomber_jacket",
+    "flip_flops": "flip-flops",
+    "flipflops": "flip-flops",
+    "floral_pattern": "floral_print",
+    "flower_print": "floral_print",
+    "flowers": "flower",
+    "flush": "blush",
+    "flushed": "blush",
+    "focus_blur": "depth_of_field",
+    "folded_arms": "crossed_arms",
+    "foot": "feet",
+    "forelocks": "sidelocks",
+    "frog_eyes": "horizontal_pupils",
+    "frowning": "frown",
+    "fur_lining": "fur_trim",
+    "genuflecting": "on_one_knee",
+    "glistening_skin": "shiny_skin",
+    "glove": "gloves",
+    "glow": "glowing",
+    "goat_eyes": "horizontal_pupils",
+    "god_rays": "sunbeam",
+    "gold_eyes": "yellow_eyes",
+    "gold_hair": "blonde_hair",
+    "golden_eyes": "yellow_eyes",
+    "gray_dress": "grey_dress",
+    "gray_eyes": "grey_eyes",
+    "gray_footwear": "grey_footwear",
+    "gray_hair": "grey_hair",
+    "gray_jacket": "grey_jacket",
+    "gray_pants": "grey_pants",
+    "gray_shirt": "grey_shirt",
+    "gray_skin": "grey_skin",
+    "gray_skirt": "grey_skirt",
+    "grayscale": "greyscale",
+    "green-eyes": "green_eyes",
+    "green_blouse": "green_shirt",
+    "green_boots": "green_footwear",
+    "green_earrings": "earrings",
+    "green_shoes": "green_footwear",
+    "greeneyes": "green_eyes",
+    "greenhair": "green_hair",
+    "grey_blouse": "grey_shirt",
+    "grey_boots": "grey_footwear",
+    "grey_earrings": "earrings",
+    "grey_shoes": "grey_footwear",
+    "grinning": "grin",
+    "guns": "gun",
+    "guys_only": "male_focus",
+    "hair_accessories": "hair_ornament",
+    "hair_accessory": "hair_ornament",
+    "hair_band": "hairband",
+    "hair_bows": "hair_bow",
+    "hair_braid": "braid",
+    "hair_buns": "double_bun",
+    "hair_decs": "hair_ornament",
+    "hair_ornaments": "hair_ornament",
+    "hair_past_feet": "absurdly_long_hair",
+    "hair_past_waist": "very_long_hair",
+    "hairbow": "hair_bow",
+    "hairbun": "single_hair_bun",
+    "hairdown": "hair_down",
+    "halftone_texture": "halftone",
+    "hand_bag": "handbag",
+    "hand_holding": "holding_hands",
+    "handholding": "holding_hands",
+    "hands_above_head": "arms_up",
+    "hands_behind_back": "arms_behind_back",
+    "hands_behind_head": "arms_behind_head",
+    "hands_focus": "hand_focus",
+    "hazel_eyes": "yellow_eyes",
+    "hazeleyes": "yellow_eyes",
+    "head_band": "headband",
+    "head_pat": "headpat",
+    "heart_shaped_pupils": "heart-shaped_pupils",
+    "heels": "high_heels",
+    "highheels": "high_heels",
+    "highlights": "streaked_hair",
+    "hold": "holding",
+    "holding_another's_hand": "holding_hands",
+    "holding_object": "holding",
+    "horses": "horse",
+    "hot_pants": "short_shorts",
+    "hotpants": "short_shorts",
+    "hugging": "hug",
+    "in_profile": "profile",
+    "jogging_pants": "track_pants",
+    "jump": "jumping",
+    "kemonomimi": "animal_ears",
+    "kissing": "kiss",
+    "kitsunemimi": "fox_ears",
+    "knee_highs": "kneehighs",
+    "knee_socks": "kneehighs",
+    "kneeboots": "knee_boots",
+    "kneehigh_boots": "knee_boots",
+    "kneehigh_socks": "kneehighs",
+    "kneeling_on_one_leg": "on_one_knee",
+    "knees_together": "legs_together",
+    "knees_together_feet_together": "legs_together",
+    "kneesocks": "kneehighs",
+    "korean": "korean_text",
+    "laugh": "laughing",
+    "lavender_hair": "purple_hair",
+    "laying": "lying",
+    "laying_down": "lying",
+    "left_handed": "left-handed",
+    "leg": "legs",
+    "leghighs": "socks",
+    "legs_crossed": "crossed_legs",
+    "legs_spread": "spread_legs",
+    "legwarmers": "leg_warmers",
+    "leopardprint": "leopard_print",
+    "lift_shirt": "shirt_lift",
+    "lift_skirt": "skirt_lift",
+    "lifted_skirt": "skirt_lift",
+    "lifting_skirt": "skirt_lift",
+    "light_blue_eyes": "blue_eyes",
+    "light_brown_eyes": "brown_eyes",
+    "light_purple_eyes": "purple_eyes",
+    "light_shaft": "sunbeam",
+    "line_art": "lineart",
+    "long_ears": "pointy_ears",
+    "long_gloves": "elbow_gloves",
+    "long_pants": "pants",
+    "long_ponytail": "ponytail",
+    "long_sleeve": "long_sleeves",
+    "longcoat": "long_coat",
+    "longhair": "long_hair",
+    "looking_aside": "looking_to_the_side",
+    "looking_over_shoulder": "looking_back",
+    "looking_to_side": "looking_to_the_side",
+    "low_angle": "from_below",
+    "lying_down": "lying",
+    "lying_on_back": "on_back",
+    "lying_on_side": "on_side",
+    "lying_on_stomach": "on_stomach",
+    "mad": "angry",
+    "magenta_hair": "pink_hair",
+    "magician_hat": "top_hat",
+    "maid_costume": "maid",
+    "maid_dress": "maid",
+    "maid_outfit": "maid",
+    "maid_uniform": "maid",
+    "maids": "maid",
+    "male": "male_focus",
+    "male_only": "male_focus",
+    "man": "male_focus",
+    "manga": "comic",
+    "masks": "mask",
+    "megane": "glasses",
+    "meganekko": "glasses",
+    "meganeko": "glasses",
+    "men": "male_focus",
+    "mini_skirt": "miniskirt",
+    "minishorts": "short_shorts",
+    "mirrors": "mirror",
+    "mist": "fog",
+    "mitts": "mittens",
+    "monochome": "monochrome",
+    "monochorme": "monochrome",
+    "monochromatic": "monochrome",
+    "morning_hair": "messy_hair",
+    "motorbike": "motorcycle",
+    "mountains": "mountain",
+    "mouth_open": "open_mouth",
+    "muchi": "plump",
+    "muffler": "scarf",
+    "multi_tail": "multiple_tails",
+    "multi_tails": "multiple_tails",
+    "multicolor_hair": "multicolored_hair",
+    "multicolored_blouse": "multicolored_shirt",
+    "multiple_tail": "multiple_tails",
+    "multitail": "multiple_tails",
+    "multitails": "multiple_tails",
+    "muscle": "muscular",
+    "muscles": "muscular",
+    "naked_boots": "boots",
+    "naked_sleeves": "detached_sleeves",
+    "naked_socks": "socks",
+    "naked_thighhighs": "thighhighs",
+    "neck_bow": "bowtie",
+    "neck_tie": "necktie",
+    "neko": "cat",
+    "nekomimi": "cat_ears",
+    "neutral_expression": "expressionless",
+    "no_human": "no_humans",
+    "no_sleeves": "sleeveless",
+    "nude_thighhighs": "thighhighs",
+    "nurse_outfit": "nurse",
+    "nurse_uniform": "nurse",
+    "odango": "double_bun",
+    "odd_eye": "heterochromia",
+    "on_belly": "on_stomach",
+    "on_front": "on_stomach",
+    "on_knees": "kneeling",
+    "one_arm_up": "arm_up",
+    "one_knee": "on_one_knee",
+    "one_leg_raised": "leg_up",
+    "one_sleeve": "single_sleeve",
+    "open_clothing": "open_clothes",
+    "open_legs": "spread_legs",
+    "opera_gloves": "elbow_gloves",
+    "orange_blouse": "orange_shirt",
+    "orange_boots": "orange_footwear",
+    "orange_shoes": "orange_footwear",
+    "outdoor": "outdoors",
+    "outer_space": "space",
+    "outside": "outdoors",
+    "oversized_clothing": "oversized_clothes",
+    "overweight": "fat",
+    "pale": "pale_skin",
+    "paleskin": "pale_skin",
+    "panty_hose": "pantyhose",
+    "partially_monochrome": "partially_colored",
+    "patting_head": "headpat",
+    "payot": "sidelocks",
+    "peace_sign": "v",
+    "pierced_ear": "ear_piercing",
+    "pierced_ears": "ear_piercing",
+    "pigtails": "short_twintails",
+    "pink_blouse": "pink_shirt",
+    "pink_boots": "pink_footwear",
+    "pink_earrings": "earrings",
+    "pink_shoes": "pink_footwear",
+    "pinkhair": "pink_hair",
+    "plane": "airplane",
+    "planes": "airplane",
+    "pointed_ears": "pointy_ears",
+    "pointy-ears": "pointy_ears",
+    "pointy_ear": "pointy_ears",
+    "pokemon_ears": "animal_ears",
+    "polka-dot": "polka_dot",
+    "polka_dots": "polka_dot",
+    "polygon": "3d",
+    "pony_tail": "ponytail",
+    "pov_eye_contact": "looking_at_viewer",
+    "pov_pointing": "pointing_at_viewer",
+    "prone": "on_stomach",
+    "prosthetic_limb": "prosthesis",
+    "purple-hair": "purple_hair",
+    "purple_blouse": "purple_shirt",
+    "purple_boots": "purple_footwear",
+    "purple_earrings": "earrings",
+    "purple_shoes": "purple_footwear",
+    "purpleeyes": "purple_eyes",
+    "purplehair": "purple_hair",
+    "purse": "handbag",
+    "rabbit_ear": "rabbit_ears",
+    "raining": "rain",
+    "raised_arm": "arm_up",
+    "raised_arms": "arms_up",
+    "ranset": "backpack",
+    "red_blazer": "red_jacket",
+    "red_blouse": "red_shirt",
+    "red_boots": "red_footwear",
+    "red_earrings": "earrings",
+    "red_eye": "red_eyes",
+    "red_head": "red_hair",
+    "red_shoes": "red_footwear",
+    "redeyes": "red_eyes",
+    "redhair": "red_hair",
+    "redhead": "red_hair",
+    "restricted_palette": "limited_palette",
+    "ripped_clothes": "torn_clothes",
+    "ripped_clothing": "torn_clothes",
+    "robes": "robe",
+    "robot_legs": "mechanical_legs",
+    "robotic_legs": "mechanical_legs",
+    "roof": "rooftop",
+    "rough": "sketch",
+    "rough_sketch": "sketch",
+    "rucksack": "backpack",
+    "run": "running",
+    "sadness": "sad",
+    "sandal": "sandals",
+    "santa": "santa_costume",
+    "santa_outfit": "santa_costume",
+    "santa_suit": "santa_costume",
+    "scars": "scar",
+    "school_girl": "school_uniform",
+    "school_uniforms": "school_uniform",
+    "schoolgirl": "school_uniform",
+    "sea": "ocean",
+    "seifuku": "school_uniform",
+    "settee": "couch",
+    "shades": "sunglasses",
+    "shields": "shield",
+    "shippo": "tail",
+    "shirt_only": "shirt",
+    "shirt_up": "shirt_lift",
+    "shirtlift": "shirt_lift",
+    "shirts": "shirt",
+    "shock": "surprised",
+    "shocked": "surprised",
+    "shocked_eyes": "wide-eyed",
+    "shoe": "shoes",
+    "shops": "shop",
+    "short-hair": "short_hair",
+    "short_pants": "shorts",
+    "short_skirt": "miniskirt",
+    "shorthair": "short_hair",
+    "shoulder-length_hair": "medium_hair",
+    "shoulder_cape": "capelet",
+    "side_tail": "side_ponytail",
+    "sidetail": "side_ponytail",
+    "signed": "signature",
+    "silver_eyes": "grey_eyes",
+    "silver_jacket": "grey_jacket",
+    "sit": "sitting",
+    "sitting_down": "sitting",
+    "sitting_on_knees": "seiza",
+    "skirt_up": "skirt_lift",
+    "skirtlift": "skirt_lift",
+    "slacks": "pants",
+    "slender": "skinny",
+    "smiling": "smile",
+    "snake_eyes": "slit_pupils",
+    "soaked": "wet",
+    "sock": "socks",
+    "sofa": "couch",
+    "sole_female": "1girl",
+    "sole_male": "1boy",
+    "sole_other": "1other",
+    "solo_female": "solo",
+    "spandex_shorts": "bike_shorts",
+    "spats": "bike_shorts",
+    "spears": "spear",
+    "speech_balloon": "speech_bubble",
+    "split_hair_colors": "split-color_hair",
+    "spot_colors": "spot_color",
+    "spread_leg": "spread_legs",
+    "squat": "squatting",
+    "startled": "surprised",
+    "stocking": "thighhighs",
+    "stockings": "thighhighs",
+    "store": "shop",
+    "striped_clothing": "striped_clothes",
+    "summer_dress": "sundress",
+    "summerdress": "sundress",
+    "sun_dress": "sundress",
+    "sunhat": "sun_hat",
+    "sunshine": "sunlight",
+    "suntan": "tan",
+    "supine": "on_back",
+    "surprise": "surprised",
+    "sweat_pants": "sweatpants",
+    "sweating": "sweat",
+    "sweatshirt": "sweater",
+    "swords": "sword",
+    "t_shirt": "t-shirt",
+    "tan_line": "tanlines",
+    "tan_lines": "tanlines",
+    "tank_focus": "vehicle_focus",
+    "tank_top_lift": "shirt_lift",
+    "tanktop": "tank_top",
+    "tanline": "tanlines",
+    "tanned": "tan",
+    "tanned_skin": "tan",
+    "tatoo": "tattoo",
+    "tattoos": "tattoo",
+    "teal_eyes": "aqua_eyes",
+    "teal_hair": "aqua_hair",
+    "tear": "tears",
+    "tennis_shoes": "sneakers",
+    "text_bubble": "speech_bubble",
+    "thigh_highs": "thighhighs",
+    "thighboots": "thigh_boots",
+    "thighhgihs": "thighhighs",
+    "thighhigh_boots": "thigh_boots",
+    "thighhighs_only": "thighhighs",
+    "thighhigs": "thighhighs",
+    "thighighs": "thighhighs",
+    "thin": "skinny",
+    "thought_balloon": "thought_bubble",
+    "three-piece_suit": "suit",
+    "tie": "necktie",
+    "tigerprint": "tiger_print",
+    "tight": "tight_clothes",
+    "tights": "pantyhose",
+    "top_lift": "shirt_lift",
+    "tophat": "top_hat",
+    "torn_clothing": "torn_clothes",
+    "tornclothes": "torn_clothes",
+    "transparent_gif": "transparent_background",
+    "transparent_png": "transparent_background",
+    "trees": "tree",
+    "trenchcoat": "trench_coat",
+    "trousers": "pants",
+    "tshirt": "t-shirt",
+    "turning": "looking_back",
+    "turquoise_eyes": "aqua_eyes",
+    "turquoise_hair": "aqua_hair",
+    "turtle_neck": "turtleneck",
+    "twin_braid": "twin_braids",
+    "twin_bun": "double_bun",
+    "twin_buns": "double_bun",
+    "twin_tails": "twintails",
+    "twinbraid": "twin_braids",
+    "twinbraids": "twin_braids",
+    "twintaiks": "twintails",
+    "twintail": "twintails",
+    "two-tone-hair": "two-tone_hair",
+    "two_tone_hair": "two-tone_hair",
+    "under_water": "underwater",
+    "unexpressive": "expressionless",
+    "v_sign": "v",
+    "view_from_above": "from_above",
+    "view_from_below": "from_below",
+    "viewed_from_above": "from_above",
+    "viewed_from_behind": "from_behind",
+    "viewed_from_below": "from_below",
+    "violet_eyes": "purple_eyes",
+    "violet_hair": "purple_hair",
+    "waist_coat": "waistcoat",
+    "watermarked": "watermark",
+    "weddingdress": "wedding_dress",
+    "wet_body": "wet",
+    "wet_clothing": "wet_clothes",
+    "wet_skin": "wet",
+    "wetclothes": "wet_clothes",
+    "white_blouse": "white_shirt",
+    "white_boots": "white_footwear",
+    "white_earrings": "earrings",
+    "white_shoes": "white_footwear",
+    "whitehair": "white_hair",
+    "wide_eyed": "wide-eyed",
+    "wide_eyes": "wide-eyed",
+    "windy": "wind",
+    "wing": "wings",
+    "wink": "one_eye_closed",
+    "woods": "forest",
+    "word_bubble": "speech_bubble",
+    "wrist_band": "wristband",
+    "wrist_bands": "wristband",
+    "wrist_watch": "wristwatch",
+    "wristbands": "wristband",
+    "wristlet": "bracelet",
+    "yellow_blouse": "yellow_shirt",
+    "yellow_boots": "yellow_footwear",
+    "yellow_earrings": "earrings",
+    "yellow_hair": "blonde_hair",
+    "yellow_shoes": "yellow_footwear",
+    "yelloweyes": "yellow_eyes",
+    "yonkoma": "4koma"
+  },
+  "unmapped_proposals": [
+    "3d_render",
+    "6boys",
+    "6girls",
+    "6others",
+    "acrylic_painting",
+    "ambidextrous",
+    "aqua_headwear",
+    "aqua_legwear",
+    "arm",
+    "arms",
+    "artificial_light",
+    "asymmetrical_composition",
+    "back_view",
+    "bangs",
+    "bare_hands",
+    "beige_dress",
+    "beige_footwear",
+    "beige_headwear",
+    "beige_jacket",
+    "beige_legwear",
+    "beige_pants",
+    "beige_ribbon",
+    "beige_shirt",
+    "beige_skirt",
+    "black_headwear",
+    "black_legwear",
+    "blue_headwear",
+    "blue_legwear",
+    "bright",
+    "brown_headwear",
+    "brown_legwear",
+    "buttoned",
+    "cap",
+    "cel_shading",
+    "checkered",
+    "cheongsam",
+    "chubby",
+    "clothes_removed",
+    "cream_dress",
+    "cream_footwear",
+    "cream_headwear",
+    "cream_jacket",
+    "cream_legwear",
+    "cream_pants",
+    "cream_ribbon",
+    "cream_shirt",
+    "cream_skirt",
+    "cross-hatching",
+    "crouching",
+    "dark_green_hair",
+    "daytime",
+    "digital_art",
+    "digital_media",
+    "drawing",
+    "face",
+    "face_focus",
+    "fair_skin",
+    "fall",
+    "feet_focus",
+    "female_focus",
+    "firelight",
+    "fist",
+    "foot",
+    "french_braid",
+    "front_view",
+    "frontlighting",
+    "fur",
+    "gold_eyes",
+    "gold_legwear",
+    "gold_pants",
+    "gold_shirt",
+    "gold_skirt",
+    "gradient",
+    "green_headwear",
+    "green_legwear",
+    "grey_headwear",
+    "grey_legwear",
+    "group",
+    "hand",
+    "hands",
+    "hard_lighting",
+    "harsh_lighting",
+    "head",
+    "head_turn",
+    "hugging",
+    "japanese_text",
+    "kissing",
+    "leg",
+    "light_brown_hair",
+    "light_green_hair",
+    "light_purple_hair",
+    "looking_away",
+    "low_light",
+    "metal_armor",
+    "mist",
+    "mixed_media",
+    "motion_sequence",
+    "multicolored",
+    "multicolored_headwear",
+    "multicolored_legwear",
+    "multiple_timeframes",
+    "no_text",
+    "oil_painting",
+    "orange_headwear",
+    "orange_legwear",
+    "painting",
+    "pantsuit",
+    "peace_sign",
+    "pencil_drawing",
+    "photo",
+    "photograph",
+    "picture-in-picture",
+    "pink_headwear",
+    "pink_legwear",
+    "pinstripe",
+    "plaid",
+    "polka_dot_clothes",
+    "pullover",
+    "purple_headwear",
+    "purple_legwear",
+    "raining",
+    "raised_leg",
+    "reaching_out",
+    "red_headwear",
+    "red_legwear",
+    "right-handed",
+    "rim_lighting",
+    "ripped_clothes",
+    "rough_sketch",
+    "see-through",
+    "shocked",
+    "short",
+    "short_female",
+    "side_view",
+    "silver_eyes",
+    "silver_hair",
+    "silver_headwear",
+    "silver_jacket",
+    "silver_pants",
+    "silver_ribbon",
+    "silver_shirt",
+    "single_panel",
+    "skintight",
+    "slim",
+    "snowfall",
+    "soft_lighting",
+    "solid_color",
+    "solid_color_background",
+    "spring",
+    "stilettos",
+    "stockings",
+    "striped",
+    "subtitles",
+    "sunny",
+    "symmetrical",
+    "tanned_skin",
+    "tartan",
+    "text",
+    "thunderstorm",
+    "tights",
+    "tracksuit",
+    "trousers",
+    "turn",
+    "unfinished",
+    "uniform",
+    "volumetric_lighting",
+    "watercolor",
+    "white_headwear",
+    "white_legwear",
+    "wide-angle_lens",
+    "windy",
+    "wink",
+    "yellow_headwear",
+    "yellow_legwear",
+    "zipped_up"
+  ]
+}

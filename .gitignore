@@ -8,3 +8,4 @@ hydrus_settings.json
 hydrus_settings.json.*
 .hydrus-settings-*
 hydrus_memory.sqlite3*
+data/global-tag-rules.sqlite3*

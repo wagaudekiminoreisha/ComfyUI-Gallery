@@ -324,7 +324,7 @@ export function SourcePrefixPanel() {
                 </div>
                 <div style={{ flex: '1 1 340px', minWidth: 0 }}>
                     <Space style={{ width: '100%', justifyContent: 'space-between' }}><Typography.Title level={5} style={{ margin: 0 }}>Prefix {side} tags</Typography.Title><Button size="small" disabled={!value.length} onClick={() => setValue([])}>Clear</Button></Space>
-                    <div style={{ marginTop: 6 }}><TermsEditor key={side} value={value} onChange={terms => setValue(terms)} suggest={suggestTerms} placeholder="Terms: tags, {a|} or a OPT, a OR b, (tag:0.5), @prefix" /></div>
+                    <div style={{ marginTop: 6 }}><TermsEditor clothingReview={side === 'positive'} key={side} value={value} onChange={terms => setValue(terms)} suggest={suggestTerms} placeholder="Terms: tags, {a|} or a OPT, a OR b, (tag:0.5), @prefix" /></div>
                     {prefix && <PrefixImages library={library} prefixId={prefix.id} onRemove={image => void unpairImage(image)} />}
                 </div>
             </div>

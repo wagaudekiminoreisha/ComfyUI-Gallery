@@ -9,8 +9,8 @@ function load(name) {
     if (cache.has(filename)) return cache.get(filename).exports;
     const module = { exports: {} };
     cache.set(filename, module);
-    const source = ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
-    vm.runInThisContext(`(function(exports,module,require){${source}\n})`, { filename })(module.exports, module, request => request.startsWith('.') ? load(request) : require(request));
+    const source = ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true } }).outputText;
+    vm.runInThisContext(`(function(exports,module,require){${source}\n})`, { filename })(module.exports, module, request => request.endsWith('.json') ? JSON.parse(fs.readFileSync(path.resolve(path.dirname(filename),request),'utf8')) : request.startsWith('.') ? load(request) : require(request));
     return module.exports;
 }
 module.exports = { load };

@@ -1,4 +1,6 @@
 import { BatchBlacklistEditor, useBatchTagBlacklist } from './BatchBlacklistEditor';
+import { ClothingReview } from './ClothingReview';
+import { GlobalTagReview } from './GlobalTagReview';
 import { convertBoxContents, applyBatchTags, batchTagItems, batchTagName, removeTagsFromChip, availableBatchTags, eligibleBatchIds } from './BatchTagBlacklist';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -541,6 +543,8 @@ export function PromptBoxEditor({ state, source, preview, suggest, onChange, not
             onGroup={(mode, tags) => { const made = groupChips(mode, tags); if (made.length) onChange(addBoxWithChip(state, made)); }}
             onPrefix={(item, head) => onChange(addBox(head ? addBox(state, undefined, head) : state, item.label, (item.terms || []).join(', ')))} />
         {notice && <div role="status" style={{ opacity: .8, color: '#d89614' }}>{notice}</div>}
+        <ClothingReview text={preview} />
+        <GlobalTagReview text={preview} />
         <CopyablePrompt title="Prompt sent to the encoder" value={preview} />
         {lastEncodedPrompt !== undefined && <CopyablePrompt title="Last encoded prompt (after optional choices)" value={lastEncodedPrompt} />}
     </div>;
@@ -571,7 +575,7 @@ const termsOf = (state: BoxState): string[] => state.boxes.flatMap(box => box.ki
  * "Add as", grouped chips edited in place, weights. Each chip is one term, for example `activator tag`,
  * `{tag1|}`, `{(tag2, tag3)|}` or `(tag4:0.5)`.
  */
-export function TermsEditor({ value, onChange, suggest, placeholder }: { value: string[]; onChange: (terms: string[]) => void; suggest: (query: string) => Promise<Suggestion[]>; placeholder?: string }) {
+export function TermsEditor({ value, onChange, suggest, placeholder, clothingReview = false }: { value: string[]; onChange: (terms: string[]) => void; suggest: (query: string) => Promise<Suggestion[]>; placeholder?: string; clothingReview?: boolean }) {
     const [state, setState] = useState<BoxState>(() => termsBox(value));
     // Follow changes made outside (loading another prefix, "add all"), but keep chip identity while editing here.
     useEffect(() => { if (JSON.stringify(termsOf(state)) !== JSON.stringify(value)) setState(termsBox(value)); }, [JSON.stringify(value)]);
@@ -584,5 +588,7 @@ export function TermsEditor({ value, onChange, suggest, placeholder }: { value: 
     return <div className="cg-terms" style={{ ...S.root, padding: 0, minHeight: 0, ...look }} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
         <style>{TERMS_STYLE}</style>
         <GroupView bare box={box} index={0} count={1} state={state} onChange={change} suggest={suggest} placeholder={placeholder} />
+        {clothingReview && <ClothingReview text={termsOf(state).join(', ')} />}
+        {clothingReview && <GlobalTagReview text={termsOf(state).join(', ')} />}
     </div>;
 }
