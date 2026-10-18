@@ -1,3 +1,4 @@
+import {parsePrompt,compileChip} from './PromptBoxes';
 import { loadPrefixes, expandSearchTerms, type PrefixLibrary } from './PrefixLibrary';
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
@@ -8,7 +9,8 @@ import { useHydrus } from './HydrusContext';
 type Suggestion = { value: string; count?: number; local?: boolean };
 
 /** Reusable tag entry for export fields and saved defaults, including manual tags. */
-export function HydrusTagSelect({ localSuggestions = [], value = [], onChange, disabled = false, active = true, serviceKey, label, placeholder, style, onSubmit, onChooseAll, inputRef }: {
+export function HydrusTagSelect({ localSuggestions = [], value = [], onChange, disabled = false, active = true, serviceKey, label, placeholder, style, onSubmit, onChooseAll, inputRef,preservePrefixes=false }: {
+    preservePrefixes?:boolean;
     localSuggestions?: string[];
     onSubmit?: () => void; onChooseAll?: () => void; inputRef?: React.RefObject<any>;
     value?: string[]; onChange?: (tags: string[]) => void; disabled?: boolean; active?: boolean;
@@ -45,10 +47,10 @@ export function HydrusTagSelect({ localSuggestions = [], value = [], onChange, d
     useEffect(() => { if (!active) { setQuery(''); setOpen(false); } }, [active]);
     useEffect(() => { let live = true; const timer = setTimeout(() => { if (query.trim()) void hydrusRequest<{ tags: string[] }>('dictionary', { query }).then(data => { if (live) setDictionary(data.tags); }).catch(() => {}); else setDictionary([]); }, 250); return () => { live = false; clearTimeout(timer); }; }, [query]);
     useEffect(() => { if (open) void loadPrefixes().then(setLibrary).catch(() => {}); }, [open]);
-    const change = (tags: string[]) => { onChange?.(Array.from(new Set(tags.flatMap(tag => expandSearchTerms(library, tag))))); setQuery(''); };
+    const change = (tags: string[]) => { onChange?.(Array.from(new Set(tags.flatMap(tag => preservePrefixes&&tag.startsWith('@')?[tag]:expandSearchTerms(library, tag))))); setQuery(''); };
     const prefix = query.trim().startsWith('-') ? '-' : '';
     const choices: Suggestion[] = [...suggestions, ...Array.from(new Set([...library.prefixes.map(prefix => '@' + prefix.name), ...localSuggestions, ...dictionary])).filter(tag => query.trim() && tag.toLocaleLowerCase().replace(/_/g, ' ').includes(query.trim().replace(/^-/, '').toLocaleLowerCase().replace(/_/g, ' ')) && !suggestions.some(remote => remote.value === tag)).slice(0, 40).map(value => ({ value, local: true }))];
-    return <div className="cg-tag-input" style={style} onKeyDownCapture={event => {
+    return <div onPaste={event=>{const text=event.clipboardData.getData('text/plain');if(/[{},|\n]/.test(text)){event.preventDefault();event.stopPropagation();change([...value,...parsePrompt(text.replace(/\n/g,', ')).map(compileChip)]);}}} className="cg-tag-input" style={style} onKeyDownCapture={event => {
         if (event.key === 'Enter' && !event.nativeEvent.isComposing && (!query.trim() || value.includes(query.trim()) || event.ctrlKey || event.metaKey)) {
             event.preventDefault(); event.stopPropagation(); setQuery(''); setOpen(false); onSubmit?.();
         }

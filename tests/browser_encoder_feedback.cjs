@@ -26,11 +26,11 @@ const assert=require('node:assert/strict');
   await select.selectOption('tag');
   await page.evaluate(()=>{window.qaFeedbackA.__galleryPromptBoxes.insert('tail tag','after','Tail');window.qaFeedbackA.setSize([600,1100]);});
   const tail=a.getByLabel('Tag box Tail',{exact:true});await tail.getByRole('button',{name:'Delete box',exact:true}).click();
-  await page.waitForFunction(()=>window.qaFeedbackA.size[1]<900);
+  await page.waitForFunction(()=>window.qaFeedbackA.size[1]<900);await tail.waitFor({state:'detached'});await page.waitForTimeout(180);
   assert.equal(await page.evaluate(()=>window.qaFeedbackA.size[0]),600);
   const height=await page.evaluate(()=>window.qaFeedbackA.size[1]);await page.waitForTimeout(250);assert.equal(await page.evaluate(()=>window.qaFeedbackA.size[1]),height,'settled size must not oscillate');
   await a.getByLabel('Add ruleset',{exact:true}).selectOption('__hair_prompting__');await a.getByLabel('Hair mode',{exact:true}).selectOption('minimal');
-  await page.waitForFunction(()=>window.qaFeedbackA.size[1]>1000);
+  await page.waitForFunction(()=>window.qaFeedbackA.size[1]>=700&&window.qaFeedbackA.size[1]<=980);
   await a.getByRole('button',{name:'Remove hair prompting',exact:true}).click();await page.waitForFunction(()=>window.qaFeedbackA.size[1]<900);
   assert.equal(await page.evaluate(()=>window.qaFeedbackA.size[0]),600,'removing policy preserves node width');
   // In-editor movement, independent-editor copies and cancellation use real pointer input.

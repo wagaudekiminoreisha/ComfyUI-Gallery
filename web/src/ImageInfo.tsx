@@ -28,6 +28,7 @@ import { formatPromptTerms } from './PromptSpelling';
 import { PromptTermChips, TermsEditor } from './PromptBoxEditor';
 import { makeSuggest } from './PromptSuggest';
 import { extractHydrusTags, extractLocalPrompts } from './LocalImageSearch';
+import {associationPrompts} from './AssociationPrompts';
 import { chosenTags, promptResolutions } from './PromptResolution';
 import { GROUPING_LABELS } from './PromptBoxes';
 import { promptTerms } from './PromptTags';
@@ -57,8 +58,8 @@ export function PromptPicks({ metadata }: { metadata: unknown }) {
         {resolutions.map(item => <div key={item.id} style={{ marginBottom: 8 }}>
             {resolutions.length > 1 && <Typography.Text strong>{item.title} #{item.id}</Typography.Text>}
             {item.choices.length ? item.choices.map((choice, index) => <div key={index} style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center', margin: '3px 0' }}>
-                <Tag>{GROUPING_LABELS[choice.kind].name}</Tag>
-                {choice.options.map(option => <Tag key={option} color={option === choice.chosen ? 'green' : undefined} style={{ opacity: option === choice.chosen ? 1 : .55, textDecoration: option === choice.chosen ? undefined : 'line-through' }}>{option}</Tag>)}
+                <Tag>{GROUPING_LABELS[choice.kind].name}</Tag><Button size="small" disabled={!chosenTags(choice).length} onClick={()=>void navigator.clipboard.writeText(chosenTags(choice).join(", "))}>Copy used tags</Button>
+                {choice.options.map(option => <Tag key={option} onDoubleClick={()=>{if(option===choice.chosen)void navigator.clipboard.writeText(option);}} color={option === choice.chosen ? 'green' : undefined} style={{ opacity: option === choice.chosen ? 1 : .55, textDecoration: option === choice.chosen ? undefined : 'line-through' }}>{option}</Tag>)}
                 {!chosenTags(choice).length && <Typography.Text type="secondary">→ nothing</Typography.Text>}
             </div>) : <Typography.Text type="secondary">The picks could not be matched to the prompt (it was edited after the run).</Typography.Text>}
         </div>)}
@@ -236,6 +237,7 @@ export function SourcePrefixPanel() {
     const matchOf = (value: string) => value ? library.prefixes.find(item => item.name.toLowerCase() === value.toLowerCase()) : undefined;
     const [positive, setPositive] = useState<string[]>([]);
     const [negative, setNegative] = useState<string[]>([]);
+    const [sourceOnly,setSourceOnly]=useState(true);
     const [side, setSide] = useState<'positive' | 'negative'>('positive');
     const [appending, setAppending] = useState<GalleryEntry[]>([]);
     const [busy, setBusy] = useState(false);
@@ -246,7 +248,7 @@ export function SourcePrefixPanel() {
             const detail = (event as CustomEvent<GalleryEntry[] | string[]>).detail || [];
             const files = hydrusRef.current.imageFiles, items = hydrusRef.current.items;
             setEntries(detail.flatMap(value => typeof value !== 'string' ? [value] : files[value] ? [localEntry(files[value], items[value]?.hash)] : []));
-            setSnapshot(undefined);setPrefixId(undefined); setName(''); setTyped(''); setSide('positive'); void reload();
+            setSnapshot(undefined);setPrefixId(undefined); setName(''); setTyped(''); setSide('positive'); setSourceOnly(true); void reload().then(lib=>{if(!lib)return;const selected=detail.flatMap(value=>typeof value!=='string'?[value]:files[value]?[localEntry(files[value],items[value]?.hash)]:[]);const keys=selected.flatMap(entry=>imagePrefixKeys(entry,root));const variant=Object.values(lib.snapshots||{}).find(row=>keys.some(key=>row.members?.[key]));const association=keys.map(key=>lib.associations?.[key]).find(Boolean);setPrefixId(variant?.prefix_id||association?.prefix_id);if(variant){setSnapshot(variant.id);setPositive(variant.terms);setNegative(variant.negative_terms);}});
         };
         window.addEventListener(SOURCE_PREFIX_EVENT, open);
         window.addEventListener('gallery-prefix-library-changed', reload);window.addEventListener('gallery-prefix-snapshots-changed',reload);
@@ -256,18 +258,18 @@ export function SourcePrefixPanel() {
     const tags = useMemo(() => {
         const sets = { positive: new Set<string>(), negative: new Set<string>(), hydrus: new Set<string>() };
         for (const entry of entries) {
-            const metadata = metadataOf(entry), prompts = extractLocalPrompts(metadata, true);
+            const metadata = metadataOf(entry), prompts = associationPrompts(metadata,sourceOnly);
             promptTerms(prompts.positive).forEach(tag => sets.positive.add(tag));
             promptTerms(prompts.negative).forEach(tag => sets.negative.add(tag));
             extractHydrusTags(metadata).forEach(tag => sets.hydrus.add(tag));
         }
         return { positive: [...sets.positive], negative: [...sets.negative], hydrus: [...sets.hydrus] };
-    }, [entries, hydrus.items]);
+    }, [entries, hydrus.items,sourceOnly]);
     const prefix = library.prefixes.find(item => item.id === prefixId);
     // An existing prefix starts with its own tags; a new one with the image's positive prompt.
     useEffect(() => {
-        drafts.markSaved({ name: prefix?.name || name, positive: prefix ? expandPrefix(library, '@' + prefix.name) : tags.positive, negative: prefix?.negative_terms || [] });
-        if (prefix) { setName(prefix.name); setPositive(expandPrefix(library, '@' + prefix.name)); setNegative(prefix.negative_terms || []); }
+        const variant=snapshot?library.snapshots?.[snapshot]:undefined;drafts.markSaved({ name: prefix?.name || name, positive: variant?.terms||(prefix ? expandPrefix(library, '@' + prefix.name) : tags.positive), negative: variant?.negative_terms||prefix?.negative_terms || [] });
+        if (prefix) {const variant=snapshot?library.snapshots?.[snapshot]:undefined; setName(prefix.name); setPositive(variant?.terms||expandPrefix(library, '@' + prefix.name)); setNegative(variant?.negative_terms||prefix.negative_terms || []); }
         else { setPositive(tags.positive); setNegative([]); }
     }, [prefixId, entries]);
     const keys = entries.flatMap(entry => imagePrefixKeys(entry, root));
@@ -298,13 +300,13 @@ export function SourcePrefixPanel() {
     const value = side === 'positive' ? positive : negative, setValue = side === 'positive' ? setPositive : setNegative;
     const has = (tag: string) => value.some(item => item.toLowerCase() === tag.toLowerCase());
     /** The image's tags of one kind: click takes a tag into the prefix (or back out). They are never deleted here. */
-    const imageTags = (key: 'positive' | 'negative' | 'hydrus', label: string): React.ReactNode => !!tags[key].length && <div style={{ marginBottom: 8 }}>
+    const imageTags = (key: 'positive' | 'negative' | 'hydrus', label: string): React.ReactNode => !!tags[key].length && <details open style={{ marginBottom: 8 }}><summary>{label} · {tags[key].length} tags</summary>
         <Space size={4}><Typography.Text strong>{label}</Typography.Text><Typography.Text type="secondary">({tags[key].filter(has).length}/{tags[key].length} in the prefix)</Typography.Text>
             <Button size="small" type="link" disabled={tags[key].every(has)} onClick={() => setValue(old => [...old, ...tags[key].filter(tag => !old.some(item => item.toLowerCase() === tag.toLowerCase()))])}>add all →</Button></Space>
-        <div role="list" aria-label={label} style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxHeight: 150, overflowY: 'auto' }}>
+        <div role="list" aria-label={label} style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxHeight: 'none' }}>
             <PromptTermChips terms={tags[key]} selected={has} onSelect={tag => setValue(old => has(tag) ? old.filter(item => item.toLowerCase() !== tag.toLowerCase()) : [...old, tag])} />
         </div>
-    </div>;
+    </details>;
     const total = positive.length + negative.length;
     return <>
         {drafts.dialog}
@@ -314,7 +316,7 @@ export function SourcePrefixPanel() {
                 <Button onClick={() => { drafts.guard(() => { setAppending(entries); setEntries([]); }); }}>Append images and prompts…</Button>
                 <Button disabled={!prefix || busy} onClick={() => void pair()} title="Pair the image(s) with this prefix without changing its tags">Pair only</Button>
                 <Button type="link" onClick={() => { openPrefixManager({snapshotId:snapshot, name: prefix?.name || name, positive, negative, imageKeys: keys, imageRefs: refs }); setEntries([]); }}>Full prefix editor…</Button>
-                {prefix&&!snapshot&&<Button disabled={busy||!total} onClick={()=>void save(true)}>Save as snapshot</Button>}<Button type="primary" loading={busy} disabled={!total || !(prefix || name.trim())} onClick={() => void save()}>{snapshot?'Save snapshot':prefix ? `Update shared “${prefix.name}” and pair` : name ? `Create “${name}” with ${total} tag(s)` : `Create prefix with ${total} tag(s)`}</Button>
+                <Button disabled={!prefix||busy||!total} onClick={()=>void save(true)}>Create snapshot</Button><Button type="primary" loading={busy} disabled={!total || !(prefix || name.trim())} onClick={() => void save()}>{snapshot?'Save snapshot':prefix ? `Update shared “${prefix.name}” and pair` : name ? `Create “${name}” with ${total} tag(s)` : `Create prefix with ${total} tag(s)`}</Button>
             </Space>}>
             <div className="cg-associations-layout"><SnapshotRail prefixId={prefix?.id} selected={snapshot} onSelect={row=>{const positive=row?.terms||(prefix?expandPrefix(library,'@'+prefix.name):[]),negative=row?.negative_terms||prefix?.negative_terms||[];drafts.markSaved({name:prefix?.name||name,positive,negative});setSnapshot(row?.id);setPositive(positive);setNegative(negative);}}/><div className="cg-associations-main">
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>{entries.slice(0, 8).map(entry => <img key={entry.id} src={thumb(entry)} alt={entry.name} style={{ width: 84, height: 84, objectFit: 'contain', background: '#8882', borderRadius: 4 }} />)}{entries.length > 8 && <Typography.Text type="secondary">+{entries.length - 8}</Typography.Text>}</div>
@@ -340,8 +342,8 @@ export function SourcePrefixPanel() {
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
                 <div style={{ flex: '1 1 340px', minWidth: 0 }}>
                     <Typography.Title level={5} style={{ marginTop: 0 }}>From the image{entries.length === 1 ? '' : 's'}</Typography.Title>
-                    <Typography.Paragraph type="secondary">Prompt templates preserve saved groups and alternatives. Click or drag a chip to add it; choices may differ from those used for this image.</Typography.Paragraph>
-                    {side === 'positive' ? <>{imageTags('positive', 'Positive prompt')}{imageTags('hydrus', 'Hydrus tags')}</> : imageTags('negative', 'Negative prompt')}
+                    <Typography.Paragraph type="secondary">Click or drag tags to include them. Source-only hides additions made in the encoder; changing this view never adds tags automatically.</Typography.Paragraph>
+                    <label><input type="checkbox" checked={sourceOnly} onChange={event=>setSourceOnly(event.target.checked)}/> Show source tags only</label>{side === 'positive' ? <>{imageTags('positive', 'Positive prompt')}{imageTags('hydrus', 'Hydrus tags')}</> : imageTags('negative', 'Negative prompt')}
                     {!tags[side === 'positive' ? 'positive' : 'negative'].length && !(side === 'positive' && tags.hydrus.length) && <Typography.Text type="secondary">No {side} tags found on the image{entries.length === 1 ? '' : 's'}.</Typography.Text>}
                 </div>
                 <div style={{ flex: '1 1 340px', minWidth: 0 }}>

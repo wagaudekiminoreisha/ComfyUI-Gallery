@@ -1,3 +1,6 @@
+import {loadPrefixes,type SharedLibrary} from './PrefixLibrary';
+import {findLineage,imagePrefixIds,pairedHashIndex} from './PrefixLineage';
+import {fetchLocalHashes} from './TagSearchPanel';
 import { useViewState } from './ViewState';
 import { HydrusTagSelect } from './HydrusTagSelect';
 import { useGalleryContext } from './GalleryContext';
@@ -32,6 +35,10 @@ export function HydrusBrowser({ open, source = 'hydrus', searchMode, viewRevisio
     const localSuggestions = useMemo(() => Array.from(new Set(indexPrompts(gallery.data?.folders || {}).map(item => item.value).concat(Object.values(gallery.localHydrusTags).flat()))), [gallery.data, gallery.localHydrusTags]);
     const [tab, setTab] = useViewState(viewKey, 'search');
     const [tags, setTags] = useViewState<string[]>(viewKey, []);
+    const [prefixScope,setPrefixScope]=useState<{library:SharedLibrary;ids:string[];hashes:Map<string,Set<string>>}>();
+    const prefixNames=tags.filter(tag=>tag.startsWith('@'));
+    const searchTags=tags.filter(tag=>!tag.startsWith('@'));
+    useEffect(()=>{let live=true;const run=async()=>{if(!prefixNames.length){if(prefixScope)gallery.setLocalScope(null);setPrefixScope(undefined);return;}const library=await loadPrefixes(),ids=prefixNames.map(name=>library.prefixes.find(prefix=>prefix.name.toLowerCase()===name.slice(1).toLowerCase())?.id||'__unknown__');const hashes=await pairedHashIndex(library,fetchLocalHashes);const files=Object.values(gallery.data?.folders||{}).flatMap(folder=>Object.values(folder));const results=await Promise.all(ids.map(id=>findLineage(files,library,id,fetchLocalHashes)));if(!live)return;const sets=results.map(result=>new Set([...result.paired.map(file=>file.url),...result.generated.map(item=>item.file.url)]));setPrefixScope({library,ids,hashes});gallery.setLocalScope({label:prefixNames.join(' AND '),urls:new Set([...(sets[0]||[])].filter(url=>sets.every(set=>set.has(url))))});};void run().catch(reason=>setError(String(reason)));return()=>{live=false;};},[prefixNames.join('|'),gallery.data]);
     const [match, setMatch] = useViewState<'all' | 'any'>(viewKey, 'all');
     const [limit, setLimit] = useViewState(viewKey, 100);
     const [orGroups, setOrGroups] = useViewState<string[][]>(viewKey, []);
@@ -72,7 +79,7 @@ export function HydrusBrowser({ open, source = 'hydrus', searchMode, viewRevisio
         setBusy(true); setError(''); setNotice('');
         if (kind !== 'pages') { setResult(undefined); setSelected([]); }
         if (kind === 'search') {
-            gallery.setLibrarySearch(hybrid ? { tags, match, orGroups, share: shareTags, localTerms: localBranch, localField, fieldJoin } : null);
+            gallery.setLibrarySearch(hybrid ? { tags:searchTags, match, orGroups, share: shareTags, localTerms: localBranch, localField, fieldJoin } : null);
             gallery.setSearchFileName(''); gallery.setLocalTerms([]);
             onSourceChange(hybrid ? 'both' : 'hydrus');
         }
@@ -82,7 +89,7 @@ export function HydrusBrowser({ open, source = 'hydrus', searchMode, viewRevisio
                 if (version !== requestVersion.current) return;
                 setPages(data.pages?.pages || (data.pages?.is_media_page ? [data.pages] : []));
             } else {
-                const payload=kind === 'search' ? { tags, match, limit, metadata_terms: localBranch, metadata_field: localField, field_join: fieldJoin, or_groups: orGroups, file_sort_type: sortType, file_sort_asc: ascending, expand_danbooru_aliases: gallery.settings.hydrusSearchAliases !== false } : { page_key: key, offset, limit };
+                const payload=kind === 'search' ? { tags:searchTags, match, limit, metadata_terms: localBranch, metadata_field: localField, field_join: fieldJoin, or_groups: orGroups, file_sort_type: sortType, file_sort_asc: ascending, expand_danbooru_aliases: gallery.settings.hydrusSearchAliases !== false } : { page_key: key, offset, limit };
                 activeRequest.current={kind:kind as 'search'|'page',payload,version};
                 const data = !settings?.has_access_key && kind==='search'?{items:[],total:0}:await hydrusRequest<Results>(kind,payload);
                 if (version !== requestVersion.current) return;
@@ -139,7 +146,7 @@ export function HydrusBrowser({ open, source = 'hydrus', searchMode, viewRevisio
             if (failures.length) setError(failures.join('\n'));
         } finally { setCopying(false); setProgress(''); actionBusy.current = false; }
     };
-    const download = async (hashes: string[]) => {
+    const download = async (hashes: string[],folder='downloads') => {
         if (!hashes.length || actionBusy.current) return;
         actionBusy.current = true; cancelDownloads.current = false;
         setDownloading(true); setError(''); setNotice('');
@@ -148,20 +155,20 @@ export function HydrusBrowser({ open, source = 'hydrus', searchMode, viewRevisio
             const failures: string[] = [];
             for (const hash of hashes) {
                 if (cancelDownloads.current) break;
-                setProgress(`Saving ${completed + 1} of ${hashes.length} to output/downloads`);
-                try { const result = await hydrusRequest<{ warning?: string }>('save_output', { hash, target: scope }); completed++; if (result.warning) failures.push(result.warning); }
+                setProgress(`Saving ${completed + 1} of ${hashes.length} to output/${folder}`);
+                try { const result = await hydrusRequest<{ warning?: string }>('save_output', { hash, target: scope,folder }); completed++; if (result.warning) failures.push(result.warning); }
                 catch (reason) { failures.push(String(reason)); }
             }
-            setNotice(`${completed} file(s) saved to ComfyUI output/downloads.`);
+            setNotice(`${completed} file(s) saved to ComfyUI output/${folder}.`);
             if (failures.length) setError(failures.join('\n'));
-            reloadMemory(); await gallery.runAsync();
+            reloadMemory();void gallery.runAsync().catch(reason=>setError(String(reason)));
         } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); }
         finally { setDownloading(false); setProgress(''); actionBusy.current = false; }
     };
     const treeData = (list: Page[]): any[] => list.map(page => ({ key: page.page_key,
         title: `${page.name}${page.selected ? ' · active' : ''}`, selectable: page.is_media_page,
         children: page.pages ? treeData(page.pages) : undefined }));
-    const items = result?.items || [];
+    const items = (result?.items || []).filter(item=>!prefixNames.length||(prefixScope&&prefixScope.ids.every(id=>imagePrefixIds(prefixScope.library,['sha256:'+item.hash],{hydrus:item},prefixScope.hashes).includes(id))));
     return <section className="cg-browser" aria-label="Gallery results">
         <div className="cg-hydrus-search" style={{ display: searchMode === 'local' ? 'none' : undefined }}>
             {!settings?.has_access_key && <Alert type="warning" message="Configure your Hydrus connection first." action={<Button onClick={() => setSettingsOpen(true)}>Open settings</Button>} />}

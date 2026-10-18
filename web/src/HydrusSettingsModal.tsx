@@ -115,6 +115,7 @@ export function HydrusSettingsModal() {
             <Form.Item name="default_tags" label="Default export tags" extra="Press Enter after each tag. Namespace tags such as source:comfyui are supported.">
                 <HydrusTagSelect label="Default export tags" active={settingsOpen} disabled={!!busy} serviceKey={selectedService} placeholder="Type for recommendations or add a new tag" />
             </Form.Item>
+            <Form.Item name="tag_spacing" label="Export tag spacing"><Select options={[{value:"preserve",label:"Preserve entered spelling"},{value:"spaces",label:"Spaces — blue eyes"},{value:"underscores",label:"Underscores — blue_eyes"}]} /></Form.Item>
             <Form.Item name="danbooru_prompt_tags" label="Only recognized Danbooru positive-prompt tags by default" extra="Offline canonical tags; excludes quality/meta terms and unknown prose. Overrides the raw positive-prompt tag option." valuePropName="checked"><Switch /></Form.Item>
             <Form.Item name="positive_prompt_tags" label="Suggest positive-prompt tags by default" extra="Review and edit the generated tags in the export dialog." valuePropName="checked"><Switch /></Form.Item>
             <Form.Item name="prefix_positive_prompt_tags" label="Prefix positive-prompt tags by default" extra="On: positive_prompt:blue sky. Off: blue sky. Each export can override this choice." valuePropName="checked"><Switch /></Form.Item>

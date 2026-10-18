@@ -5626,6 +5626,14 @@
           ]
         }
       ]
+    },
+    {
+      "version": 1,
+      "id": "builtin-compatibility",
+      "name": "Compatibility advisory",
+      "family": "compatibility",
+      "rules": [],
+      "choices": []
     }
   ],
   "globals": [],

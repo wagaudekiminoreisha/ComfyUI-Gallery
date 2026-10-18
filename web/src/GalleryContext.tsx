@@ -39,7 +39,7 @@ export interface SettingsState {
     relativePath: string;
     extraFolders: string[];
     autoOrganize: boolean;
-    routingRules: { name: string; terms: string[]; field: string; match: string; folder: string; destinationRoot?: string; enabled?: boolean }[];
+    routingRules: { name: string; terms: string[]; field: string; match: string; folder: string; destinationRoot?: string; enabled?: boolean; prefixIds?:string[]; lineageHashes?:string[] }[];
     buttonBoxQuery: string;
     buttonLabel: string;
     showDateDivider: boolean;
@@ -64,6 +64,7 @@ export interface SettingsState {
     /** off · disable (turn the excluded tags off) · together (keep both, a run uses at most one). */
     exclusiveMode?: 'off' | 'disable' | 'together';
     /** Recognized Danbooru tags are written with spaces (true) or canonical underscores (false). */
+    archiveMoveFiles?: boolean;
     preferPromptSpaces: boolean;
 }
 
@@ -203,7 +204,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
     });
     const [settingsLoaded, setSettingsLoaded] = useState(false);
     const [archiveView, setArchiveView] = useState(false);
-    const archive = useMediaArchive(settingsState?.relativePath || './');
+    const archive = useMediaArchive(settingsState?.relativePath || './',settingsState?.archiveMoveFiles);
     const data = useMemo<FilesTree | undefined>(() => !rawData ? undefined : ({ ...rawData, folders: Object.fromEntries(Object.entries(rawData.folders).map(([folder, files]) => [folder, Object.fromEntries(Object.entries(files).filter(([, file]) => archiveView ? archive.ready && archive.urls.has(file.url) : !archive.urls.has(file.url)))])) }), [rawData, archive.urls, archive.ready, archiveView]);
 
     useEffect(() => {
@@ -272,7 +273,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
 
     // Keep the complete folder available to Hydrus status lookup even when a search hides its files.
     const currentFolderFiles = data?.folders?.[currentFolder];
-    const unfilteredFolderImages = useMemo<FileDetails[]>(() => archiveView || librarySearch ? Object.values(data?.folders || {}).flatMap(folder => Object.values(folder)) : Object.values(currentFolderFiles ?? {}), [currentFolderFiles, data, librarySearch, archiveView]);
+    const unfilteredFolderImages = useMemo<FileDetails[]>(() => archiveView || librarySearch || localScope ? Object.values(data?.folders || {}).flatMap(folder => Object.values(folder)) : Object.values(currentFolderFiles ?? {}), [currentFolderFiles, data, librarySearch, archiveView,localScope]);
     const searchNeedsPrompts = !!librarySearch || (!!searchFileName.trim() || !!localTerms.length) && ['all', 'positive', 'negative'].includes(localSearchField);
     const localPrompts = useMemo(() => {
         const result = new Map<string, LocalPrompts>();
@@ -304,7 +305,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         const tags = localHydrusTags[file.url] || [];
         const prompts = localPrompts.get(file.url) || { positive: '', negative: '' };
         if (librarySearch) return matchesLibrarySearch(file, librarySearch, tags, prompts);
-        return [...localTerms, ...(searchFileName.trim() ? [searchFileName] : [])].every(term => matchesLocalImage(file, term, localSearchField, tags, prompts));
+        return [...localTerms, ...(searchFileName.trim() ? [searchFileName] : [])].filter(term=>!term.startsWith('@')).every(term => matchesLocalImage(file, term, localSearchField, tags, prompts));
     }), [sortedFolderImages, searchFileName, localSearchField, localHydrusTags, localPrompts, qualities, localTerms, librarySearch, localScope]);
 
     // Search the complete folder before adding layout dividers or applying virtualized rendering.

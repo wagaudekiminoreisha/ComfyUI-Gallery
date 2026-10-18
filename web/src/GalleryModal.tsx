@@ -3,12 +3,12 @@ import {RulesManager} from './RulesManager';
 import {openRules} from './RulesLibrary';
 import { SourcePicker } from './SourcePicker';
 import { HydrusSyncPanel } from './HydrusSyncPanel';
-import { LIBRARY_SEARCH_EVENT, PROMPTS_WINDOW_EVENT, LocalPromptSearch } from './LocalPromptLibrary';
+import { PROMPTS_WINDOW_EVENT, LocalPromptSearch } from './LocalPromptLibrary';
 import { ImageSearchPanel } from './TagSearchPanel';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button, Dropdown, Input, Modal, Segmented, Select, Space, message, theme } from 'antd';
-import { ArrowLeftOutlined, ReloadOutlined, SettingOutlined, FilterOutlined, AppstoreOutlined, BookOutlined, TagsOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, ReloadOutlined, SettingOutlined, FilterOutlined, AppstoreOutlined, TagsOutlined } from '@ant-design/icons';
 import { useGalleryContext } from './GalleryContext';
 import GalleryHeader from './GalleryHeader';
 import GallerySidebar from './GallerySidebar';
@@ -90,7 +90,7 @@ const GalleryModal = () => {
                 <div className="cg-spacer" />
                 <Button icon={<TagsOutlined />} title="Prompts & prefixes: palette, append to workflow, prefix editor" onClick={() => window.dispatchEvent(new Event(PROMPTS_WINDOW_EVENT))}>Prompts & prefixes</Button>
                 <Button onClick={()=>openRules()}>Rules &amp; protections</Button>
-                <Button icon={<BookOutlined />} title="Library search: saved prefixes and every prompt phrase" onClick={() => window.dispatchEvent(new Event(LIBRARY_SEARCH_EVENT))}>Library search</Button>
+
                 <HydrusSyncPanel visible={visible} />
                 <Button icon={<ReloadOutlined />} title="Reload local images" aria-label="Reload local images" loading={gallery.loading} onClick={() => { void runAsync().catch(error => message.error(String(error))); }} />
                 <Dropdown trigger={['click']} menu={{ items: [{ key: 'gallery', label: 'Gallery settings' }, { key: 'hydrus', label: 'Connection settings' }, { key: 'browser', label: 'Open in new browser tab' }], onClick: ({ key }) => { if (key === 'gallery') setShowSettings(true); if (key === 'hydrus') setSettingsOpen(true); if (key === 'browser') { try { openGalleryTab(); } catch (error) { message.error(String(error)); } } } }}><Button aria-label="Settings" icon={<SettingOutlined />}>Settings</Button></Dropdown>

@@ -252,3 +252,9 @@ test('"never together": conflicting optional tags compile into one group; requir
     assert.equal(B.reconcileText(state, B.compileBoxes(state, clash), 'boxes', true, clash), state);
     assert.deepEqual(B.alwaysTogether(B.stateFromText('short hair, long hair'), clash), [['short hair', 'long hair']]);
 });
+
+test('prefix policy inheritance opt-out survives workflow serialization for tag and source boxes',()=>{
+ const state=B.parseState({version:1,boxes:[{id:'linked',kind:'group',prefixId:'prefix-test',inheritRules:false,chips:[{kind:'tag',text:'blue hair'}]},{id:'source',kind:'source',inheritRules:false}]});
+ const restored=B.parseState(JSON.parse(JSON.stringify(state)));
+ assert.equal(restored.boxes[0].inheritRules,false);assert.equal(restored.boxes[1].inheritRules,false);
+});

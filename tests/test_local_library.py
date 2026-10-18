@@ -67,6 +67,17 @@ class LibraryTests(unittest.TestCase):
         with self.assertRaises(ValueError): organize(self.root, self.folders, self.settings, self.root, True)
         self.assertTrue(self.path.exists())
 
+    def test_prefix_and_lineage_folder_rules_and_sidecar_preservation(self):
+        import hashlib
+        sidecar=self.path.with_name(self.path.name+'.gallery.json')
+        sidecar.write_bytes(b'metadata')
+        digest=hashlib.sha256(self.path.read_bytes()).hexdigest()
+        self.settings={'routingRules':[{'terms':[], 'prefixIds':['prefix-qa'], 'lineageHashes':[digest], 'folder':'paired', 'match':'any'}]}
+        rows=organize(self.root,self.folders,self.settings,self.root,True)
+        self.assertTrue(rows[0]['moved'])
+        self.assertEqual((self.root/'paired'/sidecar.name).read_bytes(),b'metadata')
+        self.assertEqual(organize(self.root,self.folders,self.settings,self.root),[])
+
     def test_new_file_deferred_and_failed_copy_keeps_original(self):
         os.utime(self.path, None)
         self.assertIn('waiting', organize(self.root, self.folders, self.settings, self.root, True)[0]['error'])

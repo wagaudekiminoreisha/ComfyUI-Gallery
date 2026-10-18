@@ -19,7 +19,7 @@ export function HydrusSearchPanel({ localSuggestions, tags, setTags, match, setM
     };
     return <div data-image-search-drop title="Drop an image here to search by provenance">
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
-            <HydrusTagSelect localSuggestions={localSuggestions} inputRef={inputRef} label="Hydrus search tags" value={tags} onChange={setTags} disabled={busy || disabled} onSubmit={onSearch} onChooseAll={() => setMatch('any')} style={{ flex: '1 1 340px', minWidth: 180 }} />
+            <HydrusTagSelect preservePrefixes localSuggestions={localSuggestions} inputRef={inputRef} label="Hydrus search tags" value={tags} onChange={setTags} disabled={busy || disabled} onSubmit={onSearch} onChooseAll={() => setMatch('any')} style={{ flex: '1 1 340px', minWidth: 180 }} />
             {orGroups.map((group, index) => <Tag key={index} closable onClose={() => setOrGroups(orGroups.filter((_, i) => i !== index))} style={{ maxWidth: 230, cursor: 'pointer', padding: '6px 8px' }} title={group.join(' OR ')}>
                 <span role="button" tabIndex={0} aria-label={'Edit OR group ' + (index + 1)} onClick={() => { setDraft(group); setEditing(index); }} onKeyDown={event => { if (event.key === 'Enter') { setDraft(group); setEditing(index); } }} style={{ display: 'inline-block', maxWidth: 185, overflow: 'hidden', textOverflow: 'ellipsis', verticalAlign: 'bottom' }}>AND ({group.join(' OR ')})</span>
             </Tag>)}
@@ -31,14 +31,14 @@ export function HydrusSearchPanel({ localSuggestions, tags, setTags, match, setM
         <Typography.Paragraph type="secondary">Enter adds a tag; Enter on an empty input searches. Counts are from your Hydrus database's local-file domain. Click an OR chip to edit its alternatives.</Typography.Paragraph>
         <Modal title="OR tag group" open={editing !== null} onCancel={() => setEditing(null)} onOk={commitGroup} okText="Apply OR group" okButtonProps={{ disabled: !draft.length }} zIndex={BASE_Z_INDEX + 30} width={600}>
             <Typography.Paragraph>Any tag in this group can match. This group is ANDed with the other search chips.</Typography.Paragraph>
-            <HydrusTagSelect localSuggestions={localSuggestions} label="OR group tags" value={draft} onChange={setDraft} active={editing !== null} onSubmit={commitGroup} />
+            <HydrusTagSelect preservePrefixes localSuggestions={localSuggestions} label="OR group tags" value={draft} onChange={setDraft} active={editing !== null} onSubmit={commitGroup} />
         </Modal>
         <details><summary>Hydrus result sampling (advanced)</summary><Space wrap style={{ marginBottom: 8 }}>
             <span>Hydrus search order</span><Select aria-label="Hydrus search order" value={sortType} onChange={setSortType} disabled={busy || disabled} style={{ width: 210 }} options={[
                 [2, 'Import date'], [14, 'Modified date'], [19, 'Archive date'], [18, 'Last viewed'], [4, 'Random'], [3, 'Filetype'], [20, 'SHA-256 hash'], [21, 'Pixel hash'], [22, 'Blurhash'], [0, 'File size'], [5, 'Width'], [6, 'Height'], [7, 'Aspect ratio'], [8, 'Pixel count'], [9, 'Tag count'], [1, 'Duration'], [10, 'Media views'], [11, 'Media viewtime'], [12, 'Bitrate'], [13, 'Has audio'], [15, 'Framerate'], [16, 'Frame count'], [23, 'Colour: lightness'], [24, 'Colour: saturation'], [25, 'Colour: green/red'], [26, 'Colour: blue/yellow'], [27, 'Colour: hue']
             ].map(([value, label]) => ({ value: Number(value), label }))} />
             <Select aria-label="Hydrus sort direction" value={ascending ? 'asc' : 'desc'} onChange={value => setAscending(value === 'asc')} disabled={busy || disabled || sortType === 4 || sortType === 3} options={[{ value: 'desc', label: 'Descending' }, { value: 'asc', label: 'Ascending' }]} />
-            <Typography.Text type="secondary">Chooses the Hydrus page size. More results load as you scroll. Gallery order below sorts all loaded local and Hydrus results; Reshuffle needs no API request.</Typography.Text>
+            <Typography.Text type="secondary">More results load as you scroll.</Typography.Text>
         </Space></details>
     </div>;
 }

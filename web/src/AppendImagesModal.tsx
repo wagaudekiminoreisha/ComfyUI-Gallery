@@ -1,3 +1,4 @@
+import {imageSnapshotIds,imagePrefixIds} from './PrefixLineage';
 import {loadLocalMetadata} from './LocalMetadata';
 import { promptTags } from './PromptTags';
 import { FloatingPanel } from './FloatingPanel';
@@ -16,11 +17,12 @@ import { useHydrus } from './HydrusContext';
 import type { GalleryEntry } from './GalleryOrder';
 import type { ImageSourceImage, PromptApply } from './ImageSourceGeometry';
 
-type Row = { entry: GalleryEntry; metadata: any; positive: string[]; negative: string[]; usePositive: boolean; useNegative: boolean; useTags: boolean; tags: string[]; sync: boolean; prefixId?: string;snapshotId?:string };
+type Row = { entry: GalleryEntry; metadata: any; positive: string[]; negative: string[]; usePositive: boolean; useNegative: boolean; useTags: boolean; tags: string[]; sync: boolean; prefixId?: string;snapshotId?:string;associatedIds?:string[] };
 export function AppendImagesModal({ entries, onClose,snapshotId }: { entries: GalleryEntry[]; onClose: () => void;snapshotId?:string }) {
     const hydrus = useHydrus();
     const gallery = useGalleryContext();
     const [library,setLibrary]=useState<SharedLibrary>({version:2,tags:[],prefixes:[]});
+    const [paletteOpen,setPaletteOpen]=useState(false);
     const [paletteImage, setPaletteImage] = useState(0);
     const [paletteSide, setPaletteSide] = useState<'positive' | 'negative' | 'tags'>('positive');
     const [spaces, setSpaces] = usePromptSpelling();
@@ -42,8 +44,9 @@ export function AppendImagesModal({ entries, onClose,snapshotId }: { entries: Ga
         setRows([]);
         void loadPrefixes().then(library => { if (live){setLibrary(library); setRows(initial.map(row => {
             const association = imagePrefixKeys(row.entry, gallery.settings.relativePath).map(key => library.associations?.[key]).find(Boolean);
-            const variant=library.snapshots?.[snapshotId||row.metadata?.gallery_prefix?.snapshot_id];if(variant)return {...row,positive:variant.terms,negative:variant.negative_terms,prefixId:variant.prefix_id,snapshotId:variant.id,usePositive:true,useNegative:!!variant.negative_terms.length};
-            return association ? { ...row, positive: association.terms, usePositive: association.terms.length > 0, negative: association.negative_terms || row.negative, useNegative: !!association.negative_terms?.length, prefixId: association.prefix_id } : row;
+            const keys=imagePrefixKeys(row.entry,gallery.settings.relativePath),associatedIds=imagePrefixIds(library,keys,row.metadata);
+            const variant=library.snapshots?.[snapshotId||row.metadata?.gallery_prefix?.snapshot_id||imageSnapshotIds(library,keys,row.metadata)[0]];if(variant)return {...row,associatedIds,positive:variant.terms,negative:variant.negative_terms,prefixId:variant.prefix_id,snapshotId:variant.id,usePositive:true,useNegative:!!variant.negative_terms.length};
+            return association ? { ...row,associatedIds, positive: association.terms, usePositive: association.terms.length > 0, negative: association.negative_terms || row.negative, useNegative: !!association.negative_terms?.length, prefixId: association.prefix_id } : {...row,associatedIds};
         }));} }).catch(reason => { if (live) { setRows(initial); setError('Could not load image-prefix associations: ' + String(reason)); } });
         void getPromptTargets().then(setTargets).catch(reason => setError(String(reason)));
         return () => { live = false; };
@@ -91,12 +94,16 @@ export function AppendImagesModal({ entries, onClose,snapshotId }: { entries: Ga
             <Select aria-label="Negative prompt target" allowClear placeholder="Negative target (optional)" value={apply.negative} options={targets} onChange={negative => setApply(old => ({ ...old, negative }))} style={{ width: 270 }} />
         </Space>
         <Typography.Paragraph type="secondary">Without targets, enabled prompts remain on the source node's positive/negative STRING outputs. Connect its IMAGE output to your VAE Encode or ControlNet image input.</Typography.Paragraph>
+        <Button onClick={()=>setPaletteOpen(true)}>All tags…</Button>
+        <FloatingPanel panelKey="append-vocabulary" title="All tags" open={paletteOpen} onCancel={()=>setPaletteOpen(false)} width={850} zIndex={3060}>
         <Space wrap><Select aria-label="Vocabulary image" value={paletteImage} onChange={setPaletteImage} options={rows.map((row, value) => ({ value, label: row.entry.name }))} /><Select aria-label="Vocabulary destination" value={paletteSide} onChange={setPaletteSide} options={[{value:'positive',label:'Positive prompt'},{value:'negative',label:'Negative prompt'},{value:'tags',label:'Hydrus tags'}]} /></Space>
         <PromptPalette onAppend={async (groups, options) => { const row = rows[paletteImage]; if (!row) throw new Error('Choose an image first.'); const text = await prepareInsertion(groups, options); setRows(old => old.map((item, index) => index !== paletteImage ? item : { ...item, [paletteSide]: options.position === 'before' ? [text, ...item[paletteSide]] : [...item[paletteSide], text], ...(paletteSide === 'positive' ? {usePositive:true} : paletteSide === 'negative' ? {useNegative:true} : {}) })); }} onChoose={(terms, prefixId, negatives) => { const row = rows[paletteImage]; if (row) update(paletteImage, { [paletteSide]: Array.from(new Set([...row[paletteSide], ...terms])), ...(paletteSide === 'positive' ? {usePositive:true, prefixId:prefixId || row.prefixId, ...(negatives?.length ? {negative: Array.from(new Set([...row.negative, ...negatives])), useNegative:true} : {})} : paletteSide === 'negative' ? {useNegative:true} : {} ) }); }} />
+        </FloatingPanel>
         <Collapse defaultActiveKey={['0']} items={rows.map((row, index) => ({ key: String(index), label: row.entry.name, children: <Space direction="vertical" style={{ width: '100%' }}>
-            <Button onClick={() => openPrefixManager({ positive: row.positive, negative: row.negative, hydrus: row.tags, imageKeys: imagePrefixKeys(row.entry, gallery.settings.relativePath), imageRefs: imagePrefixRefs(row.entry, gallery.settings.relativePath), onSaved: (terms, prefixId, negativeTerms) => update(index, { positive: terms, usePositive: !!terms.length, negative: negativeTerms, useNegative: !!negativeTerms.length, prefixId }) })}>Create prefix from this image</Button>
-            {row.prefixId&&<Select aria-label={'Reference snapshot '+index} style={{width:'100%'}} value={row.snapshotId||''} options={[{value:'',label:'Parent prefix tags'},...Object.values(library.snapshots||{}).filter(variant=>variant.prefix_id===row.prefixId).map(variant=>({value:variant.id,label:(variant.name||'Snapshot')+' · '+variant.id.slice(0,8)}))]} onChange={id=>{const variant=library.snapshots?.[id],parent=library.prefixes.find(p=>p.id===row.prefixId);update(index,{snapshotId:id||undefined,positive:variant?.terms||(parent?parent.tags.map(id=>library.tags.find(tag=>tag.id===id)?.text||'').filter(Boolean):row.positive),negative:variant?.negative_terms||parent?.negative_terms||[],usePositive:true});}}/>}
-            {row.prefixId && <Typography.Text type="success">Image prefix paired · selected terms are enabled below</Typography.Text>}
+            <Button onClick={() => openPrefixManager({name:library.prefixes.find(prefix=>prefix.id===row.prefixId)?.name,snapshotId:row.snapshotId, positive: row.positive, negative: row.negative, hydrus: row.tags, imageKeys: imagePrefixKeys(row.entry, gallery.settings.relativePath), imageRefs: imagePrefixRefs(row.entry, gallery.settings.relativePath), onSaved: (terms, prefixId, negativeTerms) => update(index, { positive: terms, usePositive: !!terms.length, negative: negativeTerms, useNegative: !!negativeTerms.length, prefixId }) })}>Prefix associations…</Button>
+            {!!row.associatedIds?.length&&<Select aria-label={'Associated prefix '+index} value={row.prefixId} style={{width:'100%'}} options={row.associatedIds.map(id=>({value:id,label:'@'+(library.prefixes.find(prefix=>prefix.id===id)?.name||id)}))} onChange={prefixId=>{const prefix=library.prefixes.find(prefix=>prefix.id===prefixId);update(index,{prefixId,snapshotId:undefined,positive:prefix?.tags.map(id=>library.tags.find(tag=>tag.id===id)?.text||'').filter(Boolean)||[],negative:prefix?.negative_terms||[],usePositive:true,useNegative:!!prefix?.negative_terms?.length});}}/>}
+            {row.prefixId&&<Select aria-label={'Reference snapshot '+index} style={{width:'100%'}} value={row.snapshotId||''} options={[{value:'',label:'Parent prefix tags'},...Object.values(library.snapshots||{}).filter(variant=>variant.prefix_id===row.prefixId).map(variant=>({value:variant.id,label:(variant.name||'Snapshot')+' · '+variant.id.slice(0,8)}))]} onChange={id=>{const variant=library.snapshots?.[id],parent=library.prefixes.find(p=>p.id===row.prefixId);update(index,{snapshotId:id||undefined,positive:variant?.terms||(parent?parent.tags.map(id=>library.tags.find(tag=>tag.id===id)?.text||'').filter(Boolean):row.positive),negative:variant?.negative_terms||parent?.negative_terms||[],usePositive:true,useNegative:!!(variant?.negative_terms||parent?.negative_terms||[]).length});}}/>}
+            {row.prefixId && <Typography.Text type="success">@{library.prefixes.find(prefix=>prefix.id===row.prefixId)?.name} · {row.snapshotId?"snapshot":"shared tags"}</Typography.Text>}<Button size="small" onClick={()=>update(index,{usePositive:true,useNegative:true})}>Load both prompts</Button>
             <Checkbox checked={row.usePositive} onChange={event => update(index, { usePositive: event.target.checked })}>Load positive prompt</Checkbox>
             <HydrusTagSelect label={'Positive terms ' + index} value={row.positive} onChange={positive => update(index, { positive })} />
             <Checkbox checked={row.useNegative} onChange={event => update(index, { useNegative: event.target.checked })}>Load negative prompt</Checkbox>

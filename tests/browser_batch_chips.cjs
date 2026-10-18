@@ -23,7 +23,7 @@ try{
  await format.selectOption('each');await text('{a|}, {b|}, {c|}');
  await format.selectOption('tag');await text('a, b, c');
  await format.selectOption('alternatives');await text('{a|b|c}');
- const add=editor.getByRole('textbox',{name:'Add tags (Enter)',exact:true});await add.fill('d');await add.press('Enter');await text('{a|b|c}, d');assert.equal(await editor.getByLabel('Current prompt format',{exact:true}).innerText(),'Mixed content');
+ const add=editor.getByRole('textbox',{name:'Add tags (Enter)',exact:true});await add.fill('d');await add.press('Enter');await text('{a|b|c}, d');assert.equal(await format.inputValue(),'mixed');
  await format.selectOption('tag');await text('a, b, c, d');
  await editor.getByRole('button',{name:'Select chips',exact:true}).click();
  await editor.getByRole('button',{name:'Edit a',exact:true}).click();
@@ -40,7 +40,7 @@ try{
  const flow=page.getByRole('dialog',{name:/^Prefix associations/});await flow.getByRole('button',{name:'Clear',exact:true}).click();
  const terms=flow.getByRole('textbox',{name:/^Terms: tags/});await terms.fill('x, y, z');await terms.press('Enter');
  await flow.getByRole('combobox',{name:'Convert prompt format',exact:true}).selectOption('alternatives');
- await flow.getByRole('tab',{name:'Positive (1)',exact:true}).waitFor();
+ await flow.getByRole('tab',{name:'Positive (3)',exact:true}).waitFor();
  await flow.getByRole('combobox',{name:'Convert prompt format',exact:true}).selectOption('tag');await flow.getByRole('tab',{name:'Positive (3)',exact:true}).waitFor();
  await flow.getByRole('button',{name:'Select all chips',exact:true}).click();await flow.getByRole('combobox',{name:'Convert prompt format',exact:true}).selectOption('group');
  await flow.getByRole('button',{name:'Edit {x, y, z|}',exact:true}).waitFor();

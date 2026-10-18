@@ -3,7 +3,7 @@ import { ComfyAppApi } from './ComfyAppApi';
 
 const EMPTY_ARCHIVE=new Set<string>();
 
-export function useMediaArchive(root: string) {
+export function useMediaArchive(root: string, moveFiles=false) {
     const [state, setState] = useState<{ root: string; urls: Set<string> }>();
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
@@ -34,10 +34,10 @@ export function useMediaArchive(root: string) {
         ++revision.current;
         setBusy(true);
         try {
-            const result = await ComfyAppApi.archive(root, urls, archived);
+            const result = await ComfyAppApi.archive(root, urls, archived, moveFiles);
             if (currentRoot.current === root) { ++revision.current; setState({ root, urls: new Set(result) }); setError(''); }
             channel.current?.postMessage('changed');
         } finally { writing.current = false; setBusy(false); }
-    }, [root]);
+    }, [root,moveFiles]);
     return { urls: state?.root === root ? state.urls : EMPTY_ARCHIVE, ready: state?.root === root, busy, error, update };
 }

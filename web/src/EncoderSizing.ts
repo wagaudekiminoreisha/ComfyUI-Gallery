@@ -16,9 +16,9 @@ export function encoderSizing(node: any, host: HTMLElement) {
     const options = { serialize: false, hideOnZoom: false, getMinHeight: () => 240, getHeight: () => height };
     const fit = () => {
         if (disposed || !host.isConnected) return;
-        height = Math.max(240, Math.min(1200, editorContentHeight(host)));
+        height = Math.max(240, Math.min(680, editorContentHeight(host)));
         const wanted = Math.max(300, height + overhead), current = Number(node.size?.[1]) || 460;
-        if (shrink || wanted > current + 1) {
+        if (shrink || Math.abs(wanted-current)>1) {
             if (Math.abs(wanted-current)>1) node.setSize?.([Math.max(400, Number(node.size?.[0]) || 400), wanted]);
             node.setDirtyCanvas?.(true, true);
         }

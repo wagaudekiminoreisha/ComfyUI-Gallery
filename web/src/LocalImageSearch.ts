@@ -1,3 +1,4 @@
+import {parsePrompt} from './PromptBoxes';
 import type { FileDetails } from './types';
 import { encoderRecords, promptTemplates, stripUnresolved, type EncoderRecord } from './PromptResolution';
 import { filterSource, replaceSourceMarkers } from './PromptBoxes';
@@ -11,7 +12,7 @@ export function matchesLibrarySearch(file: FileDetails, search: LibrarySearch, t
     const hasRemote = search.tags.length > 0 || search.orGroups.length > 0;
     if (!hasRemote && !search.localTerms.length) return true;
     const normalize = (value: string) => value.toLocaleLowerCase().replace(/_/g, ' ').trim();
-    const phrases = stripUnresolved(prompts.positive).split(/[,\n]+/).map(value => normalize(value.trim().replace(/^\((.*):[\d.]+\)$/, '$1')));
+    const phrases = resolvedTagNames(prompts.positive);
     const cached = [...tags, ...extractHydrusTags(file.metadata)].map(normalize);
     const term = (value: string): boolean => {
         const negative = value.startsWith('-');
@@ -209,14 +210,14 @@ export function extractHydrusTags(metadata: unknown): string[] {
 
 export function matchesLocalImage(file: Pick<FileDetails, 'name' | 'metadata'>, query: string, field: LocalSearchField,
     hydrusTags: string[] = [], prompts?: LocalPrompts): boolean {
-    const needle = query.trim().toLocaleLowerCase().replace(/_/g, ' ');
-    if (!needle) return true;
-    const parsed = prompts || (field === 'all' || field === 'positive' || field === 'negative' ? extractLocalPrompts(file.metadata) : { positive: '', negative: '' });
-    const contains = (value: string) => value.toLocaleLowerCase().replace(/_/g, ' ').includes(needle);
-    return ((field === 'all' || field === 'name') && contains(file.name || '')) ||
-        ((field === 'all' || field === 'hydrus') && [...hydrusTags, ...extractHydrusTags(file.metadata)].some(contains)) ||
-        ((field === 'all' || field === 'positive') && contains(stripUnresolved(parsed.positive))) ||
-        ((field === 'all' || field === 'negative') && contains(stripUnresolved(parsed.negative)));
+    let needle=query.trim();const excluded=needle.startsWith('-');if(excluded)needle=needle.slice(1).trim();
+    if(!needle)return true;
+    const parsed=prompts||extractLocalPrompts(file.metadata),key=tagIdentity(needle);
+    const found=field==='name'?(file.name||'').toLocaleLowerCase().includes(needle.toLocaleLowerCase()):
+        ((field==='all'||field==='hydrus')&&[...hydrusTags,...extractHydrusTags(file.metadata)].some(tag=>tagIdentity(tag)===key))||
+        ((field==='all'||field==='positive')&&resolvedTagNames(parsed.positive).includes(key))||
+        ((field==='all'||field==='negative')&&resolvedTagNames(parsed.negative).includes(key));
+    return excluded?!found:found;
 }
 
 export type ImageQualities = { minWidth: number; minHeight: number; format: string };
@@ -228,4 +229,10 @@ export function matchesImageQualities(file: FileDetails, quality: ImageQualities
     if (dimensions && (Number(dimensions[1]) < quality.minWidth || Number(dimensions[2]) < quality.minHeight)) return false;
     const extension = file.name.split('.').pop()?.toLowerCase().replace('jpeg', 'jpg');
     return !quality.format || extension === quality.format;
+}
+
+export const tagIdentity=(value:string)=>value.trim().toLocaleLowerCase().replace(/_/g,' ').replace(/\s+/g,' ').replace(/\\([()])/g,'$1');
+export function resolvedTagNames(text:string,depth=0):string[]{
+ if(depth>32)return [];
+ return parsePrompt(stripUnresolved(text).replace(/\r?\n/g,', ')).flatMap(chip=>chip.kind==='or'?[]:chip.weight!==undefined||chip.emphasis?resolvedTagNames(chip.text,depth+1):[tagIdentity(chip.text)]);
 }

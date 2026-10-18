@@ -68,6 +68,31 @@ class ArchiveTests(unittest.IsolatedAsyncioTestCase):
         for urls in [['hydrus:abc'], ['/view?filename=preview.png'], ['https://example.test/file'], 'not a list']:
             with self.assertRaises(ValueError): archive_update(self.path, self.root, urls)
 
+    def test_physical_archive_and_restore_preserve_original_and_sidecar(self):
+        original = self.root / 'nested' / 'image.png'
+        original.parent.mkdir()
+        original.write_bytes(b'original bytes')
+        sidecar = original.with_name(original.name + '.gallery.json')
+        sidecar.write_text('metadata', encoding='utf-8')
+        url = '/static_gallery/nested/image.png'
+        archived = '/static_gallery/_archive/nested/image.png'
+        self.assertEqual(archive_update(self.path, self.root, [url], True, True)['urls'], [archived])
+        self.assertFalse(original.exists())
+        self.assertEqual((self.root / '_archive/nested/image.png').read_bytes(), b'original bytes')
+        self.assertEqual(archive_update(self.path, self.root, [archived], False)['urls'], [])
+        self.assertEqual(original.read_bytes(), b'original bytes')
+        self.assertEqual(sidecar.read_text(encoding='utf-8'), 'metadata')
+
+    def test_archive_collision_rolls_back_batch_and_membership(self):
+        for name in ['first.png', 'second.png']: (self.root / name).write_bytes(name.encode())
+        (self.root / '_archive').mkdir()
+        (self.root / '_archive/second.png').write_bytes(b'occupied')
+        with self.assertRaises(ValueError):
+            archive_update(self.path, self.root, ['/static_gallery/first.png', '/static_gallery/second.png'], True, True)
+        self.assertTrue((self.root / 'first.png').exists())
+        self.assertEqual((self.root / '_archive/second.png').read_bytes(), b'occupied')
+        self.assertEqual(archive_update(self.path, self.root)['urls'], [])
+
     async def test_routes_user_isolation_and_cross_origin(self):
         routes = web.RouteTableDef()
         register_archive_routes(routes, lambda request: self.root / request.headers.get('X-User', 'default') / 'archive.json', lambda request: self.root)

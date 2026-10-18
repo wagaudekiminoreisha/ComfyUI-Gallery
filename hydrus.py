@@ -29,11 +29,21 @@ IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tif", ".
 # Use Hydrus's broad aliases, including newly supported formats. Bare "bmp" is
 # not an accepted alias and made the previous mandatory filetype filter invalid.
 HYDRUS_IMAGE_PREDICATE = "system:filetype = image, animation, video"
+def spaced_tags(tags, settings):
+    mode = settings.get('tag_spacing', 'preserve')
+    def space(tag):
+        namespace, sep, value = tag.rpartition(':')
+        value = value.replace('_', ' ') if mode == 'spaces' else value.replace(' ', '_') if mode == 'underscores' else value
+        return namespace + sep + value
+    return list(dict.fromkeys(space(tag) for tag in tags))
+
+
 DEFAULTS = {
     "url": "http://127.0.0.1:45869",
     "access_key": "",
     "tag_service_key": "",
     "default_tags": [],
+    "tag_spacing": "preserve",
     "send_metadata": False,
     "hydrus_web_enabled": True,
     "positive_prompt_tags": False,
@@ -128,6 +138,7 @@ class HydrusSettings:
                 raise HydrusError(key + " must be true or false.")
         if type(result["timeout_seconds"]) not in (int, float) or not 5 <= result["timeout_seconds"] <= 300:
             raise HydrusError("Timeout must be between 5 and 300 seconds.")
+        if result.get("tag_spacing") not in ("preserve", "spaces", "underscores"): raise HydrusError("Choose a valid tag spacing mode.")
         result["default_tags"] = clean_tags(result["default_tags"])
         return result
 
@@ -547,6 +558,7 @@ class HydrusBridge:
                     current_present=True, last_exported_at=now(), error=None)
         # Commit before optional operations so their failure never loses import memory.
         await self.save_item(target, item)
+        tags = spaced_tags(tags, settings)
         if tags:
             if not settings["tag_service_key"]:
                 item["warnings"].append("Image imported, but tags were not sent: choose a tag service in Hydrus settings.")
@@ -851,8 +863,12 @@ class HydrusBridge:
             headers = await asyncio.to_thread(inspect_original_download, stream, digest)
             extension = Path(headers['Content-Disposition'].split('"')[1]).suffix
             root = Path(get_output_root()).resolve(strict=True)
-            directory = root / 'downloads'; directory.mkdir(exist_ok=True)
-            if directory.is_symlink() or directory.resolve().parent != root: raise HydrusError('Downloads must remain inside ComfyUI output.')
+            folder = data.get('folder', 'downloads')
+            if not isinstance(folder,str) or not folder.strip() or Path(folder).is_absolute() or '..' in Path(folder).parts: raise HydrusError('Choose a relative output subfolder.')
+            directory = root / folder
+            if directory.is_symlink() or root not in directory.resolve().parents: raise HydrusError('Downloads must remain inside ComfyUI output.')
+            directory.mkdir(parents=True,exist_ok=True)
+            if directory.is_symlink() or root not in directory.resolve().parents: raise HydrusError('Downloads must remain inside ComfyUI output.')
             destination = directory / (digest + extension)
             def save():
                 created = False
@@ -873,7 +889,7 @@ class HydrusBridge:
                 metadata['hydrus'] = remote
                 await asyncio.to_thread(write_metadata, destination, digest, metadata)
             except (HydrusError, OSError, ValueError, sqlite3.Error) as error: warning = 'File saved; tag snapshot failed: ' + str(error)
-            return {'hash': digest, 'name': destination.name, 'folder': 'downloads', 'warning': warning}
+            return {'hash': digest, 'name': destination.name, 'folder': directory.relative_to(root).as_posix(), 'warning': warning}
         finally: stream.close()
 
     async def import_from_hydrus(self, data, get_input_root):
@@ -1081,7 +1097,7 @@ def register_hydrus_routes(routes, get_root, storage_dir=None, get_input_root=No
                     if data.get('target') != settings['url'] + '|' + settings['profile']: raise HydrusError('Hydrus connection changed; reload first.')
                     if not settings['tag_service_key']: raise HydrusError('Choose a Hydrus tag service first.')
                     tags = clean_tags(data.get('tags', []))
-                    job = bridge.sync.enqueue(settings, digest, 'tags', {'service': settings['tag_service_key'], 'tags': tags})
+                    job = bridge.sync.enqueue(settings, digest, 'tags', {'service': settings['tag_service_key'], 'tags': spaced_tags(tags,settings)})
                     result = {'queued': True, 'job_id': job}
                 elif action == 'sync_status':
                     result = bridge.sync.status(bridge.settings.load())

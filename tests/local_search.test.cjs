@@ -111,13 +111,13 @@ test('Hydrus search indexes active and pending display/storage tags across servi
 test('local search is case-insensitive and field-specific, including namespaced Hydrus tags', () => {
     const file = { name: 'Example.PNG', metadata: { prompt: apiFixture() } };
     const tags = ['character:Alice'];
-    assert.equal(matchesLocalImage(file, ' ALICE ', 'hydrus', tags), true);
+    assert.equal(matchesLocalImage(file, ' ALICE ', 'hydrus', tags), false);
     assert.equal(matchesLocalImage(file, 'ALICE', 'positive', tags), false);
-    assert.equal(matchesLocalImage(file, 'blurry shadow', 'positive', tags), true);
+    assert.equal(matchesLocalImage(file, 'blurry shadow', 'positive', tags), false);
     assert.equal(matchesLocalImage(file, 'blurry shadow', 'negative', tags), false);
     assert.equal(matchesLocalImage(file, 'bright sunshine', 'negative', tags), true);
     assert.equal(matchesLocalImage(file, 'Example', 'name', tags), true);
-    assert.equal(matchesLocalImage(file, 'forest', 'all', tags), true);
+    assert.equal(matchesLocalImage(file, 'forest', 'all', tags), false);
     assert.equal(matchesLocalImage(file, 'character:Alice', 'all', tags), true);
     assert.equal(matchesLocalImage(file, ' ', 'all', tags), true);
 });
@@ -168,4 +168,14 @@ test('connected Gallery source and encoder own text are both indexed', () => {
  const sources = JSON.stringify({layout:'single',active_index:1,images:[{prompt:{positive:'first',negative:'first negative'}},{prompt:{positive:'second',negative:'second negative'}}]});
  const prompt = {a:{class_type:'GalleryImageSource',inputs:{sources}},b:{class_type:'GalleryPromptEncode',inputs:{text:'unused fallback',source_text:['a',4]}},c:{class_type:'GalleryPromptEncode',inputs:{text:'unused negative',source_text:['a',5]}},d:{class_type:'KSampler',inputs:{positive:['b',0],negative:['c',0]}}};
  assert.deepEqual(extractLocalPrompts({prompt}),{positive:'unused fallback\nsecond',negative:'unused negative\nsecond negative'});
+});
+
+test('tag searches require complete resolved tags and ignore unresolved choices and filenames',()=>{
+ const file={name:'blonde hair.png',metadata:{positive:'(blue_hair:1.2), {red hair|green hair}, short hair',negative:'bad anatomy'}};
+ assert.equal(matchesLocalImage(file,'blue hair','positive'),true);
+ assert.equal(matchesLocalImage(file,'hair','all'),false);
+ assert.equal(matchesLocalImage(file,'red hair','all'),false);
+ assert.equal(matchesLocalImage(file,'blonde hair','all'),false);
+ assert.equal(matchesLocalImage(file,'-green hair','all'),true);
+ assert.equal(matchesLocalImage(file,'blonde','name'),true);
 });

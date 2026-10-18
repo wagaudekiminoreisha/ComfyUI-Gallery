@@ -367,6 +367,15 @@ class BrowserTests(unittest.IsolatedAsyncioTestCase):
         response = await self.client.post('/Gallery/hydrus/save_output', json={**data, 'target': 'stale'})
         self.assertEqual(response.status, 400)
 
+    async def test_send_to_accepts_subfolders_and_rejects_escape(self):
+        settings=self.bridge.settings.load()
+        data={'hash':self.digest,'target':settings['url']+'|'+settings['profile']}
+        result=await self.post('save_output',{**data,'folder':'portraits/nested'})
+        self.assertEqual(result['folder'],'portraits/nested')
+        self.assertEqual((self.root/'portraits/nested'/(self.digest+'.png')).read_bytes(),self.original)
+        response=await self.client.post('/Gallery/hydrus/save_output',json={**data,'folder':'../escape'})
+        self.assertEqual(response.status,400)
+
     async def test_danbooru_preview_runs_offline(self):
         result = await self.post('danbooru_tags', {'texts': ['masterpiece, best quality, blue hair, (red_eyes:1.2), blue_hair']})
         self.assertEqual(result['tags'], [['blue_hair', 'red_eyes']])

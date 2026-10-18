@@ -5,6 +5,7 @@ export interface HydrusSettings {
     has_access_key: boolean;
     tag_service_key: string;
     default_tags: string[];
+    tag_spacing?: 'preserve'|'spaces'|'underscores';
     hydrus_web_enabled?: boolean;
     send_metadata?: boolean;
     positive_prompt_tags?: boolean;

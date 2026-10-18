@@ -2,8 +2,8 @@
 
 - Removing the trailing tag box fits node height to the remaining editor content,
   preserving width. Layout is measured after React commits, with a short deferred
-  retry for ComfyUI's widget layout. Ordinary edits preserve manually added extra
-  height unless the content needs more room. Very tall content remains scrollable.
+  retry for ComfyUI's widget layout. Ordinary edits fit both increases and decreases in content height. The editor
+  is capped at 680 pixels plus canvas overhead; taller content stays scrollable.
 - The editor no longer stretches its final input to fill unused node height.
   Format borders keep their colour while focused; focus uses a separate outline.
 - Chip movement uses pointer hit-testing within prompt drop targets, rather than

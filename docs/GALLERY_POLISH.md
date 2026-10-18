@@ -1,0 +1,21 @@
+# Gallery behavior, associations and file handling (October 18, 2026)
+
+Ruleset cards, including inherited cards, collapse independently. Advisories are shown on the encoder only when their corresponding policy is attached. Add Compatibility review for the previous general advisory checks. Hair prompting is still an optional removable policy.
+
+A ruleset family is an override key, independent of prefix layout. Within the same named channel and family, encoder > snapshot > prefix > global. Independent channels combine constraints across the entire prompt; they do not isolate subjects or regions. Linked tag/source boxes expose Inherit prefix rules. Turning it off stops that box from importing its prefix policies; an explicitly attached encoder policy still applies to the composed prompt.
+
+Behavior replaces Convert contents. Its dropdown shows the active behavior, or Mixed behaviors. Group headers collapse without changing their category; category options use light text. Copy box/group syntax with the copy buttons or a chip context menu. Paste grouped/comma-separated syntax to append. Whole groups use the same pointer drag path as individual chips. The temporary trash target is an icon. Encoder height fits settled content up to a bounded scrolling editor and shrinks after removing content.
+
+Prefix associations selects an existing association/snapshot when available. Create snapshot remains visible. Identical variants reuse a snapshot; content identical to the parent pairs with the parent. Parent edits remain an explicit separate action. Show source tags only defaults on: Gallery Image Source recipes are separated from additions in downstream encoders. Turning it off reveals used prompt terms for deliberate copying. Image tag lists expand using disclosure headers. Saved metadata with no source provenance falls back to its own used prompt.
+
+Append images and prompts is compact: All tags opens its palette separately. Existing associated prefixes and snapshots can be selected, and both prompt polarities can be loaded. Library search lives in Prompts & prefixes. Metadata offers Copy used tags, excluding unpicked alternatives.
+
+Local and hybrid metadata tag searches compare complete used tags, normalize spaces/underscores and case, and ignore unresolved choices. Filename mode retains partial matching. Stack @prefix tokens as AND prerequisites in the main search, including Hydrus/Both. Remote prefix filtering uses loaded pages and cached provenance; Load more remains available when a filtered page contains no matches. Related prefix results exclude the searched image and its same-source lineage.
+
+Hydrus copies are matched by content hash. Cached current/pending Hydrus tags are available to local search; Refresh Hydrus status updates them. Connection settings control export tag spacing (preserve, spaces, underscores), preserving namespaces. This does not rename existing remote tags.
+
+Download remains the default action. Send to offers known output subfolders and a folder dialog. Destinations stay inside ComfyUI output and originals are verified, reused by hash, never overwritten. Workflow append still creates its required input copy internally. Context menus remain available during downloads and completion clears the progress indicator before catalogue refresh.
+
+Right-click a local subfolder for prefix/lineage associations. Multiple prefixes or source hashes can route to one folder; the first matching folder rule wins. Saving enables automatic organization on scan. Prefix metadata and source hashes identify generations; paired source hashes are captured when saving the folder rule. Reopen/save to refresh those hashes after adding new source associations. Settings > Local folder rules offers preview and automatic-routing control. Metadata sidecars travel with moved media. Archived trees are excluded from routing.
+
+Archiving defaults to hiding files in place. Enable Move newly archived media into _archive in Gallery settings for physical archiving. Original subpaths and metadata sidecars are preserved. Restore returns files to their original path even if the setting has since been disabled. Destination collisions abort the operation and roll back completed moves; no originals are overwritten. Existing archives are not silently migrated.

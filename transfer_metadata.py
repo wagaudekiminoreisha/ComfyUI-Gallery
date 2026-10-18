@@ -12,7 +12,10 @@ def read_metadata(path):
     result = {}
     try:
         with Image.open(path) as image:
-            result = {key: image.info[key] for key in ('prompt', 'workflow', 'parameters') if key in image.info}
+            result = {key: image.info[key] for key in ('prompt', 'workflow', 'parameters', 'gallery_prompts') if key in image.info}
+        if isinstance(result.get('gallery_prompts'),str):
+            try: result['gallery_prompts']=json.loads(result['gallery_prompts'])
+            except ValueError: pass
     except (OSError, ValueError):
         pass
     sidecar = path.with_name(path.name + '.gallery.json')

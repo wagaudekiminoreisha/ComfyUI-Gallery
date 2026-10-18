@@ -1,3 +1,6 @@
+import {BookOutlined} from '@ant-design/icons';
+import {findLineage} from './PrefixLineage';
+import {fetchLocalHashes} from './TagSearchPanel';
 import { useUnsavedPrefix } from './UnsavedPrefix';
 import { FloatingPanel, focusPanel } from './FloatingPanel';
 import { getPromptTargets, writePromptTarget } from './ImageSourceBridge';
@@ -143,6 +146,8 @@ export function LocalPromptSearch({ onLocalSearch, managerOnly = false }: { onLo
     };
     useEffect(()=>{const refresh=()=>{void load();};window.addEventListener('gallery-prefix-snapshots-changed',refresh);return()=>window.removeEventListener('gallery-prefix-snapshots-changed',refresh);},[]);
     const draftLabel = prefixName.trim() || 'unnamed prefix';
+    const filterRevision=useRef(0);
+    const applyMainTerms=async(values:string[])=>{const revision=++filterRevision.current;gallery.setLocalTerms(values);gallery.setSearchFileName('');onLocalSearch();const selected=values.filter(value=>value.startsWith('@')).map(value=>shared.prefixes.find(prefix=>prefix.name.toLowerCase()===value.slice(1).toLowerCase()));if(!selected.length){gallery.setLocalScope(null);return;}if(selected.some(value=>!value)){gallery.setLocalScope({label:'Unknown prefix',urls:new Set()});return;}const files=Object.values(gallery.data?.folders||{}).flatMap(folder=>Object.values(folder));const pools=await Promise.all(selected.map(prefix=>findLineage(files,shared,prefix!.id,fetchLocalHashes)));if(revision!==filterRevision.current)return;const sets=pools.map(result=>new Set([...result.paired.map(file=>file.url),...result.generated.map(item=>item.file.url)]));gallery.setLocalScope({label:values.filter(value=>value.startsWith('@')).join(' AND '),urls:new Set([...sets[0]].filter(url=>sets.every(set=>set.has(url))))});};
     const boxed = !!seed.node?.__galleryPromptBoxes;
     return <>
         {!managerOnly && gallery.localScope && <Tag color="blue" closable onClose={() => gallery.setLocalScope(null)} title="Only images found by the image search are shown. Close to show everything again." style={{ alignSelf: 'center' }}>Scope: {gallery.localScope.label} ({gallery.localScope.urls.size})</Tag>}
@@ -151,31 +156,20 @@ export function LocalPromptSearch({ onLocalSearch, managerOnly = false }: { onLo
             onDrop={event => { const image = droppedImage(event); if (!image) return; event.preventDefault(); openImageSearch({ field: gallery.localSearchField, chips: [...gallery.localTerms.map(text => ({ kind: 'tag' as const, text })), image] }); }}
             onKeyDownCapture={event => {
             if (event.key === 'Enter' && (!gallery.searchFileName.trim() || gallery.localTerms.includes(gallery.searchFileName.trim()))) {
-                event.preventDefault(); event.stopPropagation(); gallery.setSearchFileName(''); onLocalSearch();
+                event.preventDefault(); event.stopPropagation(); void applyMainTerms(gallery.localTerms).catch(error=>message.error(String(error)));
             }
         }}><Select mode="tags" aria-label="Filter local files" value={gallery.localTerms} searchValue={gallery.searchFileName}
             onSearch={value => { gallery.setSearchFileName(value); onLocalSearch(); }}
-            onChange={values => {
-                gallery.setSearchFileName('');
-                // A saved @prefix searches its lineage (paired images and what was generated from them), not just its exact tags.
-                const prefixOf = (value: string) => value.startsWith('@') ? shared.prefixes.find(prefix => prefix.name.toLowerCase() === value.slice(1).trim().toLowerCase()) : undefined;
-                const prefixes = values.flatMap(value => prefixOf(value) ? [prefixOf(value)!] : []);
-                if (prefixes.length) {
-                    const rest = values.filter(value => !prefixOf(value)).flatMap(value => expandSearchTerms(shared, value));
-                    openImageSearch({ field: gallery.localSearchField, chips: [...prefixes.map(prefix => ({ kind: 'prefix' as const, id: prefix.id, name: prefix.name })), ...rest.map(text => ({ kind: 'tag' as const, text }))] });
-                    return;
-                }
-                gallery.setLocalTerms(Array.from(new Set(values.flatMap(value => expandSearchTerms(shared, value))))); onLocalSearch();
-            }}
+            onChange={values=>void applyMainTerms(Array.from(new Set(values))).catch(error=>message.error(String(error)))}
             style={{ width: '100%' }} popupMatchSelectWidth={480} filterOption={false} optionLabelProp="value" allowClear
             options={options.filter(item => !gallery.localTerms.includes(item.value)).map((item, i) => ({ key: item.side + i, value: item.side === 'Library prefix' ? '@' + item.label : item.value, label: <span>{item.label} <small>· {item.side}{item.count ? ' · ' + item.count + ' local files' : ''}</small></span> }))}
             placeholder="Local search · Enter stacks a term (AND)" /></div>
         <Select aria-label="Local search category" value={gallery.localSearchField} onChange={value => { gallery.setLocalSearchField(value); onLocalSearch(); }} style={{ width: 150 }} options={[{ value: 'all', label: 'All fields' }, { value: 'positive', label: 'Positive prompt' }, { value: 'negative', label: 'Negative prompt' }, { value: 'hydrus', label: 'Hydrus tag' }, { value: 'name', label: 'Filename' }]} />
-        </>}<Button onClick={() => { setSeed({}); setPrefixName(''); setPrefixTags([]); setNegativeTags([]); setOpen(true); }}>Prompts & prefixes</Button>
+        </>}
         <FloatingPanel panelKey="prompt-library" title="Prompts & prefixes" open={open} onCancel={() => setOpen(false)} footer={null} width={1050}>
             <Space wrap style={{ width: '100%', justifyContent: 'space-between', marginBottom: 10 }}>
                 <Space wrap><Typography.Text>Append directly to workflow:</Typography.Text><Select aria-label="Library append target" placeholder="Choose a prompt node or text field" value={appendTarget} onChange={setAppendTarget} options={promptTargets} style={{ minWidth: 350 }} /><Button onClick={() => { void getPromptTargets().then(setPromptTargets).catch(error => setStatus(String(error))); }}>Refresh prompt targets</Button></Space>
-                <Space wrap><Button onClick={() => openTagSearch([])}>Tag search…</Button><Button onClick={() => setLibraryOpen(true)}>Library search…</Button></Space>
+                <Space wrap><Button onClick={() => openTagSearch([])}>Tag search…</Button><Button icon={<BookOutlined/>} onClick={() => setLibraryOpen(true)}>Library search…</Button></Space>
             </Space>
             {!shared.tags.length && !shared.prefixes.length && <Button style={{ marginBottom: 10 }} onClick={() => { void migrateBrowserPrefixes(shared.revision!).then(load).catch(error => message.error(String(error))); }}>Import legacy browser library</Button>}
             {boxed && <Typography.Paragraph type="secondary">Editing {seed.node.title || 'Prompt Encode'} #{seed.node.id}. Appends from here become boxes on the node; reorder, edit or delete them there.</Typography.Paragraph>}

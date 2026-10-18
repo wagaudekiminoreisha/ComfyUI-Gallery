@@ -111,14 +111,14 @@ export function installPromptBoxes(node: any, deps: Deps) {
             if(!alive||requestId!==rulesRequestId)return;rulesLibrary=result.library;
             if(resetGlobals||state.rulesets===undefined){state={...state,rulesets:[...rulesLibrary.globals.map(box=>({...box,origin:'global' as const})),...(resetGlobals?(state.rulesets||[]).filter(box=>box.origin!=='global'):[])]};}
             const source=sourcePromptInfo(node);
-            const sourceEnabled=state.boxes.some(box=>box.kind==='source'&&box.enabled);
-            const ids=new Set<string>([...(sourceEnabled&&!source.negative?source.prefixes?.map(prefix=>prefix.id)||[]:[]),...state.boxes.flatMap(box=>box.kind==='group'&&box.enabled?[...(box.prefixId?[box.prefixId]:[]),...(box.prefixIds||[])]:[])]);
+            const sourceEnabled=state.boxes.some(box=>box.kind==='source'&&box.enabled&&box.inheritRules!==false);
+            const ids=new Set<string>([...(sourceEnabled&&!source.negative?source.prefixes?.map(prefix=>prefix.id)||[]:[]),...state.boxes.flatMap(box=>box.kind==='group'&&box.enabled&&box.inheritRules!==false?[...(box.prefixId?[box.prefixId]:[]),...(box.prefixIds||[])]:[])]);
             // Nested @prefix references contribute their attached rules without losing their origin.
             const visited=new Set<string>();
             const visit=(id:string)=>{if(visited.has(id)||visited.size>=100)return;const prefix=prefixes.prefixes.find(item=>item.id===id);if(!prefix?.tags.length)return;visited.add(id);for(const tagId of prefix?.tags||[]){const text=prefixes.tags.find(tag=>tag.id===tagId)?.text.trim();if(text?.startsWith('@')){const child=prefixes.prefixes.find(item=>item.name.toLowerCase()===text.slice(1).toLowerCase());if(child)visit(child.id);}}};
             ids.forEach(visit);
             inheritedRules=[...visited].flatMap(id=>(rulesLibrary.prefixes[id]||[]).map(box=>({...box,id:'prefix:'+id+':'+box.id,origin:'prefix' as const,label:'Prefix '+(prefixes.prefixes.find(item=>item.id===id)?.name||id)})));
-            const snapshotIds=[...new Set([...state.boxes.flatMap(box=>box.kind==='group'&&box.enabled&&box.prefixSnapshotId?[box.prefixSnapshotId]:[]),...(sourceEnabled&&!source.negative?(source.snapshotTargets||[]).flatMap(target=>target.snapshotId?[target.snapshotId]:[]):[])])];
+            const snapshotIds=[...new Set([...state.boxes.flatMap(box=>box.kind==='group'&&box.enabled&&box.inheritRules!==false&&box.prefixSnapshotId?[box.prefixSnapshotId]:[]),...(sourceEnabled&&!source.negative?(source.snapshotTargets||[]).flatMap(target=>target.snapshotId?[target.snapshotId]:[]):[])])];
             for(const id of snapshotIds){const snapshot=prefixes.snapshots?.[id];if(!snapshot)continue;const privateRules=rulesLibrary.prefixes['snapshot:'+id]||[];const overridden=new Set(privateRules.map(box=>box.definition.family+'\n'+box.scope));const chosen=[...snapshot.rules.filter(box=>!overridden.has(box.definition.family+'\n'+box.scope)),...privateRules];inheritedRules.push(...chosen.map(box=>({...box,id:'snapshot:'+id+':'+box.id,origin:'snapshot' as const,label:'Snapshot '+id.slice(0,8)})));}
             node.properties ||= {};node.properties.gallery_inherited_rules=inheritedRules;node.properties.prompt_boxes=state;
             rulesNotice='';syncRules();render();sizing.request(false);
@@ -146,8 +146,8 @@ export function installPromptBoxes(node: any, deps: Deps) {
         node.setDirtyCanvas?.(true, true); node.graph?.change?.();
         render();
         sizing.request(removedTail||removedRule);
-        if(JSON.stringify(next.boxes.flatMap(box=>box.kind==='group'?[box.prefixId,box.prefixIds,box.prefixSnapshotId,box.enabled]:[box.enabled]))!==JSON.stringify(inheritedPrefixSignature))void loadRules();
-        inheritedPrefixSignature=next.boxes.flatMap(box=>box.kind==='group'?[box.prefixId,box.prefixIds,box.prefixSnapshotId,box.enabled]:[box.enabled]);
+        if(JSON.stringify(next.boxes.flatMap(box=>box.kind==='group'?[box.prefixId,box.prefixIds,box.prefixSnapshotId,box.enabled,box.inheritRules]:[box.enabled,box.inheritRules]))!==JSON.stringify(inheritedPrefixSignature))void loadRules();
+        inheritedPrefixSignature=next.boxes.flatMap(box=>box.kind==='group'?[box.prefixId,box.prefixIds,box.prefixSnapshotId,box.enabled,box.inheritRules]:[box.enabled,box.inheritRules]);
     }
     /** Re-read the stored text: if something else changed it (an API call, another extension) the boxes follow it. */
     const refresh = () => {

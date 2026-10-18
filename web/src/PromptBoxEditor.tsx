@@ -108,7 +108,7 @@ function PartInput({ chip, suggest, onAdd, onClose, onRemoveTag }: { chip: OrChi
         add(before + item.label);
     };
     return <span onClick={event => event.stopPropagation()} style={{ display: 'inline-flex' }}>
-        <input ref={input} autoComplete="off" spellCheck={false} aria-label={group ? 'Add a tag to this group' : 'Add an option'} placeholder={group ? 'tag' : 'option'} value={value}
+        <input onPaste={event=>{const text=event.clipboardData.getData('text/plain');if(/[{},|\n]/.test(text)){event.preventDefault();add(text);}}} ref={input} autoComplete="off" spellCheck={false} aria-label={group ? 'Add a tag to this group' : 'Add an option'} placeholder={group ? 'tag' : 'option'} value={value}
             onChange={event => setValue(event.target.value)} onBlur={() => { if (value.trim()) add(value); onClose(); }}
             onKeyDown={event => {
                 if (event.key === 'ArrowDown' && items.length) { event.preventDefault(); setActive(index => (index + 1) % items.length); }
@@ -127,7 +127,7 @@ function PartInput({ chip, suggest, onAdd, onClose, onRemoveTag }: { chip: OrChi
  */
 function ChipView({ chip, selected, picked, onSelect, onPick, onRemove, onDrop, onKind, onItems, suggest }: { chip: Chip; selected: boolean; picked?: boolean; onSelect: () => void; onPick?: (range: boolean) => void; onRemove?: () => void; onDrop?: (chip: Chip, after: boolean) => void; onKind?: (mode: AddMode) => void; onItems?: (items: string[]) => void; suggest?: (query: string) => Promise<Suggestion[]> }) {
     const [mark, setMark] = useState<'before' | 'after'>();
-    const [folded,setFolded]=useState(false);
+    const [folded,setFolded]=useState(false),[copyMenu,setCopyMenu]=useState<{x:number;y:number}>();
     const weighted = chip.weight !== undefined && chip.weight !== 1;
     const mode = addModeOf(chip), color = modeColor(mode);
     const grouped = chip.kind === 'or';
@@ -149,22 +149,23 @@ function ChipView({ chip, selected, picked, onSelect, onPick, onRemove, onDrop, 
         }}
         onDoubleClick={event => { if (onRemove && !(event.target as HTMLElement).closest('button,select,input')) { event.stopPropagation(); onRemove(); } }}
         onDragStart={event => { event.stopPropagation(); dragging = { kind: 'chip', id: chip.id, chip }; event.dataTransfer.effectAllowed = 'copyMove'; event.dataTransfer.setData(PROMPT_CHIP_TYPE, JSON.stringify(chip)); event.dataTransfer.setData('text/plain', compileChip({ ...chip, enabled: true })); }}
+        onContextMenu={event=>{event.preventDefault();event.stopPropagation();setCopyMenu({x:event.clientX,y:event.clientY});}}
         onDragEnd={() => { dragging = undefined; setMark(undefined); }}
         onDragOver={event => { if (!onDrop || dragging?.kind !== 'chip') return; event.stopPropagation();if(dragging.chip===chip)return;event.preventDefault();setMark(right(event) ? 'after' : 'before'); }}
         onDragLeave={() => setMark(undefined)}
         onDrop={event => { if (!onDrop || dragging?.kind !== 'chip') return; event.preventDefault(); event.stopPropagation(); const after = right(event), current = dragging; setMark(undefined); if (current.chip !== chip) onDrop(current.chip, after); }}
         style={{ ...S.chip, borderColor: color, ...(grouped ? { flexDirection: 'column', alignItems: 'stretch', gap: 0, padding: 0, borderRadius: 6, borderColor: color, overflow: 'visible' } : {}), ...(selected ? S.selected : {}), ...(picked ? { outline: `2px dashed ${accent}` } : {}), opacity: chip.enabled ? 1 : .45, textDecoration: chip.enabled ? 'none' : 'line-through', userSelect: 'none', touchAction: 'none', cursor: 'grab', boxShadow: mark === 'before' ? `inset 3px 0 0 ${accent}` : mark === 'after' ? `inset -3px 0 0 ${accent}` : undefined }}>
-        {grouped
+        {copyMenu&&createPortal(<div role="menu" style={{position:'fixed',left:copyMenu.x,top:copyMenu.y,zIndex:2147483001,background:'#333',padding:6,border:'1px solid #888',borderRadius:6}} onMouseLeave={()=>setCopyMenu(undefined)}><button role="menuitem" onClick={event=>{event.stopPropagation();void navigator.clipboard.writeText(compileChip({...chip,enabled:true}));setCopyMenu(undefined);}}>Copy syntax</button></div>,document.body)}{grouped
             ? <>
                 {/* The header names the grouping (and changes it); the body keeps the separators. */}
                 <span data-group-header title="Click header to collapse or expand; use the dropdown to change grouping" onClick={event=>{if((event.target as HTMLElement).closest('select,button,input'))return;event.stopPropagation();setFolded(!folded);}} style={{ display: 'flex', alignItems: 'center', gap: 4, background: color, color: '#fff', fontSize: 10, lineHeight: '15px', padding: '0 2px 0 4px', textTransform: 'uppercase', letterSpacing: .3, borderRadius: '5px 5px 0 0' }}>
                     <button type="button" aria-label={folded?'Expand tag group':'Collapse tag group'} onClick={event=>{event.stopPropagation();setFolded(!folded);}} style={{...S.btn,minWidth:30,minHeight:26,background:'transparent',color:'white',border:0}}>{folded?'▸':'▾'}</button><span style={{flex:1,minWidth:55,cursor:'pointer'}}> {promptLeaves(compileChip({...chip,enabled:true})).length} tags </span>{onKind
                         ? <select aria-label="Chip kind" value={mode} onClick={event => event.stopPropagation()} onChange={event => onKind(event.target.value as AddMode)}
                             style={{ width:150, minWidth:110, minHeight:26, background: 'transparent', color: '#fff', border: 0, font: 'inherit', textTransform: 'uppercase', letterSpacing: .3, cursor: 'pointer', padding: 0 }}>
-                            {ADD_MODES.map(item => <option key={item.value} value={item.value} style={{ color: '#000', textTransform: 'none' }}>{item.value === 'each' ? 'Optional' : item.name}</option>)}
+                            {ADD_MODES.map(item => <option key={item.value} value={item.value} style={{ color: '#fff',background:'#353535', textTransform: 'none' }}>{item.value === 'each' ? 'Optional' : item.name}</option>)}
                         </select>
                         : <span style={{ flex: 1 }}>{groupingName(chip)}</span>}
-                    {onKind&&<button type="button" aria-label="Select tag group for additions" onClick={event=>{event.stopPropagation();onSelect();}} style={{...S.btn,background:'transparent',color:'white',minHeight:26}}>＋ Add here</button>}
+                    {onKind&&<><button type="button" aria-label="Copy group syntax" onClick={event=>{event.stopPropagation();void navigator.clipboard.writeText(compileChip({...chip,enabled:true}));}} style={{...S.btn,background:'transparent',color:'white'}}>⧉</button><button type="button" aria-label="Select tag group for additions" onClick={event=>{event.stopPropagation();onSelect();}} style={{...S.btn,background:'transparent',color:'white',minHeight:26}}>＋ Add here</button></>}
                     {weighted && <span>×{chip.weight}</span>}
                     {remove}
                 </span>
@@ -304,7 +305,7 @@ function AddInput({ onBackspace, target, onTargetMode, placeholder, suggest, onT
                 style={{ ...S.input, flex: '0 0 auto', borderColor: mode === 'tag' ? border : KIND_COLORS[mode === 'each' ? 'group' : mode] }}>
                 {ADD_MODES.map(item => <option key={item.value} value={item.value} title={item.hint}>{item.name}</option>)}
             </select>}
-            <input ref={input} autoComplete="off" spellCheck={false} aria-label={placeholder} title="Type tags, {a|b} syntax, or AND / OR / OPT between tags (e.g. red hair OR blue hair OPT)"
+            <input onPaste={event=>{const text=event.clipboardData.getData('text/plain');if(/[{},|\n]/.test(text)){event.preventDefault();onText(text);reset();}}} ref={input} autoComplete="off" spellCheck={false} aria-label={placeholder} title="Type tags, {a|b} syntax, or AND / OR / OPT between tags (e.g. red hair OR blue hair OPT)"
                 placeholder={grouping ? (mode === 'each' ? 'Type tags; each becomes optional on its own' : `Type tags for one ${modeInfo.name.toLowerCase()} chip`) : placeholder} value={value} onChange={event => change(event.target.value)}
                 onBlur={event => { if (!(event.relatedTarget as HTMLElement | null)?.closest('[data-add-input],[data-suggestion-menu]')) commit(value, false); }}
                 onKeyDown={event => {
@@ -388,7 +389,7 @@ function GroupView({ box, index, count, state, onChange, suggest, bare, placehol
     const remove = (id: string) => { setSelected(undefined); setActiveChipId(undefined); setPicked(old => old.filter(value => value !== id)); onChange(editChips(state, box.id, chips => chips.filter(item => item.id !== id))); };
     const formatChips = pickedIds.length ? box.chips.filter(item => pickedIds.includes(item.id)) : box.chips;
     const modes = new Set(formatChips.map(addModeOf));
-    const currentFormat = !pickedIds.length && box.format && box.format !== 'tag' ? box.format : modes.size === 1 ? [...modes][0] : 'mixed';
+    const currentFormat = !pickedIds.length && box.format && box.format !== 'tag' ? box.format : modes.size === 1 ? [...modes][0] : modes.size===0?'tag':'mixed';
     const convert = (mode: AddMode) => {
         onChange(convertBoxContents(state, box.id, pickedIds, blacklist, mode));
         clearSelection();
@@ -434,17 +435,17 @@ function GroupView({ box, index, count, state, onChange, suggest, bare, placehol
             <Btn label="Move box down" disabled={index === count - 1} onClick={() => onChange(moveBox(state, box.id, 1))}>▼</Btn>
             <Btn label="Delete box" onClick={() => onChange(removeBox(state, box.id))}>×</Btn>
         </div>}
+        {(box.prefixId||box.prefixIds?.length)&&<label><input type="checkbox" checked={box.inheritRules!==false} onChange={event=>patch({inheritRules:event.target.checked})}/> Inherit prefix rules</label>}
         <div style={S.header}>
-            <label>{pickedIds.length ? 'Convert selection' : 'Convert contents'} <select aria-label="Convert prompt format" value="" onChange={event => convert(event.target.value as AddMode)} style={{ ...S.input, borderColor: currentFormat === 'mixed' ? border : modeColor(currentFormat) }}>
-                <option value="" disabled>Choose conversion…</option>
+            <button type="button" style={S.btn} aria-label="Copy box syntax" onClick={()=>void navigator.clipboard.writeText(formatBoxTerms(box.chips.map(compileChip).filter(Boolean),box.format).join(", "))}>⧉</button><label>Behavior <select aria-label="Convert prompt format" value={currentFormat} onChange={event => convert(event.target.value as AddMode)} style={{ ...S.input, borderColor: currentFormat === 'mixed' ? border : modeColor(currentFormat) }}>
+                <option value="mixed" disabled>Mixed behaviors</option>
                 {ADD_MODES.map(mode => <option key={mode.value} value={mode.value}>{mode.name}</option>)}
             </select></label>
-            <small aria-label="Current prompt format">{currentFormat === 'mixed' ? (formatChips.length ? 'Mixed content' : 'Empty') : ADD_MODES.find(mode => mode.value === currentFormat)?.name}</small>
-            {box.format && box.format !== 'tag' && <small title="This loaded workflow wraps the enabled contents; editing chips preserves that wrapper.">Outer group: {box.format}</small>}
+
             <button type="button" aria-label="Select chips" aria-pressed={selecting} onClick={() => { setSelecting(!selecting); clearSelection(); }} style={S.btn}>Select chips</button>
             <Btn label="Select all chips" disabled={!eligible.length} onClick={() => { setPicked(eligible); setSelected(undefined); setActiveChipId(undefined); }}>Select all</Btn>
         </div>
-        <Btn label={box.chipsCollapsed ? 'Expand tag groups' : 'Collapse tag groups'} onClick={() => patch({ chipsCollapsed: !box.chipsCollapsed })}>{box.chipsCollapsed ? '▸' : '▾'} Tag groups ({savedCount} tags · {box.chips.length} groups)</Btn>
+        <Btn label={box.chipsCollapsed ? 'Expand tag groups' : 'Collapse tag groups'} onClick={() => patch({ chipsCollapsed: !box.chipsCollapsed,collapsed:false })}>{box.chipsCollapsed ? '▸' : '▾'} Tag groups ({savedCount} tags · {box.chips.filter(chip=>chip.kind==='or').length} groups)</Btn>
         <small className="cg-rule-controls">Batch protections: {blacklist.length} · <button type="button" onClick={()=>openRules()}>Rules &amp; protections</button></small>
         {eligible.length < box.chips.length && <small style={S.muted}>{box.chips.length - eligible.length} chip(s) excluded from batch selection</small>}
         {!!pickedIds.length && <MergeBar count={selectedCount} onClear={clearSelection}
@@ -492,7 +493,7 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
     // Each top-level part of the source text is one chip; the part's own text is what a removal stores.
     const parts = source.text ? splitTop(source.text, ',').map(part => part.trim()).filter(Boolean) : [];
     const kept = parts.filter(part => !dropped.has(sourceKey(part)));
-    const patch = (value: Partial<Pick<SourceBox, 'enabled' | 'collapsed' | 'excluded'>>) => onChange(updateBox(state, box.id, value));
+    const patch = (value: Partial<Pick<SourceBox, 'enabled' | 'collapsed' | 'excluded' | 'inheritRules'>>) => onChange(updateBox(state, box.id, value));
     const setExcluded = (next: string[]) => patch({ excluded: next.length ? next : undefined });
     const effective=useRuleImpact();const leaves=promptLeaves(kept.join(', '));const retained=leaves.filter(tag=>!effective||effective.has(ruleTag(tag))).length;
     const status = !source.connected ? 'not connected' : source.text ? (retained<leaves.length?retained+'/'+leaves.length+' retained':leaves.length+' tags') + (kept.length < parts.length ? ` · ${parts.length - kept.length} left out` : '') : 'connected';
@@ -506,7 +507,7 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
             <BoxGrip id={box.id} name="Source" boxRef={ref} onEnd={() => setMark(undefined)} />
             <Btn label={box.collapsed ? 'Expand source box' : 'Collapse source box'} onClick={() => patch({ collapsed: !box.collapsed })}>{box.collapsed ? '▸' : '▾'}</Btn>
             <input type="checkbox" aria-label="Use source box" title="Use the connected source text" checked={box.enabled} onChange={event => patch({ enabled: event.target.checked })} />
-            <strong>Source</strong>
+            <strong>Source</strong><Btn label="Copy source box syntax" onClick={()=>void navigator.clipboard.writeText(kept.join(", "))}>⧉</Btn>
             <small style={{ opacity: .6 }}>{status}</small>
             <span style={{ flex: 1 }} />
             <Btn label="Move source box up" disabled={index === 0} onClick={() => onChange(moveBox(state, box.id, -1))}>▲</Btn>
@@ -519,7 +520,7 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
                     <option value="" disabled>Choose a prefix for added tags</option>
                     {source.prefixes.map(prefix => <option key={prefix.id} value={prefix.id}>{prefix.name}</option>)}
                 </select>
-                <small>Drop edits the workflow source only. Queuing records a prefix snapshot; the saved parent prefix stays unchanged.</small>
+                <label><input type="checkbox" checked={box.inheritRules!==false} onChange={event=>patch({inheritRules:event.target.checked})}/> Inherit prefix rules</label><small>Drop edits the workflow source only. Queuing records a prefix snapshot; the saved parent prefix stays unchanged.</small>
                 {selectedPrefix && <fieldset disabled={saving} style={{ border: 0, padding: 0, margin: 0 }}><AddInput placeholder="Add tags to workflow source (Enter)" suggest={query => query.startsWith('-') ? Promise.resolve(availableBatchTags(parsePrompt(source.text || '')).filter(tag => tag.includes(query.slice(1).toLowerCase())).map(tag => ({ label: '-' + tag, kind: 'tag' as const }))) : suggest(query)} onText={text => void append(text)} onPrefix={(item, head) => void append([head, ...(item.terms || [])].filter(Boolean).join(', '))} /></fieldset>}
             </div>}
             {statusMessage && <div role="status" style={S.muted}>{statusMessage}</div>}
@@ -569,7 +570,7 @@ function PromptTrash({ owner }: { owner: string }) {
     return createPortal(<div data-prompt-drop role="button" aria-label="Remove dragged tag" onDragOver={event=>{event.preventDefault();event.stopPropagation();setOver(true);}}
         onDragLeave={()=>setOver(false)} onDrop={event=>{event.preventDefault();event.stopPropagation();const remove=promptDragTrash()?.remove;remove?.();clearPromptDrag();}}
         style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',zIndex:2147483000,padding:'18px 32px',border:'2px dashed #ff7875',borderRadius:12,background:over?'#a8071a':'#431418',color:'#fff',font:'14px system-ui',pointerEvents:'auto'}}>
-        Drop here to remove tag
+        <span role="img" aria-label="Trash tags" style={{fontSize:32}}>🗑</span>
     </div>,document.body);
 }
 
@@ -592,11 +593,11 @@ export function PromptBoxEditor({ state, source, preview, suggest, onChange, not
             <small>Encoder overrides prefix rules, then global defaults, for the same family and policy channel. Rules run after optional choices. Channels do not create regional conditioning.</small>
         </details>
         {!!snapshotReferences.length&&<details className="cg-rule-tree"><summary>Prefix snapshots · {snapshotReferences.filter(row=>row.snapshot_id).length}</summary>{snapshotReferences.map((row,index)=><button type="button" style={S.btn} key={index} onClick={()=>onOpenSnapshot?.(row)}>{row.prefix_name} · {row.snapshot_id?row.snapshot_id.slice(0,8):'parent tags'}</button>)}</details>}
-        <HairReview text={preview} policy={state.hairPolicy??undefined} />
-        <ClothingReview text={preview} />
-        <GlobalTagReview text={preview} />
+        {(state.hairPolicy||[...inheritedRules,...state.rulesets||[]].some(box=>box.enabled&&box.definition.family.startsWith('hair')))&&<HairReview text={preview} policy={state.hairPolicy??undefined} />}
+        {[...inheritedRules,...state.rulesets||[]].some(box=>box.enabled&&box.definition.family.startsWith('clothing'))&&<ClothingReview text={preview} />}
+        {[...inheritedRules,...state.rulesets||[]].some(box=>box.enabled&&box.definition.family==='compatibility')&&<GlobalTagReview text={preview} />}
         <CopyablePrompt title="Prompt sent to the encoder" value={preview} />
-        {lastEncodedPrompt !== undefined && <><CopyablePrompt title="Last encoded prompt (after optional choices)" value={lastEncodedPrompt} /><HairReview resolved text={lastEncodedPrompt} policy={state.hairPolicy??undefined} /></>}
+        {lastEncodedPrompt !== undefined && <><CopyablePrompt title="Last encoded prompt (after optional choices)" value={lastEncodedPrompt} />{state.hairPolicy&&<HairReview resolved text={lastEncodedPrompt} policy={state.hairPolicy}/>}</>}
     </div></RuleProtection.Provider></RuleImpact.Provider>;
 }
 
@@ -625,7 +626,7 @@ const termsOf = (state: BoxState): string[] => state.boxes.flatMap(box => box.ki
  * "Add as", grouped chips edited in place, weights. Each chip is one term, for example `activator tag`,
  * `{tag1|}`, `{(tag2, tag3)|}` or `(tag4:0.5)`.
  */
-export function TermsEditor({ value, onChange, suggest, placeholder, clothingReview = false }: { value: string[]; onChange: (terms: string[]) => void; suggest: (query: string) => Promise<Suggestion[]>; placeholder?: string; clothingReview?: boolean }) {
+export function TermsEditor({ value, onChange, suggest, placeholder }: { value: string[]; onChange: (terms: string[]) => void; suggest: (query: string) => Promise<Suggestion[]>; placeholder?: string; clothingReview?: boolean }) {
     const owner = useId();
     const globalProtection = useGlobalProtections(value.join(', '));
     const [state, setState] = useState<BoxState>(() => termsBox(value));
@@ -641,8 +642,8 @@ export function TermsEditor({ value, onChange, suggest, placeholder, clothingRev
         <PromptTrash owner={owner} />
         <style>{TERMS_STYLE}</style>
         <GroupView bare box={box} index={0} count={1} state={state} onChange={change} suggest={suggest} placeholder={placeholder} />
-        {clothingReview && <ClothingReview text={termsOf(state).join(', ')} />}
-        {clothingReview && <GlobalTagReview text={termsOf(state).join(', ')} />}
-        {clothingReview && <HairReview text={termsOf(state).join(', ')} />}
+
+
+
     </div></RuleProtection.Provider>;
 }

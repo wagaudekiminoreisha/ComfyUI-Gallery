@@ -22,7 +22,7 @@ export function CollapsedTags({text,enabled=true}:{text:string;enabled?:boolean}
  const [open,setOpen]=useState(false),chips=parsePrompt(text),single=chips.length===1?chips[0]:undefined;
  return <details className="cg-prompt-preview" aria-label="Collapsed tag effects" onClick={event=>event.stopPropagation()} onToggle={event=>setOpen(event.currentTarget.open)}>
   <summary>Prompt · {promptLeaves(text).length} tags {chips.length>1?<LogicBadge name="AND"/>:single?.kind==='or'?<><LogicBadge name="OR"/>{single.optional&&<LogicBadge name="OPTIONAL"/>}</>:null}</summary>
-  {open&&<div className="cg-prompt-preview-body"><PromptRelations text={text} enabled={enabled}/></div>}
+  {open&&<div className="cg-prompt-preview-body"><button type="button" onClick={()=>void navigator.clipboard.writeText(text)}>Copy syntax</button><PromptRelations text={text} enabled={enabled}/></div>}
  </details>;
 }
 export function tagCount(chips:Chip[]){return promptLeaves(chips.map(chip=>compileChip({...chip,enabled:true})).join(', ')).length;}

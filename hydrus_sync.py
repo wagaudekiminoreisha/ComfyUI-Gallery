@@ -3,6 +3,7 @@ import asyncio
 import hashlib
 import json
 import random
+import re
 import time
 
 NOTE = 'ComfyUI Gallery generation metadata'
@@ -83,11 +84,12 @@ class HydrusSync:
         column = 'all_text' if field == 'all' else field
         if column not in ('positive', 'negative', 'hydrus', 'name', 'all_text'):
             raise ValueError('Invalid metadata field.')
-        where = ' AND '.join('instr(t.' + column + ',?)>0' for _ in terms) or '1'
+        positive=[term for term in terms if not term.startswith('-')]
+        where = ' AND '.join('instr(t.' + column + ',?)>0' for _ in positive) or '1'
         with self.bridge.memory.connect() as db:
-            return [json.loads(row[0]) for row in db.execute(
+            return [record for row in db.execute(
                 'SELECT i.record FROM sync_index i JOIN sync_text t ON i.target=t.target AND i.hash=t.hash WHERE i.target=? AND ' + where,
-                (self.scope(settings), *[term.lower().replace('_', ' ') for term in terms]))]
+                (self.scope(settings), *[term.lower().replace('_', ' ') for term in positive])) if matches(record:=json.loads(row[0]),field,terms)]
 
     def status(self, settings):
         target = self.scope(settings)
@@ -281,10 +283,33 @@ def search_values(record):
     return values
 
 
+def tag_phrases(text, depth=0):
+    if depth>32:return []
+    try:
+        from .prefix_library import split_top
+        from .tag_dictionary import strip_unresolved
+    except ImportError:
+        from prefix_library import split_top
+        from tag_dictionary import strip_unresolved
+    result=[]
+    for part in split_top(strip_unresolved(text).replace('\r\n',', ').replace('\n',', '), ','):
+        part=part.strip()
+        weighted=re.fullmatch(r'\((.*):[-+]?\d+(?:\.\d+)?\)',part,re.S)
+        if weighted:result.extend(tag_phrases(weighted[1],depth+1))
+        elif part.startswith(('(', '[')) and part.endswith((')', ']')):result.extend(tag_phrases(part[1:-1],depth+1))
+        elif part:result.append(re.sub(r'\s+',' ',part.lower().replace('_',' ')).replace('\\(', '(').replace('\\)', ')'))
+    return result
+
+
 def matches(record, field, terms):
-    values = search_values(record)
-    text = values['all_text' if field == 'all' else field].lower().replace('_', ' ')
-    return all(term.lower().replace('_', ' ') in text for term in terms)
+    values=search_values(record)
+    pool=set(tag_phrases(', '.join(values[key] for key in (['positive','negative','hydrus'] if field=='all' else [field]))))
+    def match(term):
+        negative=term.startswith('-');term=term[1:] if negative else term
+        key=re.sub(r'\s+',' ',term.strip().lower().replace('_',' '))
+        found=key in values['name'].lower() if field=='name' else key in pool
+        return not found if negative else found
+    return all(match(term) for term in terms)
 
 
 def sort_records(records, sort_type, ascending):

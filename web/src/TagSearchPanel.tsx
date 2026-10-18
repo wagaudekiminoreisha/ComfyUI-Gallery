@@ -230,12 +230,13 @@ export function ImageSearchPanel() {
                     const sameSource = tabFor('source', 'Same source', 'Other images made from the same source image as the searched one (and what was made from those).');
                     if (siblings) sameSource.sections.push(...bySource(siblings, skip, '').map(section => ({ ...section, title: tag + section.title })));
                     // Images of the prefixes it belongs to that are not in the tabs above.
+                    const sameSourceUrls=new Set([chip.url,...fromIt.nodes.keys(),...(siblings?.nodes.keys()||[]),...found.flatMap(level=>byHash.get(level.hash!.toLowerCase())||[])]);
                     for (const id of (broadPrefix?imagePrefixIds(shared, [...imagePrefixKeys(file ? localEntry(file, known[file.url]) : { hash: chip.hash }, root),...own.map(hash=>'sha256:'+hash)], metadata, pairedHashes):[])) {
                         const name = shared.prefixes.find(prefix => prefix.id === id)?.name || 'prefix';
                         const paired = await pairedImages(files, shared, id, hashOf, known);
                         const tree = await lineageTree(files, paired.hashes, [id], hashOf, paired.urls);
-                        const hits = [...[...paired.urls].flatMap(url => hit(url, 'paired', 'gold')), ...[...tree.nodes.keys()].flatMap(url => hit(url, 'generated', 'blue'))];
-                        tabFor('prefix', 'Prefix associations', 'All paired images and generations belonging to the searched image’s parent prefixes, across snapshots.').sections.push({ title: tag + '@' + name, hits });
+                        const hits = [...[...paired.urls].flatMap(url => sameSourceUrls.has(url)?[]:hit(url, 'paired', 'gold')), ...[...tree.nodes.keys()].flatMap(url => sameSourceUrls.has(url)?[]:hit(url, 'generated', 'blue'))];
+                        tabFor('prefix', 'Prefix associations', 'Parent-prefix associations minus the searched image and its same-source lineage.').sections.push({ title: tag + '@' + name, hits });
                     }
                 }
                 const terms = requiredTerms(prefixes.flatMap(chip => expandPrefix(shared, '@' + chip.name)));

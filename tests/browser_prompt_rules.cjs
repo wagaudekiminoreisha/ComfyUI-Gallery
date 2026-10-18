@@ -35,6 +35,7 @@ try{
  await page.evaluate(id=>window.qaRules.__galleryPromptBoxes.insert('long hair, blue eyes','after','QA rules prefix',id),prefix.id);
  // Queue serialization waits for the just-started prefix load.
  program=await page.evaluate(async()=>JSON.parse(await window.qaRules.widgets.find(w=>w.name==='rules_state').serializeValue()));assert.equal(program.filter(b=>b.origin==='prefix').length,1);
+ await editor.getByRole('checkbox',{name:'Inherit prefix rules',exact:true}).uncheck();program=await page.evaluate(async()=>JSON.parse(await window.qaRules.widgets.find(w=>w.name==='rules_state').serializeValue()));assert.equal(program.filter(b=>b.origin==='prefix').length,0);await editor.getByRole('checkbox',{name:'Inherit prefix rules',exact:true}).check();program=await page.evaluate(async()=>JSON.parse(await window.qaRules.widgets.find(w=>w.name==='rules_state').serializeValue()));assert.equal(program.filter(b=>b.origin==='prefix').length,1);
  await editor.getByRole('button',{name:'Override on encoder',exact:true}).click();
  const override=editor.getByRole('group',{name:'Ruleset box Hair',exact:true}).last();await override.getByLabel('Hair length',{exact:true}).selectOption('short_hair');
  await editor.getByText('Required and excluded:',{exact:false}).waitFor({state:'detached'});

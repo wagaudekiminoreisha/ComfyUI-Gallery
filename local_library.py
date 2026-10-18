@@ -1,8 +1,10 @@
 """Local-only organization. Rules never address files on the Hydrus server."""
+import hashlib
 import asyncio
 import json
 import os
 from pathlib import Path
+from functools import lru_cache
 import re
 import shutil
 import threading
@@ -61,6 +63,10 @@ def prompts(metadata):
             seen.add(key)
             node = obj(graph.get(key))
             inputs = obj(node.get('inputs'))
+            record=obj(obj(meta.get('gallery_prompts')).get(key))
+            if node.get('class_type') == 'GalleryPromptEncode' and isinstance(record.get('resolved'),str):
+                if record['resolved']: result[polarity].append(record['resolved'])
+                return
             if node.get('class_type') == 'GalleryPromptEncode' and 'source_text' in inputs:
                 mode = inputs.get('source_mode', 'after')
                 if mode in ('before', 'replace'): collect(inputs['source_text'], polarity, seen, depth + 1)
@@ -102,6 +108,14 @@ def destinations(settings, root, output):
     return [root] + [root_path(value, output) for value in settings.get('extraFolders', []) if isinstance(value, str) and value.strip()]
 
 
+@lru_cache(maxsize=20000)
+def cached_route_hash(path, size, mtime_ns):
+    with Path(path).open('rb') as stream:
+        digest=hashlib.sha256()
+        for chunk in iter(lambda:stream.read(1024*1024),b''):digest.update(chunk)
+        return digest.hexdigest()
+
+
 def plan(root, folders, settings, output):
     allowed = destinations(settings, root, output)
     rules = settings.get('routingRules', [])
@@ -109,7 +123,7 @@ def plan(root, folders, settings, output):
     for rule in rules:
         if not rule.get('enabled', True): continue
         terms = [t.strip().casefold() for t in rule.get('terms', []) if isinstance(t, str) and t.strip()]
-        if not terms or not rule.get('folder'): continue
+        if not (terms or rule.get('prefixIds') or rule.get('lineageHashes')) or not rule.get('folder'): continue
         base = root_path(rule.get('destinationRoot') or str(root), output)
         if base not in allowed: raise ValueError('Routing destination must be the current root or a saved extra folder')
         target = (base / rule['folder']).resolve()
@@ -122,15 +136,23 @@ def plan(root, folders, settings, output):
             if file.get('type') != 'image': continue
             try: path = local_path(root, file['url'])
             except (ValueError, OSError): continue
-            if path in seen: continue
+            if path in seen or '_archive' in path.relative_to(root).parts: continue
             seen.add(path)
             # Destination trees are terminal: rules cannot bounce files between folders.
             if any(inside(path, target) for _, _, target in checked): continue
             parsed = prompts(file.get('metadata', {}))
             for rule, terms, target in checked:
                 text = parsed.get(rule.get('field', 'positive'), '').casefold()
-                if not text: continue
                 matches = [term in text for term in terms]
+                if rule.get('prefixIds') or rule.get('lineageHashes'):
+                    metadata = json.dumps(file.get('metadata', {}), ensure_ascii=False)
+                    prefix_match = any(json.dumps(value) in metadata for value in rule.get('prefixIds', []))
+                    hashes = rule.get('lineageHashes', [])
+                    hash_match = any(value in metadata for value in hashes)
+                    if hashes and not hash_match and not prefix_match:
+                        stat=path.stat()
+                        hash_match = cached_route_hash(str(path),stat.st_size,stat.st_mtime_ns) in hashes
+                    matches.append(prefix_match or hash_match)
                 if (any(matches) if rule.get('match') == 'any' else all(matches)):
                     moves.append({'url': file['url'], 'target': str(target / path.name), 'rule': rule.get('name', ''), 'source': str(path)})
                     break
@@ -171,7 +193,13 @@ def organize(root, folders, settings, output, apply=False):
             elif time.time() - source.stat().st_mtime < 2: row['error'] = 'File is still new; waiting for generation to finish'
             elif apply:
                 try:
+                    side=source.with_name(source.name+'.gallery.json');target_side=target.with_name(target.name+'.gallery.json')
+                    if target_side.exists(): raise ValueError('Destination metadata exists; skipped')
                     move_no_replace(source, target)
+                    try:
+                        if side.exists(): move_no_replace(side,target_side)
+                    except Exception:
+                        move_no_replace(target,source);raise
                     row['moved'] = True
                     for key, files in list(folders.items()):
                         for name, file in list(files.items()):

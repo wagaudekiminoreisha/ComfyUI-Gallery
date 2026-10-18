@@ -38,12 +38,13 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
     sortRequest?: { type: number; ascending: boolean; revision: number };
     onTrashed: (hashes: string[]) => void;
     source: string; remote: RemoteImage[]; selectedRemote: string[]; setSelectedRemote: React.Dispatch<React.SetStateAction<string[]>>;
-    copy: (hashes: string[], append?: boolean) => Promise<void>; download: (hashes: string[]) => Promise<void>; working: boolean; scope: string; active: boolean;
+    copy: (hashes: string[], append?: boolean) => Promise<void>; download: (hashes: string[],folder?:string) => Promise<void>; working: boolean; scope: string; active: boolean;
 }) {
     const gallery = useGalleryContext();
     const session = useSessionOutputs();
     const { token } = theme.useToken();
     const hydrus = useHydrus();
+    const [sendTo,setSendTo]=useState<GalleryEntry[]>();const [sendFolder,setSendFolder]=useState('downloads');
     const [appending, setAppending] = useState<GalleryEntry[]>([]);
     const [selectionMode, setSelectionMode] = useViewState(viewKey, false);
     const [trashing, setTrashing] = useState<GalleryEntry[]>([]);
@@ -176,6 +177,7 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
         const list = targets(entry);
         const local = list.flatMap(item => item.local?.type === 'image' ? [item.local.url] : []);
         const hashes = list.flatMap(item => item.remote && (key === 'download' || isImage(item)) ? [item.remote.hash] : []);
+        if (key.startsWith('send:')) {setSendTo(list.filter(item=>item.remote));setSendFolder(key.slice(5)||'downloads');return;}
         if (key === 'prefix') { openSourcePrefix(list); return; }
         if (key === 'imagesearch' && entry) { openImageSearch({ chips: [{ kind: 'image', url: entry.local?.url || 'hydrus:' + entry.hash, name: entry.name, hash: entry.remote?.hash, metadata: entry.remote }] }); return; }
         if (key === 'source') { setAppending(list.filter(isImage)); return; }
@@ -186,6 +188,7 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
             if (!urls.length) return;
             await run(async () => {
                 await gallery.setMediaArchived(urls, !gallery.archiveView);
+                await gallery.runAsync();
                 advanceAfterRemoval(new Set(list.filter(item => item.local && urls.includes(item.local.url)).map(item => item.id)));
                 gallery.setSelectedImages(old => old.filter(url => !urls.includes(url)));
                 message.success(`${urls.length} file(s) ${gallery.archiveView ? 'restored' : 'archived'}`);
@@ -249,8 +252,9 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
         { key: 'info', label: 'Metadata' },
         { key: 'prefix', label: `Prefix associations… (${targets(entry).filter(isImage).length})` },
         { key: 'imagesearch', label: 'Find related images' },
-        { key: 'download', label: 'Download original(s)' },
-        ...(entry.local ? [{ key: 'export', label: 'Export local selection to Hydrus' }, { key: 'refresh', label: 'Refresh Hydrus status' }] : [{ key: 'copy', disabled: !targets(entry).some(item => item.remote && isImage(item)), label: 'Save copy to input only (no workflow append)' }]),
+        { key: 'download', disabled:working,label: 'Download original(s)' },
+        ...(entry.remote?[{key:'send',label:'Send to',children:[...Object.keys(gallery.data?.folders||{}).filter(folder=>folder.split('/').length>1).map(folder=>({key:'send:'+folder.split('/').slice(1).join('/'),label:folder})),{key:'send:',label:'Choose / create folder…'}]}]:[]),
+        ...(entry.local ? [{ key: 'export', label: 'Export local selection to Hydrus' }, { key: 'refresh', label: 'Refresh Hydrus status' }] : []),
         ...(targets(entry).some(item => item.local?.url.startsWith('/static_gallery/')) ? [{ key: 'archive', label: gallery.archiveView ? 'Restore local media' : 'Archive local media' }] : []),
         ...(targets(entry).some(item => item.remote) ? [{ key: 'trash', danger: true, label: `Delete from Hydrus — send to trash (${targets(entry).filter(item => item.remote).length})` }] : []),
         ...(targets(entry).some(item => item.local) ? [{ key: 'delete', danger: true, label: `Delete local file(s) (${targets(entry).filter(item => item.local).length})` }] : []),
@@ -270,7 +274,7 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
     };
     const renderCard = (rowIndex: number, columnIndex: number, count: number, style: React.CSSProperties) => {
                         const entry = entries[rowIndex * count + columnIndex]; if (!entry) return null;
-                        return <div style={{ ...style, padding: 6, boxSizing: 'border-box' }}><Dropdown trigger={['contextMenu']} disabled={disabled} menu={menu(entry)}>
+                        return <div style={{ ...style, padding: 6, boxSizing: 'border-box' }}><Dropdown trigger={['contextMenu']} menu={menu(entry)}>
                             <div data-gallery-entry={entry.id} tabIndex={0} role="group" aria-label={entry.name} style={{ height: '100%', border: selected.has(entry.id) ? '2px solid #1677ff' : '2px solid #8884', borderRadius: 8, overflow: 'hidden', boxSizing: 'border-box' }}
                                 onKeyDown={event => { if ((event.target as HTMLElement).closest('input,button,[role="menu"]')) return;
                                     if (event.key.startsWith('Arrow')) {
@@ -309,7 +313,7 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
         if (focused && (key === 'd' || key === 'i')) { event.preventDefault(); event.stopPropagation(); void act(key === 'd' ? 'download' : 'source', focused); }
     };
     return <div className="cg-grid-layout" onKeyDown={shortcuts}>
-        <AppendImagesModal entries={appending} onClose={() => setAppending([])} />
+        <Modal title="Send Hydrus originals to output folder" open={!!sendTo} onCancel={()=>setSendTo(undefined)} onOk={()=>{const list=sendTo||[];setSendTo(undefined);void download(list.flatMap(item=>item.remote?[item.remote.hash]:[]),sendFolder);}} zIndex={BASE_Z_INDEX+50}><Input aria-label="Download destination folder" value={sendFolder} onChange={event=>setSendFolder(event.target.value)} placeholder="Relative to ComfyUI output"/></Modal><AppendImagesModal entries={appending} onClose={() => setAppending([])} />
         <div className="cg-selection-float"><Button aria-pressed={selectionActive} type={selectionActive ? 'primary' : 'default'} onClick={() => { if (selectionActive) { setSelectionMode(false); setSelection(new Set()); } else setSelectionMode(true); }}>{selectionActive ? 'Selection mode ON' : 'Selection mode'}</Button>{selectionActive && <span>Click selects · Double-click opens</span>}</div>
         <div className="cg-grid-toolbar">
             <span className="cg-grid-summary">{entries.length.toLocaleString()} files{selected.size ? ' · ' + selected.size + ' selected' : ''}</span>
@@ -367,7 +371,7 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
                     <Button size="small" danger disabled={disabled || current.source === 'node'} onClick={() => void act(current.local ? 'delete' : 'trash', current)}>Delete</Button>
                     <Typography.Text type="secondary" style={{ marginLeft: 'auto', fontSize: 12 }}>← → browse · Space selects · right-click for actions</Typography.Text>
                 </div>
-                <Dropdown trigger={['contextMenu']} disabled={disabled} menu={menu(current)}>
+                <Dropdown trigger={['contextMenu']} menu={menu(current)}>
                     <div style={{ flex: 1, minHeight: 160, overflow: zoom === 1 ? 'hidden' : 'auto', background: token.colorFillQuaternary, borderRadius: 4, display: 'flex', alignItems: zoom === 1 ? 'center' : 'flex-start', justifyContent: zoom === 1 ? 'center' : 'flex-start' }}>
                         {current.local?.type === '3d' ? <ModelViewer url={original(current)} type={current.name.split('.').pop() || ''} /> : isVideo(current) ? <PreviewMedia onError={() => setMediaError(true)} key={current.id} controls autoPlay={gallery.settings.autoPlayVideos} src={original(current)} style={{ maxWidth: '100%', maxHeight: '100%' }} /> : current.local?.type === 'audio' ? <PreviewMedia audio key={current.id} controls src={original(current)} /> :
                         <img onClick={event => { if (event.detail === 1) toggle(current); }} key={current.id} src={failedOriginal === current.id ? thumbnail(current) : original(current)} alt={'Viewing ' + current.name} onError={() => setFailedOriginal(current.id)}
