@@ -1,3 +1,4 @@
+import {exclusionsFor,type SourceSegment} from './SourceExclusions';
 import {resolvedTagNames,tagIdentity} from './LocalImageSearch';
 import {RuleImpact,useRuleImpact,promptLeaves,CollapsedTags,tagCount} from './RuleImpact';
 import {ruleTag} from './RuleEngine';
@@ -20,7 +21,7 @@ import { addBox, addBoxWithChip, addChips, addModeOf, ADD_MODES, chipItems, conv
 
 export type Suggestion = { label: string; kind: 'tag' | 'prefix'; terms?: string[]; prefixId?: string };
 /** What the node's `source_text` input currently provides. `text` is known for Gallery Image Source and after a run. */
-export type SourceInfo = { connected: boolean; negative?: boolean;snapshotTargets?:import('./EncoderSnapshots').SnapshotTarget[]; text?: string; note?: string; prefixes?: { id: string; name: string }[]; append?: (prefixId: string, text: string) => Promise<void> };
+export type SourceInfo = { connected: boolean; segments?:SourceSegment[];negative?: boolean;snapshotTargets?:import('./EncoderSnapshots').SnapshotTarget[]; text?: string; note?: string; prefixes?: { id: string; name: string }[]; append?: (prefixId: string, text: string) => Promise<void> };
 
 /** What is being dragged right now (dataTransfer contents are not readable while dragging over a target). */
 let dragging: { kind: 'chip'; id: string; chip: Chip } | { kind: 'box'; id: string } | undefined;
@@ -491,15 +492,18 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
         catch (error) { setStatusMessage(String(error)); }
         finally { setSaving(false); }
     };
-    const excluded = box.excluded || [];
+    const [sourceKeySelected,setSourceKeySelected]=useState('');
+    const segment=source.segments?.find(row=>row.key===sourceKeySelected)||source.segments?.[0];
+    const sourceText=segment?.text??source.text;
+    const excluded = exclusionsFor(box,segment);
     const dropped = new Set(excluded.map(sourceKey));
     // Each top-level part of the source text is one chip; the part's own text is what a removal stores.
-    const parts = source.text ? splitTop(source.text, ',').map(part => part.trim()).filter(Boolean) : [];
+    const parts = sourceText ? splitTop(sourceText, ',').map(part => part.trim()).filter(Boolean) : [];
     const kept = parts.filter(part => !dropped.has(sourceKey(part)));
-    const patch = (value: Partial<Pick<SourceBox, 'enabled' | 'collapsed' | 'excluded' | 'inheritRules'>>) => onChange(updateBox(state, box.id, value));
-    const setExcluded = (next: string[]) => patch({ excluded: next.length ? next : undefined });
+    const patch = (value: Partial<Pick<SourceBox, 'enabled' | 'collapsed' | 'excluded' | 'excludedBySource' | 'inheritRules'>>) => onChange(updateBox(state, box.id, value));
+    const setExcluded = (next: string[]) => segment?patch({excludedBySource:{...box.excludedBySource,[segment.key]:next}}):patch({ excluded: next.length ? next : undefined });
     const effective=useRuleImpact();const leaves=promptLeaves(kept.join(', '));const retained=leaves.filter(tag=>!effective||effective.has(ruleTag(tag))).length;
-    const status = !source.connected ? 'not connected' : source.text ? (retained<leaves.length?retained+'/'+leaves.length+' retained':leaves.length+' tags') + (kept.length < parts.length ? ` · ${parts.length - kept.length} left out` : '') : 'connected';
+    const status = !source.connected ? 'not connected' : sourceText ? (retained<leaves.length?retained+'/'+leaves.length+' retained':leaves.length+' tags') + (kept.length < parts.length ? ` · ${parts.length - kept.length} left out` : '') : 'connected';
     return <div data-prompt-drop ref={ref}
         onClick={event => { if (!(event.target as HTMLElement).closest('button,input,select,[data-chip-id]')) ref.current?.querySelector<HTMLInputElement>('[data-add-input] input')?.focus(); }}
         onDragOver={event => { if (dragging?.kind === 'chip' && source.append && selectedPrefix && !saving) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; } else if (dragging?.kind === 'box' && dragging.id !== box.id) { event.preventDefault(); setMark(lower(event) ? 'after' : 'before'); } }}
@@ -516,8 +520,9 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
             <Btn label="Move source box up" disabled={index === 0} onClick={() => onChange(moveBox(state, box.id, -1))}>▲</Btn>
             <Btn label="Move source box down" disabled={index === count - 1} onClick={() => onChange(moveBox(state, box.id, 1))}>▼</Btn>
         </div>
-        {box.collapsed&&<CollapsedTags text={source.text||''} enabled={box.enabled}/>}
+        {box.collapsed&&<CollapsedTags text={kept.join(', ')} enabled={box.enabled}/>}
         {!box.collapsed && <>
+            {!!source.segments?.length&&<div style={S.body}><label>Source image <select aria-label="Source image for tag exclusions" value={segment?.key||''} onChange={event=>setSourceKeySelected(event.target.value)} style={S.input}>{source.segments.map(row=><option key={row.key} value={row.key}>{row.name}</option>)}</select></label><small style={S.muted}>Left out tags belong to this image only.</small></div>}
             {!!source.prefixes?.length && <div style={S.body}>
                 <select aria-label="Source prefix drop target" value={selectedPrefix?.id || ''} onChange={event => setPrefixId(event.target.value)} style={S.input}>
                     <option value="" disabled>Choose a prefix for added tags</option>
@@ -529,13 +534,13 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
             {statusMessage && <div role="status" style={S.muted}>{statusMessage}</div>}
             {!source.connected
                 ? <div style={S.muted}>Connect a text output (for example a Gallery Image Source prompt) to <code>source_text</code>. Its tags appear here and are placed where this box sits.</div>
-                : !source.text
+                : !sourceText
                     ? <div style={S.muted}>{source.note || 'Connected prompt will be shown after execution.'}</div>
                     : <div style={{ ...S.body, ...S.chips, padding: '0 6px 6px' }}>{kept.map((part, at) => { const chip = parsePrompt(part)[0]; return chip && <ChipView key={at + part} chip={chip} selected={false} onSelect={() => undefined} onRemove={() => setExcluded([...excluded, part])} />; })}</div>}
             {!!excluded.length && <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, padding: '0 6px 6px' }} aria-label="Source tags left out">
                 <small style={{ opacity: .65 }} title="Removed here only: the source and the image lineage are unchanged">Left out:</small>
                 {excluded.map(tag => <button key={tag} type="button" title="Put this source tag back" aria-label={'Restore ' + tag} onClick={() => setExcluded(excluded.filter(item => item !== tag))}
-                    style={{ ...S.btn, textDecoration: 'line-through', opacity: source.text && !parts.some(part => sourceKey(part) === sourceKey(tag)) ? .45 : .8 }}>{tag} ↺</button>)}
+                    style={{ ...S.btn, textDecoration: 'line-through', opacity: sourceText && !parts.some(part => sourceKey(part) === sourceKey(tag)) ? .45 : .8 }}>{tag} ↺</button>)}
                 {excluded.length > 1 && <Btn label="Restore all source tags" onClick={() => setExcluded([])}>restore all</Btn>}
             </div>}
         </>}

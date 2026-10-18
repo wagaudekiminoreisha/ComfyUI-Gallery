@@ -272,6 +272,20 @@ def source_exclusions(text):
     return [tag for match in SOURCE_MARKER_PATTERN.finditer(text or '') for tag in marker_excluded(match)]
 
 
+def apply_source_exclusions(source, raw):
+    """Filter image segments before joining, so identical tags in other images survive."""
+    try: data=json.loads(raw) if isinstance(raw,str) else raw
+    except ValueError: raise ValueError('Invalid per-image source exclusions.')
+    if not data:return source
+    if not isinstance(data,dict) or not isinstance(data.get('segments'),list) or len(data['segments'])>256:raise ValueError('Invalid per-image source exclusions.')
+    segments=data['segments']
+    for segment in segments:
+        if not isinstance(segment,dict) or not isinstance(segment.get('key'),str) or not isinstance(segment.get('text'),str) or not isinstance(segment.get('excluded'),list) or any(not isinstance(tag,str) for tag in segment['excluded']):raise ValueError('Invalid per-image source exclusions.')
+    expected=', '.join(segment['text'] for segment in segments if segment['text'])
+    if (source or '')!=expected:raise ValueError('Source image prompts changed. Refresh the encoder before queuing again.')
+    return ', '.join(text for segment in segments if (text:=filter_source(segment['text'],segment['excluded']).strip()))
+
+
 def compose_prompt(text, source_text=None, source_mode='after'):
     if source_mode not in SOURCE_MODES: raise ValueError('Invalid source prompt order.')
     if source_mode == 'boxes':
@@ -315,7 +329,7 @@ class GalleryPromptEncode:
     @classmethod
     def INPUT_TYPES(cls):
         return {'required': {'clip': ('CLIP',), 'text': ('STRING', {'multiline': True, 'dynamicPrompts': True, 'default': ''})},
-                'optional': {'source_text': ('STRING', {'forceInput': True}), 'source_mode': (list(SOURCE_MODES), {'default': 'after'}), 'hair_policy': ('STRING', {'default': '{}'}), 'rules_state': ('STRING', {'default': '[]'}), 'prefix_snapshots': ('STRING', {'default': '[]'})},
+                'optional': {'source_text': ('STRING', {'forceInput': True}), 'source_mode': (list(SOURCE_MODES), {'default': 'after'}), 'hair_policy': ('STRING', {'default': '{}'}), 'rules_state': ('STRING', {'default': '[]'}), 'prefix_snapshots': ('STRING', {'default': '[]'}), 'source_image_exclusions': ('STRING', {'default': '{}'})},
                 'hidden': {'extra_pnginfo': 'EXTRA_PNGINFO', 'unique_id': 'UNIQUE_ID'}}
 
     RETURN_TYPES = ('CONDITIONING', 'STRING')
@@ -328,12 +342,13 @@ class GalleryPromptEncode:
         # Unresolved {a|b} groups are picked here each run, so the result must not be cached.
         return float('nan') if '{' in (text or '') + (source_text or '') or 'one' in str(kwargs.get('hair_policy','')) else ''
 
-    def encode(self, clip, text, source_text=None, source_mode='after', extra_pnginfo=None, unique_id=None, hair_policy='{}', rules_state='[]', prefix_snapshots='[]'):
+    def encode(self, clip, text, source_text=None, source_mode='after', extra_pnginfo=None, unique_id=None, hair_policy='{}', rules_state='[]', prefix_snapshots='[]', source_image_exclusions='{}'):
         snapshots=json.loads(prefix_snapshots) if isinstance(prefix_snapshots,str) else prefix_snapshots
         if not isinstance(snapshots,list) or len(snapshots)>100 or any(not isinstance(row,dict) or not isinstance(row.get('prefix_id'),str) or row.get('snapshot_id') is not None and (not isinstance(row['snapshot_id'],str) or not re.fullmatch('[a-f0-9]{64}',row['snapshot_id'])) for row in snapshots):raise ValueError('Invalid prefix snapshot list.')
         if clip is None:
             raise ValueError('Connect a CLIP text encoder to Gallery Prompt Encode.')
-        composed = compose_prompt(text, source_text, source_mode)
+        scoped_source=apply_source_exclusions(source_text,source_image_exclusions) if source_mode=='boxes' else source_text
+        composed = compose_prompt(text, scoped_source, source_mode)
         try: from .hair_policy import sample_policy
         except ImportError: from hair_policy import sample_policy
         policy = sample_policy(hair_policy)
@@ -350,6 +365,7 @@ class GalleryPromptEncode:
             extra_pnginfo[RESOLVED_KEY][str(unique_id)]['rules_applied'] = rules_trace
             extra_pnginfo[RESOLVED_KEY][str(unique_id)]['rules_program'] = rules
             extra_pnginfo[RESOLVED_KEY][str(unique_id)]['prefix_snapshots'] = snapshots
+            extra_pnginfo[RESOLVED_KEY][str(unique_id)]['source_excluded_by_image'] = json.loads(source_image_exclusions) if isinstance(source_image_exclusions,str) else source_image_exclusions
         return {'ui': {'effective_prompt': [effective], 'source_text': [source_text or '']}, 'result': (clip.encode_from_tokens_scheduled(clip.tokenize(effective)), effective)}
 
 

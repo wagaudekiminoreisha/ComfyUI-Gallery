@@ -1,3 +1,4 @@
+import {bindLegacySourceExclusions,sourceExclusionPayload,filteredSourceText} from './SourceExclusions';
 import {saveSourceManifest} from './ImageSourceBridge';
 import {preparePrefixSnapshots} from './EncoderSnapshots';
 import {rulesRequest,RULES_CHANGED} from './RulesLibrary';
@@ -27,7 +28,7 @@ export function sourcePromptInfo(node: any): SourceInfo {
             const side = link.origin_slot === 4 ? 'positive' : 'negative';
             const images = manifest.layout === 'single' ? manifest.images.slice(manifest.active_index || 0, (manifest.active_index || 0) + 1) : manifest.images;
             const ids = [...new Set(images.map(image => image.metadata?.gallery_prefix?.id).filter((id): id is string => typeof id === 'string'))];
-            return { connected: true, negative:side==='negative', text: sourcePrompt(manifest, side), snapshotTargets:images.flatMap(image=>{const prefix=image.metadata?.gallery_prefix;if(!prefix?.id)return [];const hash=/([a-f0-9]{64})/i.exec(image.input_name)?.[1]?.toLowerCase();const key=hash?'sha256:'+hash:'';return [{prefixId:prefix.id,terms:splitTop(image.prompt?.positive||'',','),negative_terms:splitTop(image.prompt?.negative||'',','),snapshotId:prefix.snapshot_id,image_keys:key?[key]:[],image_refs:key?{[key]:{hash:hash!,input_name:image.input_name,...(image.metadata?.gallery_url?{local_url:image.metadata.gallery_url}:{})}}:{}}];}), prefixes: ids.map(id => ({ id, name: images.find(image => image.metadata?.gallery_prefix?.id === id)?.metadata?.gallery_prefix?.name || id })),
+            return { connected: true, negative:side==='negative', text: sourcePrompt(manifest, side),segments:images.map(image=>({key:image.input_name+':'+side,name:image.input_name.split('/').pop()||image.input_name,text:image.prompt?.[side]||''})), snapshotTargets:images.flatMap(image=>{const prefix=image.metadata?.gallery_prefix;if(!prefix?.id)return [];const hash=/([a-f0-9]{64})/i.exec(image.input_name)?.[1]?.toLowerCase();const key=hash?'sha256:'+hash:'';return [{sourceKey:image.input_name+':positive',prefixId:prefix.id,terms:splitTop(image.prompt?.positive||'',','),negative_terms:splitTop(image.prompt?.negative||'',','),snapshotId:prefix.snapshot_id,image_keys:key?[key]:[],image_refs:key?{[key]:{hash:hash!,input_name:image.input_name,...(image.metadata?.gallery_url?{local_url:image.metadata.gallery_url}:{})}}:{}}];}), prefixes: ids.map(id => ({ id, name: images.find(image => image.metadata?.gallery_prefix?.id === id)?.metadata?.gallery_prefix?.name || id })),
                 append: async (id, text) => {
                     const next={...manifest,images:manifest.images.map(image=>{
                         if(!images.includes(image)||image.metadata?.gallery_prefix?.id!==id)return image;
@@ -70,6 +71,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
     if (!widget('hair_policy')) node.addWidget?.('text', 'hair_policy', '{}', () => undefined);
     const legacyHair=cleanHairPolicy(widget('hair_policy')?.value);
     state = { ...state, hairPolicy: state.hairPolicy===null?null:state.hairPolicy||(legacyHair.mode!=='specific'||legacyHair.singleColour?legacyHair:null) };
+    if(!widget('source_image_exclusions'))node.addWidget?.('text','source_image_exclusions','{}',()=>undefined);
     if(!widget('prefix_snapshots'))node.addWidget?.('text','prefix_snapshots','[]',()=>undefined);
     if (!widget('rules_state')) node.addWidget?.('text','rules_state','[]',()=>undefined);
     let rulesLibrary:RulesLibrary={version:1,definitions:[],globals:[],prefixes:{}};
@@ -88,7 +90,13 @@ export function installPromptBoxes(node: any, deps: Deps) {
     }
     /** Compilation leaves exclusions and compatibility decisions to the rules program. */
     const together = () => undefined;
-    const compiledNow = () => compileBoxes(state, together());
+    const syncSource=()=>{
+        const source=sourcePromptInfo(node);state=bindLegacySourceExclusions(state,source.segments);
+        node.properties||={};node.properties.prompt_boxes=state;
+        widget('source_image_exclusions').value=JSON.stringify(sourceExclusionPayload(state.boxes.find(box=>box.kind==='source'),source.segments));
+    };
+    widget('source_image_exclusions').serializeValue=()=>{syncSource();return widget('source_image_exclusions').value;};
+    const compiledNow = () => {syncSource();return compileBoxes(state, together());};
     /** Keep the stored prompt in step with the boxes (the exclusive mode can change without an edit). */
     const sync = () => {
         syncRules();
@@ -99,7 +107,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
     };
     const render = () => {
         const source = sourcePromptInfo(node);
-        const rawPreview=composeWithSource(compiledNow(),source.text),filtered=filterHairPrompt(rawPreview,cleanHairPolicy(state.hairPolicy));
+        const rawPreview=composeWithSource(compiledNow(),filteredSourceText(state.boxes.find(box=>box.kind==='source'),source.segments,source.text)),filtered=filterHairPrompt(rawPreview,cleanHairPolicy(state.hairPolicy));
         let reviewed:ReturnType<typeof applyRulePreview>;
         try{reviewed=applyRulePreview(filtered,effectiveRules());}catch(error){reviewed={text:filtered,errors:[String(error)],notes:[],protectedTags:[]};}
         root.render(<PromptBoxEditor snapshotReferences={node.properties?.gallery_prefix_snapshots||[]} onOpenSnapshot={row=>openPrefixManager({name:row.prefix_name,positive:row.terms,negative:row.negative_terms,snapshotId:row.snapshot_id||undefined})} ruleDefinitions={rulesLibrary.definitions} inheritedRules={inheritedRules} ruleErrors={reviewed.errors} ruleProtected={reviewed.protectedTags} rulesNotice={[rulesNotice,...reviewed.notes].filter(Boolean).join(' · ')} onReloadRules={()=>void loadRules(true)} state={state} source={source} unfilteredPreview={rawPreview} preview={reviewed.text} suggest={suggest} onChange={commit} lastEncodedPrompt={node.__galleryEffectivePrompt} notice={notice} />);
@@ -126,7 +134,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
         rulesPending=task;return task;
     }
     widget('rules_state').serializeValue=async()=>{let pending;do{pending=rulesPending;await pending;}while(pending!==rulesPending);if(state.rulesets===undefined)throw new Error('Rules library could not be loaded. Retry Reload global defaults before queuing this new encoder.');syncRules();return widget('rules_state').value;};
-    widget('prefix_snapshots').serializeValue=async()=>{let pending;do{pending=rulesPending;await pending;}while(pending!==rulesPending);const references=await preparePrefixSnapshots(node,state,sourcePromptInfo(node),effectiveRules());widget('prefix_snapshots').value=JSON.stringify(references);render();return widget('prefix_snapshots').value;};
+    widget('prefix_snapshots').serializeValue=async()=>{let pending;do{pending=rulesPending;await pending;}while(pending!==rulesPending);syncSource();const references=await preparePrefixSnapshots(node,state,sourcePromptInfo(node),effectiveRules());widget('prefix_snapshots').value=JSON.stringify(references);render();return widget('prefix_snapshots').value;};
     const rulesChanged=(event:Event)=>{void loadRules(!!(event as CustomEvent).detail?.resetGlobals);};window.addEventListener(RULES_CHANGED,rulesChanged);window.addEventListener('gallery-prefix-library-changed',rulesChanged);
     /** Shown under the boxes after an edit, e.g. which tags "Exclusive tags" turned off. */
     let inheritedPrefixSignature:unknown[]=[];
@@ -159,7 +167,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
         sync(); render();
     };
 
-    hideWidget(widget('text')); hideWidget(widget('source_mode')); hideWidget(widget('hair_policy')); hideWidget(widget('rules_state'));hideWidget(widget('prefix_snapshots'));
+    hideWidget(widget('text')); hideWidget(widget('source_mode')); hideWidget(widget('hair_policy')); hideWidget(widget('rules_state'));hideWidget(widget('prefix_snapshots'));hideWidget(widget('source_image_exclusions'));
     const dom = node.addDOMWidget('prompt_boxes', 'prompt_boxes', host, sizing.options);
     if (dom) dom.serialize = false;
     sizing.calibrate();
