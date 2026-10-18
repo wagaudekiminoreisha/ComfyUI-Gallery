@@ -1,5 +1,6 @@
 import { removeTagsFromChip } from './BatchTagBlacklist';
 import { createRoot } from 'react-dom/client';
+import { encoderSizing } from './EncoderSizing';
 import { PromptBoxEditor, type SourceInfo } from './PromptBoxEditor';
 import { makeSuggest, type SuggestDeps } from './PromptSuggest';
 import { hideWidget } from './NodeWidgets';
@@ -67,6 +68,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
     const host = document.createElement('div');
     host.style.cssText = 'pointer-events:auto;width:100%;height:100%;overflow:auto;box-sizing:border-box;background:var(--comfy-input-bg,#222);border-radius:6px';
     const root = createRoot(host);
+    const sizing = encoderSizing(node, host);
     for (const type of ['pointerdown', 'mousedown', 'keydown', 'keyup', 'dragstart', 'dragover', 'drop']) {
         host.addEventListener(type, event => event.stopPropagation());
     }
@@ -86,10 +88,14 @@ export function installPromptBoxes(node: any, deps: Deps) {
             ...(mode !== 'off' ? alwaysTogether(state, conflicts).map(([a, b]) => `${a} and ${b} are both always used (make one optional)`) : [])].filter(Boolean);
         root.render(<PromptBoxEditor state={state} source={source} preview={composeWithSource(compiledNow(), source.text)} suggest={suggest} onChange={commit} lastEncodedPrompt={node.__galleryEffectivePrompt} notice={notes.join(' · ')} />);
     };
-    window.addEventListener(EXCLUSIVE_MODE_EVENT, () => { sync(); render(); });
+    const exclusiveChanged = () => { sync(); render(); };
+    window.addEventListener(EXCLUSIVE_MODE_EVENT, exclusiveChanged);
     /** Shown under the boxes after an edit, e.g. which tags "Exclusive tags" turned off. */
     let notice = '';
     function commit(next: BoxState) {
+        const groups = state.boxes.filter(box => box.kind === 'group');
+        const tail = groups[groups.length-1];
+        const removedTail = !!tail && !next.boxes.some(box=>box.id===tail.id);
         notice = '';
         if (exclusiveMode() === 'disable') {
             const result = disableConflicts(state, next, conflicts);
@@ -103,6 +109,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
         if (mode && mode.value !== 'boxes') { mode.value = 'boxes'; mode.callback?.('boxes'); }
         node.setDirtyCanvas?.(true, true); node.graph?.change?.();
         render();
+        sizing.request(removedTail);
     }
     /** Re-read the stored text: if something else changed it (an API call, another extension) the boxes follow it. */
     const refresh = () => {
@@ -115,8 +122,9 @@ export function installPromptBoxes(node: any, deps: Deps) {
     };
 
     hideWidget(widget('text')); hideWidget(widget('source_mode'));
-    const dom = node.addDOMWidget('prompt_boxes', 'prompt_boxes', host, { serialize: false, hideOnZoom: false, getMinHeight: () => 240, getHeight: () => 320 });
+    const dom = node.addDOMWidget('prompt_boxes', 'prompt_boxes', host, sizing.options);
     if (dom) dom.serialize = false;
+    sizing.calibrate();
     node.__galleryPromptBoxes = {
         /** Library and image-prompt appends arrive here as text and become their own box. Returns the compiled prompt. */
         insert(text: string, position: 'before' | 'after' | 'replace', name?: string) { commit(insertText(state, text, position, name)); return compiledNow(); },
@@ -144,6 +152,8 @@ export function installPromptBoxes(node: any, deps: Deps) {
     const removed = node.onRemoved;
     node.onRemoved = function (...args: any[]) {
         window.removeEventListener('gallery-source-changed', changed);
+        window.removeEventListener(EXCLUSIVE_MODE_EVENT, exclusiveChanged);
+        sizing.dispose();
         setTimeout(() => root.unmount(), 0);
         return removed?.apply(this, args);
     };

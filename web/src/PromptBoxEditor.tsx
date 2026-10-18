@@ -2,10 +2,11 @@ import { BatchBlacklistEditor, useBatchTagBlacklist } from './BatchBlacklistEdit
 import { ClothingReview } from './ClothingReview';
 import { GlobalTagReview } from './GlobalTagReview';
 import { convertBoxContents, applyBatchTags, batchTagItems, batchTagName, removeTagsFromChip, availableBatchTags, eligibleBatchIds } from './BatchTagBlacklist';
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { theme } from 'antd';
 import { dropPromptChip, PROMPT_CHIP_TYPE } from './PromptDrag';
+import { clearPromptDrag, promptDragTrash, PROMPT_DRAG_EVENT, startPromptPointerDrag } from './PromptPointerDrag';
 import { addBox, addBoxWithChip, addChips, addModeOf, ADD_MODES, chipItems, convertChip, withItems, balanced, chipTerms, closesChip, compileChip, editChips, expandKeywords, closeBraces, groupChips, groupingKind, groupingName, GROUPING_LABELS, formatBoxTerms, moveBox, moveBoxTo, moveItem, parsePrompt, parseTyped, pendingKeyword, removeBox, sourceKey, splitChip, splitTop, typingToken, updateBox, type AddMode, type BoxState, type Chip, type GroupBox, type GroupingKind, type OrChip, type SourceBox } from './PromptBoxes';
 
 export type Suggestion = { label: string; kind: 'tag' | 'prefix'; terms?: string[] };
@@ -21,7 +22,7 @@ const border = 'var(--border-color, #555)';
 const field = 'var(--comfy-input-bg, #222)';
 const accent = '#1677ff';
 const S: Record<string, CSSProperties> = {
-    root: { display: 'flex', flexDirection: 'column', gap: 6, padding: 6, boxSizing: 'border-box', font: '12px system-ui, sans-serif', color: 'var(--input-text, #ddd)', minHeight: '100%' },
+    root: { display: 'flex', flexDirection: 'column', gap: 6, padding: 6, boxSizing: 'border-box', font: '12px system-ui, sans-serif', color: 'var(--input-text, #ddd)', minHeight: 0 },
     box: { border: `1px solid ${border}`, borderRadius: 6, background: field },
     sourceBox: { border: `1px dashed ${border}`, borderRadius: 6, background: field },
     header: { display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px', flexWrap: 'wrap' },
@@ -130,14 +131,20 @@ function ChipView({ chip, selected, picked, onSelect, onPick, onRemove, onDrop, 
             : <>{chip.emphasis === 'round' && '('}{chip.emphasis === 'square' && '['}{chip.text}{chip.emphasis === 'round' && ')'}{chip.emphasis === 'square' && ']'}</>}
         {weighted && !grouped && <small style={{ opacity: .7 }}> ×{chip.weight}</small>}
     </span>;
-    return <span data-chip-id={chip.id} onClick={event => { if (!(event.target as HTMLElement).closest('button,select,input,[role="button"]')) select(event); }} draggable title={onDrop ? 'Click to edit · double-click to remove · Shift/Ctrl-click to pick several · drag to move within this editor or copy to another' : 'Drag to copy' + (onRemove ? ' · double-click to remove' : '')}
+    return <span data-prompt-drop data-chip-id={chip.id} onClick={event => { if (!(event.target as HTMLElement).closest('button,select,input,[role="button"]')) select(event); }} draggable={false} title={onDrop ? 'Click to edit · double-click to remove · Shift/Ctrl-click to pick several · drag to move within this editor or copy to another' : 'Drag to copy' + (onRemove ? ' · double-click to remove' : '')}
+        onPointerDownCapture={event => {
+            if ((event.target as HTMLElement).closest('button,select,input,textarea')) return;
+            event.stopPropagation();
+            startPromptPointerDrag(event.nativeEvent,event.currentTarget,compileChip({...chip,enabled:true}),PROMPT_CHIP_TYPE,JSON.stringify(chip),onRemove,
+                ()=>{dragging={kind:'chip',id:chip.id,chip};},()=>{dragging=undefined;setMark(undefined);});
+        }}
         onDoubleClick={event => { if (onRemove && !(event.target as HTMLElement).closest('button,select,input')) { event.stopPropagation(); onRemove(); } }}
         onDragStart={event => { event.stopPropagation(); dragging = { kind: 'chip', id: chip.id, chip }; event.dataTransfer.effectAllowed = 'copyMove'; event.dataTransfer.setData(PROMPT_CHIP_TYPE, JSON.stringify(chip)); event.dataTransfer.setData('text/plain', compileChip({ ...chip, enabled: true })); }}
         onDragEnd={() => { dragging = undefined; setMark(undefined); }}
-        onDragOver={event => { if (!onDrop || dragging?.kind !== 'chip' || dragging.chip === chip) return; event.preventDefault(); event.stopPropagation(); setMark(right(event) ? 'after' : 'before'); }}
+        onDragOver={event => { if (!onDrop || dragging?.kind !== 'chip') return; event.stopPropagation();if(dragging.chip===chip)return;event.preventDefault();setMark(right(event) ? 'after' : 'before'); }}
         onDragLeave={() => setMark(undefined)}
         onDrop={event => { if (!onDrop || dragging?.kind !== 'chip') return; event.preventDefault(); event.stopPropagation(); const after = right(event), current = dragging; setMark(undefined); if (current.chip !== chip) onDrop(current.chip, after); }}
-        style={{ ...S.chip, borderColor: color, ...(grouped ? { flexDirection: 'column', alignItems: 'stretch', gap: 0, padding: 0, borderRadius: 6, borderColor: color, overflow: 'visible' } : {}), ...(selected ? S.selected : {}), ...(picked ? { outline: `2px dashed ${accent}` } : {}), opacity: chip.enabled ? 1 : .45, textDecoration: chip.enabled ? 'none' : 'line-through', userSelect: 'none', cursor: 'grab', boxShadow: mark === 'before' ? `inset 3px 0 0 ${accent}` : mark === 'after' ? `inset -3px 0 0 ${accent}` : undefined }}>
+        style={{ ...S.chip, borderColor: color, ...(grouped ? { flexDirection: 'column', alignItems: 'stretch', gap: 0, padding: 0, borderRadius: 6, borderColor: color, overflow: 'visible' } : {}), ...(selected ? S.selected : {}), ...(picked ? { outline: `2px dashed ${accent}` } : {}), opacity: chip.enabled ? 1 : .45, textDecoration: chip.enabled ? 'none' : 'line-through', userSelect: 'none', touchAction: 'none', cursor: 'grab', boxShadow: mark === 'before' ? `inset 3px 0 0 ${accent}` : mark === 'after' ? `inset -3px 0 0 ${accent}` : undefined }}>
         {grouped
             ? <>
                 {/* The header names the grouping (and changes it); the body keeps the separators. */}
@@ -376,7 +383,7 @@ function GroupView({ box, index, count, state, onChange, suggest, bare, placehol
         clearSelection();
     };
     const preview = formatBoxTerms(box.chips.map(compileChip).filter(Boolean), box.format).join(', ');
-    return <div ref={ref} tabIndex={0} aria-label={bare ? 'Prefix tag box' : 'Tag box ' + box.name}
+    return <div data-prompt-drop ref={ref} tabIndex={0} aria-label={bare ? 'Prefix tag box' : 'Tag box ' + box.name}
         onKeyDownCapture={event => {
             const element = event.target as HTMLElement;
             const textField = element.matches('input,textarea,select');
@@ -401,7 +408,7 @@ function GroupView({ box, index, count, state, onChange, suggest, bare, placehol
             if (current.kind === 'box') { if (current.id !== box.id) onChange(moveBoxTo(state, current.id, { boxId: box.id, after: lower(event) })); }
             else onChange(dropPromptChip(state, current.chip, box.id));
         }}
-        style={{ ...S.box, borderColor: currentFormat === 'mixed' ? border : modeColor(currentFormat), pointerEvents: 'auto', ...(focused ? { borderColor: accent } : {}), ...(bare ? { paddingTop: 6 } : {}), opacity: box.enabled ? 1 : .6, boxShadow: mark === 'before' ? `0 -3px 0 ${accent}` : mark === 'after' ? `0 3px 0 ${accent}` : undefined }}>
+        style={{ ...S.box, borderColor: currentFormat === 'mixed' ? border : modeColor(currentFormat), pointerEvents: 'auto', ...(focused ? { outline: `1px solid ${accent}`, outlineOffset: 2 } : {}), ...(bare ? { paddingTop: 6 } : {}), opacity: box.enabled ? 1 : .6, boxShadow: mark === 'before' ? `0 -3px 0 ${accent}` : mark === 'after' ? `0 3px 0 ${accent}` : undefined }}>
         {!bare && <div style={S.header}>
             <BoxGrip id={box.id} name={box.name || 'untitled'} boxRef={ref} onEnd={() => setMark(undefined)} />
             <Btn label={box.collapsed ? 'Expand box' : 'Collapse box'} onClick={() => patch({ collapsed: !box.collapsed })}>{box.collapsed ? '▸' : '▾'}</Btn>
@@ -475,7 +482,7 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
     const patch = (value: Partial<Pick<SourceBox, 'enabled' | 'collapsed' | 'excluded'>>) => onChange(updateBox(state, box.id, value));
     const setExcluded = (next: string[]) => patch({ excluded: next.length ? next : undefined });
     const status = !source.connected ? 'not connected' : source.text ? kept.length + ' tag' + (kept.length === 1 ? '' : 's') + (kept.length < parts.length ? ` · ${parts.length - kept.length} left out` : '') : 'connected';
-    return <div ref={ref}
+    return <div data-prompt-drop ref={ref}
         onClick={event => { if (!(event.target as HTMLElement).closest('button,input,select,[data-chip-id]')) ref.current?.querySelector<HTMLInputElement>('[data-add-input] input')?.focus(); }}
         onDragOver={event => { if (dragging?.kind === 'chip' && source.append && selectedPrefix && !saving) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; } else if (dragging?.kind === 'box' && dragging.id !== box.id) { event.preventDefault(); setMark(lower(event) ? 'after' : 'before'); } }}
         onDragLeave={() => setMark(undefined)}
@@ -534,14 +541,33 @@ function CopyablePrompt({ title, value }: { title: string; value: string }) {
     </details>;
 }
 
+/** Only the originating editor owns the trash; read-only image tags cannot be deleted here. */
+function PromptTrash({ owner }: { owner: string }) {
+    const [session, setSession] = useState(promptDragTrash);
+    const [over, setOver] = useState(false);
+    useEffect(() => {
+        const changed = () => { setSession(promptDragTrash());setOver(false); };
+        window.addEventListener(PROMPT_DRAG_EVENT,changed);
+        return () => { window.removeEventListener(PROMPT_DRAG_EVENT,changed);if(promptDragTrash()?.owner===owner)clearPromptDrag(); };
+    },[owner]);
+    if(session?.owner!==owner || !session.remove)return null;
+    return createPortal(<div data-prompt-drop role="button" aria-label="Remove dragged tag" onDragOver={event=>{event.preventDefault();event.stopPropagation();setOver(true);}}
+        onDragLeave={()=>setOver(false)} onDrop={event=>{event.preventDefault();event.stopPropagation();const remove=promptDragTrash()?.remove;remove?.();clearPromptDrag();}}
+        style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',zIndex:2147483000,padding:'18px 32px',border:'2px dashed #ff7875',borderRadius:12,background:over?'#a8071a':'#431418',color:'#fff',font:'14px system-ui',pointerEvents:'auto'}}>
+        Drop here to remove tag
+    </div>,document.body);
+}
+
 export function PromptBoxEditor({ state, source, preview, suggest, onChange, notice, lastEncodedPrompt }: { state: BoxState; source: SourceInfo; preview: string; suggest: (query: string) => Promise<Suggestion[]>; onChange: (state: BoxState) => void; notice?: string; lastEncodedPrompt?: string }) {
-    return <div style={S.root} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
+    const owner = useId();
+    return <div data-prompt-editor={owner} style={S.root} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
+        <PromptTrash owner={owner} />
         {state.boxes.map((box, index) => box.kind === 'source'
             ? <SourceView key={box.id} box={box} index={index} count={state.boxes.length} state={state} onChange={onChange} source={source} suggest={suggest} />
             : <GroupView key={box.id} box={box} index={index} count={state.boxes.length} state={state} onChange={onChange} suggest={suggest} />)}
-        <AddInput placeholder="New box: type tags and press Enter" suggest={suggest} onText={text => onChange(addBoxWithChip(state, parseTyped(text)))}
+        <div style={{display:'flex'}}><AddInput placeholder="New box: type tags and press Enter" suggest={suggest} onText={text => onChange(addBoxWithChip(state, parseTyped(text)))}
             onGroup={(mode, tags) => { const made = groupChips(mode, tags); if (made.length) onChange(addBoxWithChip(state, made)); }}
-            onPrefix={(item, head) => onChange(addBox(head ? addBox(state, undefined, head) : state, item.label, (item.terms || []).join(', ')))} />
+            onPrefix={(item, head) => onChange(addBox(head ? addBox(state, undefined, head) : state, item.label, (item.terms || []).join(', ')))} /></div>
         {notice && <div role="status" style={{ opacity: .8, color: '#d89614' }}>{notice}</div>}
         <ClothingReview text={preview} />
         <GlobalTagReview text={preview} />
@@ -576,6 +602,7 @@ const termsOf = (state: BoxState): string[] => state.boxes.flatMap(box => box.ki
  * `{tag1|}`, `{(tag2, tag3)|}` or `(tag4:0.5)`.
  */
 export function TermsEditor({ value, onChange, suggest, placeholder, clothingReview = false }: { value: string[]; onChange: (terms: string[]) => void; suggest: (query: string) => Promise<Suggestion[]>; placeholder?: string; clothingReview?: boolean }) {
+    const owner = useId();
     const [state, setState] = useState<BoxState>(() => termsBox(value));
     // Follow changes made outside (loading another prefix, "add all"), but keep chip identity while editing here.
     useEffect(() => { if (JSON.stringify(termsOf(state)) !== JSON.stringify(value)) setState(termsBox(value)); }, [JSON.stringify(value)]);
@@ -585,7 +612,8 @@ export function TermsEditor({ value, onChange, suggest, placeholder, clothingRev
     const { token } = theme.useToken();
     const look = { '--comfy-input-bg': token.colorBgContainer, '--comfy-menu-bg': token.colorFillTertiary, '--comfy-menu-hover-bg': token.controlItemBgHover, '--input-text': token.colorText, '--border-color': token.colorBorder,
         '--cg-primary': token.colorPrimary, '--cg-primary-ring': token.controlOutline, '--cg-radius': token.borderRadius + 'px', font: `${token.fontSize}px ${token.fontFamily}`, color: token.colorText } as CSSProperties;
-    return <div className="cg-terms" style={{ ...S.root, padding: 0, minHeight: 0, ...look }} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
+    return <div data-prompt-editor={owner} className="cg-terms" style={{ ...S.root, padding: 0, minHeight: 0, ...look }} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
+        <PromptTrash owner={owner} />
         <style>{TERMS_STYLE}</style>
         <GroupView bare box={box} index={0} count={1} state={state} onChange={change} suggest={suggest} placeholder={placeholder} />
         {clothingReview && <ClothingReview text={termsOf(state).join(', ')} />}
