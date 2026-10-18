@@ -28,6 +28,8 @@ def dictionary():
             values[name] = name
             for alias in row[3].split(',') if len(row) > 3 else []:
                 if alias and alias not in QUALITY: values.setdefault(alias, name)
+    # In free prompt text this also means lighting; do not silently turn it into dyed hair.
+    values.pop('highlights', None)
     return values
 
 

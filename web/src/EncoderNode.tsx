@@ -1,3 +1,4 @@
+import { cleanHairPolicy, filterHairPrompt } from './HairPolicy';
 import { removeTagsFromChip } from './BatchTagBlacklist';
 import { createRoot } from 'react-dom/client';
 import { encoderSizing } from './EncoderSizing';
@@ -63,6 +64,8 @@ export function installPromptBoxes(node: any, deps: Deps) {
     const saved = parseState(node.properties?.prompt_boxes);
     let state: BoxState = saved ?? stateFromText(String(widget('text')?.value ?? ''), String(widget('source_mode')?.value ?? 'after'), hasSource());
 
+    if (!widget('hair_policy')) node.addWidget?.('text', 'hair_policy', '{}', () => undefined);
+    state = { ...state, hairPolicy: state.hairPolicy || cleanHairPolicy(widget('hair_policy')?.value) };
     const suggest = makeSuggest(deps);
 
     const host = document.createElement('div');
@@ -77,6 +80,8 @@ export function installPromptBoxes(node: any, deps: Deps) {
     const compiledNow = () => compileBoxes(state, together());
     /** Keep the stored prompt in step with the boxes (the exclusive mode can change without an edit). */
     const sync = () => {
+        const hair = widget('hair_policy');
+        if (hair) hair.value = JSON.stringify(cleanHairPolicy(state.hairPolicy));
         const compiled = compiledNow(), text = widget('text');
         if (text && text.value !== compiled) { text.value = compiled; if (text.inputEl) text.inputEl.value = compiled; text.callback?.(compiled); node.setDirtyCanvas?.(true, true); }
     };
@@ -86,7 +91,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
         const notes = [notice,
             ...(mode === 'together' ? neverTogether(state, conflicts).map(ids => 'Never together: ' + names(ids)) : []),
             ...(mode !== 'off' ? alwaysTogether(state, conflicts).map(([a, b]) => `${a} and ${b} are both always used (make one optional)`) : [])].filter(Boolean);
-        root.render(<PromptBoxEditor state={state} source={source} preview={composeWithSource(compiledNow(), source.text)} suggest={suggest} onChange={commit} lastEncodedPrompt={node.__galleryEffectivePrompt} notice={notes.join(' · ')} />);
+        root.render(<PromptBoxEditor state={state} source={source} preview={filterHairPrompt(composeWithSource(compiledNow(), source.text), cleanHairPolicy(state.hairPolicy))} suggest={suggest} onChange={commit} lastEncodedPrompt={node.__galleryEffectivePrompt} notice={notes.join(' · ')} />);
     };
     const exclusiveChanged = () => { sync(); render(); };
     window.addEventListener(EXCLUSIVE_MODE_EVENT, exclusiveChanged);
@@ -103,6 +108,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
             if (result.disabled.length) notice = 'Exclusive tags turned off: ' + result.disabled.join(', ');
         }
         state = next;
+        const hair = widget('hair_policy'); if (hair) hair.value = JSON.stringify(cleanHairPolicy(state.hairPolicy));
         node.properties ||= {}; node.properties.prompt_boxes = state;
         const compiled = compiledNow(), text = widget('text'), mode = widget('source_mode');
         if (text && text.value !== compiled) { text.value = compiled; if (text.inputEl) text.inputEl.value = compiled; text.callback?.(compiled); }
@@ -121,7 +127,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
         sync(); render();
     };
 
-    hideWidget(widget('text')); hideWidget(widget('source_mode'));
+    hideWidget(widget('text')); hideWidget(widget('source_mode')); hideWidget(widget('hair_policy'));
     const dom = node.addDOMWidget('prompt_boxes', 'prompt_boxes', host, sizing.options);
     if (dom) dom.serialize = false;
     sizing.calibrate();

@@ -48,3 +48,16 @@ test('the source marker of a box layout never becomes part of the extracted prom
     } };
     assert.deepEqual(extractLocalPrompts(metadata).positive.split('\n'), ['a, b', 'from source', 'c']);
 });
+
+
+test('hair filtering is reflected in reusable templates and effective metadata tags', () => {
+ const boxes = B.stateFromText('1girl, {long hair|short hair}, blue eyes', 'after', true);
+ const metadata = { prompt: {
+  '3': { class_type: 'KSampler', inputs: { positive: ['6', 0] } },
+  '6': { class_type: 'GalleryPromptEncode', inputs: { text: '1girl, long hair, blue eyes', hair_policy: JSON.stringify({mode:'natural'}) } },
+ }, workflow: { nodes: [{ id:6,type:'GalleryPromptEncode',properties:{prompt_boxes:boxes} }] },
+ gallery_prompts: {'6': {text:'1girl, {long hair|short hair}, blue eyes',resolved:'1girl, blue eyes',hair_policy:{mode:'natural'}}} };
+ assert.equal(extractLocalPrompts(metadata).positive,'1girl, blue eyes');
+ assert.equal(R.promptTemplates(metadata)['6'].resolved,'1girl, blue eyes');
+ assert.equal(R.promptResolutions(metadata).length,0,'hair alternatives were not encoded');
+});

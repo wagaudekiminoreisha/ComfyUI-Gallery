@@ -65,7 +65,7 @@ export function UnifiedGallery({ viewKey, sortRequest, source, remote, selectedR
     const viewerRef = useRef<HTMLDivElement>(null);
     const lastViewerIndex = useRef(0);
     const columns = useRef(1);
-    const disabled = working || actionBusy;
+    const disabled = working || actionBusy || gallery.archiveBusy;
     const localEntry = (file: FileDetails): GalleryEntry => ({
         id: 'local:' + file.url, local: file, name: file.name, date: galleryDate(hydrus.items[file.url]?.metadata, file.timestamp), hash: hydrus.items[file.url]?.hash,
         mime: file.name.split('.').pop()?.toLowerCase().replace('jpeg', 'jpg'), source: file.url.startsWith('/view?') ? 'node' : 'local',
@@ -180,6 +180,17 @@ export function UnifiedGallery({ viewKey, sortRequest, source, remote, selectedR
         if (key === 'source') { setAppending(list.filter(isImage)); return; }
         if (key === 'trash') { setTrashing(list.filter(item => item.remote)); return; }
         if (key === 'delete') { setDeleting(list.filter(item => item.local)); return; }
+        if (key === 'archive') {
+            const urls = list.flatMap(item => item.local?.url.startsWith('/static_gallery/') ? [item.local.url] : []);
+            if (!urls.length) return;
+            await run(async () => {
+                await gallery.setMediaArchived(urls, !gallery.archiveView);
+                advanceAfterRemoval(new Set(list.filter(item => item.local && urls.includes(item.local.url)).map(item => item.id)));
+                gallery.setSelectedImages(old => old.filter(url => !urls.includes(url)));
+                message.success(`${urls.length} file(s) ${gallery.archiveView ? 'restored' : 'archived'}`);
+            });
+            return;
+        }
         if (key === 'select' && entry) return toggle(entry);
         if (key === 'info' && entry) { openImageInfo({ url: entry.local?.url, remote: entry.local ? undefined : entry.remote }); return; }
         if (key === 'export') { hydrus.requestExport(local); return; }
@@ -239,6 +250,7 @@ export function UnifiedGallery({ viewKey, sortRequest, source, remote, selectedR
         { key: 'imagesearch', label: 'Find related images' },
         { key: 'download', label: 'Download original(s)' },
         ...(entry.local ? [{ key: 'export', label: 'Export local selection to Hydrus' }, { key: 'refresh', label: 'Refresh Hydrus status' }] : [{ key: 'copy', disabled: !targets(entry).some(item => item.remote && isImage(item)), label: 'Save copy to input only (no workflow append)' }]),
+        ...(targets(entry).some(item => item.local?.url.startsWith('/static_gallery/')) ? [{ key: 'archive', label: gallery.archiveView ? 'Restore local media' : 'Archive local media' }] : []),
         ...(targets(entry).some(item => item.remote) ? [{ key: 'trash', danger: true, label: `Delete from Hydrus — send to trash (${targets(entry).filter(item => item.remote).length})` }] : []),
         ...(targets(entry).some(item => item.local) ? [{ key: 'delete', danger: true, label: `Delete local file(s) (${targets(entry).filter(item => item.local).length})` }] : []),
     ], onClick: ({ key }: { key: string }) => { void act(key, entry); } });
@@ -316,11 +328,12 @@ export function UnifiedGallery({ viewKey, sortRequest, source, remote, selectedR
             <Button disabled={disabled || !shownSelected.length} onClick={() => void act('prefix')}>Create prefix from selection</Button>
             <Button disabled={disabled || !shownSelected.some(item => item.local?.type === 'image')} onClick={() => void act('export')}>Export local selection to Hydrus</Button>
             <Button disabled={disabled || !shownSelected.length} onClick={() => { const next = new Set(selected); entries.forEach(item => next.has(item.id) ? next.delete(item.id) : next.add(item.id)); setSelection(next); }}>Invert shown selection</Button>
+            <Button disabled={disabled || !shownSelected.some(item => item.local?.url.startsWith('/static_gallery/'))} onClick={() => void act('archive')}>{gallery.archiveView ? 'Restore selected' : 'Archive selected'}</Button>
             <Button danger disabled={disabled || !shownSelected.some(item => item.local)} onClick={() => void act('delete')}>Delete local selected</Button>
             <div className="cg-spacer" /><Button disabled={disabled} onClick={() => setSelection(new Set())}>Clear selection</Button>
         </div>}
         <div style={{ flex: 1, minHeight: 120, position: 'relative' }} aria-label="Unified gallery">
-            {!entries.length ? <Empty description="No files loaded. Choose a local folder or search Hydrus." /> : <AutoSizer>{({ width, height }) => {
+            {!entries.length ? <Empty description={gallery.archiveView ? "No archived files in this library root." : "No files loaded. Choose a local folder or search Hydrus."} /> : <AutoSizer>{({ width, height }) => {
                 const count = Math.max(1, Math.floor(width / tileSize)); columns.current = count;
                 return <FixedSizeGrid key={viewKey} initialScrollTop={scrollPositions.current[viewKey] || 0} onScroll={({ scrollTop }) => { scrollPositions.current[viewKey] = scrollTop; }} ref={grid} width={width} height={height} columnCount={count} columnWidth={width / count} rowCount={Math.ceil(entries.length / count)} rowHeight={Math.round(width / count * .7) + 58}
                     itemData={{ render: ({ rowIndex, columnIndex, style }: GridChildComponentProps) => {
@@ -348,6 +361,7 @@ export function UnifiedGallery({ viewKey, sortRequest, source, remote, selectedR
                     <Button size="small" disabled={current.source === 'node'} onClick={() => openSourcePrefix([current])}>Use for prefix…</Button>
                     <Button size="small" disabled={disabled || current.source === 'node' || !targets(current).some(isImage)} onClick={() => void act('source', current)}>Append for img2img</Button>
                     <Button size="small" onClick={closeViewer}>{viewerList ? 'Close' : 'Show in grid'}</Button>
+                    <Button size="small" disabled={disabled || !current.local?.url.startsWith('/static_gallery/')} onClick={() => void act('archive', current)}>{gallery.archiveView ? 'Restore' : 'Archive'}</Button>
                     <Button size="small" danger disabled={disabled || current.source === 'node'} onClick={() => void act(current.local ? 'delete' : 'trash', current)}>Delete</Button>
                     <Typography.Text type="secondary" style={{ marginLeft: 'auto', fontSize: 12 }}>← → browse · Space selects · right-click for actions</Typography.Text>
                 </div>

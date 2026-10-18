@@ -1,3 +1,4 @@
+import type { HairPolicy } from './HairPolicy';
 /**
  * The visual model behind the Gallery Prompt Encode node.
  *
@@ -45,7 +46,7 @@ export type Chip = TagChip | OrChip;
 export type GroupBox = { id: string; kind: 'group'; name: string; chips: Chip[]; enabled: boolean; collapsed: boolean; chipsCollapsed?: boolean; format?: AddMode };
 export type SourceBox = { id: string; kind: 'source'; enabled: boolean; collapsed: boolean; /** Source tags left out of the prompt. */ excluded?: string[] };
 export type PromptBox = GroupBox | SourceBox;
-export type BoxState = { version: 1; boxes: PromptBox[] };
+export type BoxState = { version: 1; boxes: PromptBox[]; hairPolicy?: HairPolicy };
 
 let counter = 0;
 export const newId = () => 'b' + (counter++).toString(36) + Math.random().toString(36).slice(2, 8);
@@ -209,7 +210,7 @@ export function stateFromText(text: string, mode = 'after', hasSource = true): B
 export function reconcileText(state: BoxState, text: string, mode: string, hasSource: boolean, conflicts?: Conflicts): BoxState {
     // Recognize the old duplicate-wrapper serialization so repairing it does
     // not discard a saved workflow's boxes, weights, names or disabled chips.
-    return compileBoxes(state, conflicts) === text || compileBoxes(state) === text || compileBoxes(state, conflicts, true) === text || compileBoxes(state, undefined, true) === text ? state : stateFromText(text, mode, hasSource);
+    return compileBoxes(state, conflicts) === text || compileBoxes(state) === text || compileBoxes(state, conflicts, true) === text || compileBoxes(state, undefined, true) === text ? state : { ...stateFromText(text, mode, hasSource), ...(state.hairPolicy ? { hairPolicy: state.hairPolicy } : {}) };
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value);
@@ -242,7 +243,7 @@ export function parseState(value: unknown): BoxState | undefined {
         }
     }
     if (!hasSource) boxes.push(sourceBox());
-    return { version: 1, boxes };
+    return { version: 1, boxes, ...(isRecord(value.hairPolicy) ? { hairPolicy: value.hairPolicy as HairPolicy } : {}) };
 }
 
 // --- edits (all pure: they return a new state) ---

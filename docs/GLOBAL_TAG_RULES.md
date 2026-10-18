@@ -2,7 +2,7 @@
 
 Generated from `tools/build_tag_rules.py`; edit that source, then rebuild the pack.
 
-Revision **2026-10-18.1**: **79 semantic facets**, **49 candidate rules**, **643 distinct mapped tags**.
+Revision **2026-10-18.2**: **79 semantic facets**, **49 candidate rules**, **643 distinct mapped tags**.
 
 This is a broad first global pack, not an exhaustive or human-reviewed ontology. All rules are advisory. Unknown relationships remain unknown; tag-group membership never implies exclusion.
 

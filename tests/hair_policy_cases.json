@@ -1,0 +1,10 @@
+[
+  {"text":"1girl, long_hair, blonde hair, sidelocks, fiery_hair, hair_bow, body_hair, fur_trim, highlights, blue eyes", "policy":{"mode":"natural"}, "expected":"1girl, hair_bow, body_hair, fur_trim, highlights, blue eyes"},
+  {"text":"(long hair:1.2), [red hair], {short hair, green eyes|long hair, blue eyes|}, skirt", "policy":{"mode":"natural"}, "expected":"{green eyes|blue eyes|}, skirt"},
+  {"text":"{long hair|blue eyes}, (red hair, green eyes:1.1)", "policy":{"mode":"natural"}, "expected":"{blue eyes|}, (green eyes:1.1)"},
+  {"text":"{long hair|short hair}, (blonde hair:1.3), curly_hair, hair_over_one_eye", "policy":{"mode":"minimal","attributes":["length"]}, "expected":"{long hair|short hair}"},
+  {"text":"{blue eyes|long hair}, skirt", "policy":{"mode":"minimal","attributes":[]}, "expected":"{blue eyes|}, skirt"},
+  {"text":"blonde hair, brown hair, long hair", "policy":{"mode":"specific"}, "expected":"blonde hair, brown hair, long hair"},
+  {"text":"(long hair, (red hair:1.2), green eyes:0.8), snake_hair, hairclip", "policy":{"mode":"natural"}, "expected":"(green eyes:0.8), hairclip"},
+  {"text":"{fiery_hair|tentacle_hair|}, fur, facial hair, hair_ribbon", "policy":{"mode":"natural"}, "expected":"fur, facial hair, hair_ribbon"}
+]

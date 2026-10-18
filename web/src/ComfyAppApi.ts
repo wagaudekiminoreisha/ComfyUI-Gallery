@@ -104,6 +104,16 @@ export const ComfyAppApi = {
         app.api.fetchApi("/Gallery/monitor/stop", {
             method: "POST"
         }),
+    archive: async (relativePath: string, urls?: string[], archived = true): Promise<string[]> => {
+        const controller = new AbortController(), timeout = window.setTimeout(() => controller.abort(), 10000);
+        try {
+            const options: RequestInit = { signal: controller.signal, ...(urls === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ urls, archived }) }) };
+            const response = await app.api.fetchApi(`/Gallery/archive?relative_path=${encodeURIComponent(relativePath)}`, options);
+            const result = await response.json();
+            if (!response.ok || !Array.isArray(result.urls)) throw new Error(result.error || 'Cannot load Gallery archive');
+            return result.urls;
+        } finally { window.clearTimeout(timeout); }
+    },
     fetchImages: (relativePath?: string) =>
         app.api.fetchApi(`/Gallery/images?relative_path=${encodeURIComponent(relativePath ?? './')}`),
     onFileChange: (cb: GalleryEventCallback) =>

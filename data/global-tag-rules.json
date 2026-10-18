@@ -1,7 +1,7 @@
 {
   "version": 1,
   "id": "gallery-global-rules",
-  "revision": "2026-10-18.1",
+  "revision": "2026-10-18.2",
   "provenance": {
     "vocabulary": {
       "repository": "DominikDoom/a1111-sd-webui-tagcomplete",
@@ -4883,7 +4883,6 @@
     "heart_shaped_pupils": "heart-shaped_pupils",
     "heels": "high_heels",
     "highheels": "high_heels",
-    "highlights": "streaked_hair",
     "hold": "holding",
     "holding_another's_hand": "holding_hands",
     "holding_object": "holding",

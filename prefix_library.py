@@ -289,12 +289,16 @@ def resolve_dynamic(text, rng=None):
     return prompt, choices
 
 
+try: from .hair_policy import clean_policy, filter_hair_prompt
+except ImportError: from hair_policy import clean_policy, filter_hair_prompt
+
+
 class GalleryPromptEncode:
     """Prompt boxes + shared library picker, compatible with standard CLIP conditioning."""
     @classmethod
     def INPUT_TYPES(cls):
         return {'required': {'clip': ('CLIP',), 'text': ('STRING', {'multiline': True, 'dynamicPrompts': True, 'default': ''})},
-                'optional': {'source_text': ('STRING', {'forceInput': True}), 'source_mode': (list(SOURCE_MODES), {'default': 'after'})},
+                'optional': {'source_text': ('STRING', {'forceInput': True}), 'source_mode': (list(SOURCE_MODES), {'default': 'after'}), 'hair_policy': ('STRING', {'default': '{}'})},
                 'hidden': {'extra_pnginfo': 'EXTRA_PNGINFO', 'unique_id': 'UNIQUE_ID'}}
 
     RETURN_TYPES = ('CONDITIONING', 'STRING')
@@ -307,12 +311,16 @@ class GalleryPromptEncode:
         # Unresolved {a|b} groups are picked here each run, so the result must not be cached.
         return float('nan') if '{' in (text or '') + (source_text or '') else ''
 
-    def encode(self, clip, text, source_text=None, source_mode='after', extra_pnginfo=None, unique_id=None):
+    def encode(self, clip, text, source_text=None, source_mode='after', extra_pnginfo=None, unique_id=None, hair_policy='{}'):
         if clip is None:
             raise ValueError('Connect a CLIP text encoder to Gallery Prompt Encode.')
         composed = compose_prompt(text, source_text, source_mode)
+        policy = clean_policy(hair_policy)
         effective, choices = resolve_dynamic(composed)
+        effective = filter_hair_prompt(effective, policy)
         record_resolution(extra_pnginfo, unique_id, composed, effective, choices, source_text, source_exclusions(text) if source_mode == 'boxes' else None)
+        if isinstance(extra_pnginfo, dict) and isinstance(extra_pnginfo.get(RESOLVED_KEY), dict) and str(unique_id) in extra_pnginfo[RESOLVED_KEY]:
+            extra_pnginfo[RESOLVED_KEY][str(unique_id)]['hair_policy'] = policy
         return {'ui': {'effective_prompt': [effective], 'source_text': [source_text or '']}, 'result': (clip.encode_from_tokens_scheduled(clip.tokenize(effective)), effective)}
 
 

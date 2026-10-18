@@ -1,3 +1,4 @@
+import { cleanHairPolicy, filterHairPrompt } from './HairPolicy';
 /**
  * Which options of {a|b|c} groups an image was actually made with.
  *
@@ -8,7 +9,7 @@
  */
 import { compileBoxes, composeWithSource, groupingKind, optionTags, parsePrompt, parseState, splitTop, type GroupingKind } from './PromptBoxes';
 
-export type EncoderRecord = { text?: string; resolved?: string; choices?: { options: string[]; chosen: string }[]; source_text?: string };
+export type EncoderRecord = { text?: string; resolved?: string; choices?: { options: string[]; chosen: string }[]; source_text?: string; hair_policy?: unknown };
 export type ResolvedChoice = { kind: GroupingKind; options: string[]; chosen?: string };
 export type EncoderResolution = { id: string; title: string; template: string; resolved: string; choices: ResolvedChoice[] };
 
@@ -107,7 +108,7 @@ export function promptTemplates(metadata: unknown): Record<string, EncoderRecord
         const record = records[id] || {}, api = object(prompt[id]?.inputs);
         const source = record.source_text ?? (typeof api.source_text === 'string' ? api.source_text : undefined);
         const template = saved.get(id)?.template ?? record.text;
-        return [id, { ...record, resolved: template === undefined ? record.resolved : composeWithSource(template, source) }];
+        return [id, { ...record, resolved: template === undefined ? record.resolved : filterHairPrompt(composeWithSource(template, source), cleanHairPolicy(record.hair_policy ?? api.hair_policy)) }];
     }));
 }
 
@@ -124,8 +125,8 @@ export function promptResolutions(metadata: unknown): EncoderResolution[] {
         const api = object(prompt[id]?.inputs);
         const saved = templates.get(id);
         const source = typeof record.source_text === 'string' ? record.source_text : typeof api.source_text === 'string' ? api.source_text : undefined;
-        const template = saved ? composeWithSource(saved.template, source) : record.text || '';
-        const resolved = record.resolved || (typeof api.text === 'string' ? composeWithSource(api.text, source) : '');
+        const template = filterHairPrompt(saved ? composeWithSource(saved.template, source) : record.text || '', cleanHairPolicy(record.hair_policy ?? api.hair_policy));
+        const resolved = record.resolved ?? (typeof api.text === 'string' ? composeWithSource(api.text, source) : '');
         if (!template || !resolved || !template.includes('{')) continue;
         const choices = inferChoices(template, resolved)
             ?? (record.choices || []).map(choice => ({ kind: (choice.options.some(option => !option) ? choice.options.filter(Boolean).length === 1 ? 'group' : 'optional' : 'alternatives') as GroupingKind, options: choice.options.filter(Boolean), chosen: choice.chosen }));

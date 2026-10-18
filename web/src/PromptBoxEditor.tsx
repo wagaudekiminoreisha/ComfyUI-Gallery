@@ -1,3 +1,4 @@
+import { HairControls, HairReview } from './HairControls';
 import { BatchBlacklistEditor, useBatchTagBlacklist } from './BatchBlacklistEditor';
 import { ClothingReview } from './ClothingReview';
 import { GlobalTagReview } from './GlobalTagReview';
@@ -569,10 +570,12 @@ export function PromptBoxEditor({ state, source, preview, suggest, onChange, not
             onGroup={(mode, tags) => { const made = groupChips(mode, tags); if (made.length) onChange(addBoxWithChip(state, made)); }}
             onPrefix={(item, head) => onChange(addBox(head ? addBox(state, undefined, head) : state, item.label, (item.terms || []).join(', ')))} /></div>
         {notice && <div role="status" style={{ opacity: .8, color: '#d89614' }}>{notice}</div>}
+        <HairControls value={state.hairPolicy} onChange={hairPolicy => onChange({ ...state, hairPolicy })} />
+        <HairReview text={preview} policy={state.hairPolicy} />
         <ClothingReview text={preview} />
         <GlobalTagReview text={preview} />
         <CopyablePrompt title="Prompt sent to the encoder" value={preview} />
-        {lastEncodedPrompt !== undefined && <CopyablePrompt title="Last encoded prompt (after optional choices)" value={lastEncodedPrompt} />}
+        {lastEncodedPrompt !== undefined && <><CopyablePrompt title="Last encoded prompt (after optional choices)" value={lastEncodedPrompt} /><HairReview resolved text={lastEncodedPrompt} policy={state.hairPolicy} /></>}
     </div>;
 }
 
@@ -618,5 +621,6 @@ export function TermsEditor({ value, onChange, suggest, placeholder, clothingRev
         <GroupView bare box={box} index={0} count={1} state={state} onChange={change} suggest={suggest} placeholder={placeholder} />
         {clothingReview && <ClothingReview text={termsOf(state).join(', ')} />}
         {clothingReview && <GlobalTagReview text={termsOf(state).join(', ')} />}
+        {clothingReview && <HairReview text={termsOf(state).join(', ')} />}
     </div>;
 }

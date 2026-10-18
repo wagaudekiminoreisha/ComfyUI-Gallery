@@ -207,7 +207,9 @@ def build():
             candidates.setdefault(alias,set()).add(row[0])
     aliases = {alias: next(iter(targets)) for alias,targets in sorted(candidates.items())
                if len(targets) == 1 and next(iter(targets)) in mapped and (alias not in vocabulary or alias in targets)}
-    return dict(version=1, id='gallery-global-rules', revision='2026-10-18.1',
+    # Bare highlights also describes lighting in free prompts.
+    aliases.pop('highlights', None)
+    return dict(version=1, id='gallery-global-rules', revision='2026-10-18.2',
                 provenance={'vocabulary': source, 'semantics': 'Gallery authored candidate heuristics; not Danbooru wiki assertions or corpus-derived probabilities.'},
                 defaults={'missing_relation': 'unknown', 'enforcement': 'advisory', 'missing_scope': 'conditional', 'negative_prompt': 'separate', 'alternatives': 'branch_local'},
                 facets=facets, rules=rules, aliases=aliases, unmapped_proposals=sorted(missing))

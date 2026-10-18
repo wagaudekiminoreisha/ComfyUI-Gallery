@@ -97,6 +97,10 @@ register_source_routes(PromptServer.instance.routes, get_gallery_static_root,
                        folder_paths.get_input_directory)
 
 from .local_library import register_library_routes, root_path, plan
+from .media_archive import register_archive_routes
+register_archive_routes(PromptServer.instance.routes,
+                        lambda request: PromptServer.instance.user_manager.get_request_user_filepath(request, 'gallery-archive.json'),
+                        lambda request: root_path(request.query.get('relative_path', './'), folder_paths.get_output_directory()))
 register_library_routes(PromptServer.instance.routes, get_gallery_static_root, load_settings,
                         folder_paths.get_output_directory,
                         lambda root: _scan_for_images(str(root), root.name, True, organize_files=False)[0])

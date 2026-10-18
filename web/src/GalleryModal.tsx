@@ -83,7 +83,8 @@ const GalleryModal = () => {
             <style>{galleryStyles}</style>
             <header className="cg-header">
                 <div className="cg-brand"><AppstoreOutlined /><strong>Gallery</strong></div>
-                <Segmented aria-label="Gallery sources" value={source} onChange={changeSource} options={[{ value: 'local', label: 'Local' }, { value: 'hydrus', label: 'Hydrus' }, { value: 'both', label: 'Both' }]} />
+                <Segmented aria-label="Media archive" value={gallery.archiveView ? 'archive' : 'media'} onChange={value => { gallery.setArchiveView(value === 'archive'); changeSource('local'); gallery.setSelectedImages([]); gallery.setLibrarySearch(null); gallery.setLocalScope(null); gallery.setLocalTerms([]); gallery.setSearchFileName(''); }} options={[{value:'media',label:'Media'},{value:'archive',label:'Archive'}]} />
+                <Segmented disabled={gallery.archiveView} aria-label="Gallery sources" value={source} onChange={changeSource} options={[{ value: 'local', label: 'Local' }, { value: 'hydrus', label: 'Hydrus' }, { value: 'both', label: 'Both' }]} />
                 <div className="cg-spacer" />
                 <Button icon={<TagsOutlined />} title="Prompts & prefixes: palette, append to workflow, prefix editor" onClick={() => window.dispatchEvent(new Event(PROMPTS_WINDOW_EVENT))}>Prompts & prefixes</Button>
                 <Button icon={<BookOutlined />} title="Library search: saved prefixes and every prompt phrase" onClick={() => window.dispatchEvent(new Event(LIBRARY_SEARCH_EVENT))}>Library search</Button>
@@ -95,7 +96,7 @@ const GalleryModal = () => {
             <div className="cg-filters">
                 {searchMode === 'local' && <>
                     {gallery.settings.extraFolders?.length > 0 && <Select aria-label="Local library root" value={gallery.settings.relativePath} style={{ width: 190 }} onChange={relativePath => { void gallery.setSettings({ ...gallery.settings, relativePath }).catch(error => message.error(String(error))); }} options={[...new Set(['./', gallery.settings.relativePath, ...gallery.settings.extraFolders])].map(value => ({ value, label: value === './' ? 'ComfyUI output' : value }))} />}
-                    <Select aria-label="Local folder" value={gallery.currentFolder} onChange={value => { gallery.setCurrentFolder(value); gallery.setLibrarySearch(null); changeSource('local'); }} style={{ width: 180 }} options={Object.keys(gallery.data?.folders || {}).map(value => ({ value, label: value || 'Root folder' }))} />
+                    <Select disabled={gallery.archiveView} aria-label="Local folder" value={gallery.currentFolder} onChange={value => { gallery.setCurrentFolder(value); gallery.setLibrarySearch(null); changeSource('local'); }} style={{ width: 180 }} options={Object.keys(gallery.data?.folders || {}).map(value => ({ value, label: value || 'Root folder' }))} />
                     <LocalPromptSearch onLocalSearch={() => { changeSource('local'); gallery.setLibrarySearch(null); }} />
                     <Button aria-label="Filters & tools" icon={<FilterOutlined />} onClick={() => setTools(true)}>Filters & tools</Button>
                 </>}
@@ -105,6 +106,8 @@ const GalleryModal = () => {
                 <Button type={targetOpen ? 'primary' : 'default'} onClick={() => setTargetOpen(value => !value)}>Image Source</Button>
             </div>
             {targetOpen && <div className="cg-target"><ImageSourceTarget /></div>}
+            {gallery.archiveError && <div role="alert" style={{padding:8}}>Archive unavailable: {gallery.archiveError}. Archive state could not be verified; local files may include archived media. Reload or refocus to retry.</div>}
+            {gallery.archiveView && <div style={{padding:'0 16px'}}>Archived local media · all folders in this library root. Originals remain in place; restore returns them to Media.</div>}
             <HydrusBrowser onSourceChange={setSource} source={source} open={visible} searchMode={searchMode} viewRevision={viewRevision} />
         </div>, document.body)}
         <Modal title="Local filters and tools" open={tools && visible} onCancel={() => setTools(false)} footer={null} width={1000} zIndex={BASE_Z_INDEX + 20}>

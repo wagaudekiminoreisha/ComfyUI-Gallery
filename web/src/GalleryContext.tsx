@@ -1,3 +1,4 @@
+import { useMediaArchive } from './MediaArchive';
 import type { ImageQualities } from './LocalImageSearch';
 import React, { createContext, useContext, useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
@@ -92,6 +93,11 @@ export const DEFAULT_SETTINGS: SettingsState = {
 export const STORAGE_KEY = 'comfy-ui-gallery-settings';
 
 export interface GalleryContextType {
+    archiveView: boolean;
+    setArchiveView: Dispatch<SetStateAction<boolean>>;
+    archiveBusy: boolean;
+    archiveError: string;
+    setMediaArchived: (urls: string[], archived: boolean) => Promise<void>;
     currentFolder: string;
     setCurrentFolder: Dispatch<SetStateAction<string>>;
     searchFileName: string;
@@ -184,7 +190,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
     const [siderCollapsed, setSiderCollapsed] = useState(true);
     const size = useSize(document.querySelector('body'));
     const imagesBoxSize = useSize(document.querySelector('#imagesBox'));
-    const { data, error, loading, runAsync, mutate, refresh, refreshAsync } = useRequest(getImages, { manual: true });
+    const { data: rawData, error, loading, runAsync, mutate, refresh, refreshAsync } = useRequest(getImages, { manual: true });
     const [gridSize, setGridSize] = useState({ width: 1000, height: 600, columnCount: 1, rowCount: 1 });
     const [autoSizer, setAutoSizer] = useState({ width: 1000, height: 600 });
     const [autoCompleteOptions, setAutoCompleteOptions] = useState<NonNullable<AutoCompleteProps['options']>>([]);
@@ -193,6 +199,9 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         listenStorageChange: true,
     });
     const [settingsLoaded, setSettingsLoaded] = useState(false);
+    const [archiveView, setArchiveView] = useState(false);
+    const archive = useMediaArchive(settingsState?.relativePath || './');
+    const data = useMemo<FilesTree | undefined>(() => !rawData || !archive.ready ? undefined : ({ ...rawData, folders: Object.fromEntries(Object.entries(rawData.folders).map(([folder, files]) => [folder, Object.fromEntries(Object.entries(files).filter(([, file]) => archive.urls.has(file.url) === archiveView))])) }), [rawData, archive.urls, archive.ready, archiveView]);
 
     useEffect(() => {
         if (data && data.folders) {
@@ -259,7 +268,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
 
     // Keep the complete folder available to Hydrus status lookup even when a search hides its files.
     const currentFolderFiles = data?.folders?.[currentFolder];
-    const unfilteredFolderImages = useMemo<FileDetails[]>(() => librarySearch ? Object.values(data?.folders || {}).flatMap(folder => Object.values(folder)) : Object.values(currentFolderFiles ?? {}), [currentFolderFiles, data, librarySearch]);
+    const unfilteredFolderImages = useMemo<FileDetails[]>(() => archiveView || librarySearch ? Object.values(data?.folders || {}).flatMap(folder => Object.values(folder)) : Object.values(currentFolderFiles ?? {}), [currentFolderFiles, data, librarySearch, archiveView]);
     const searchNeedsPrompts = !!librarySearch || (!!searchFileName.trim() || !!localTerms.length) && ['all', 'positive', 'negative'].includes(localSearchField);
     const localPrompts = useMemo(() => {
         const result = new Map<string, LocalPrompts>();
@@ -422,6 +431,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
     [cardSettings, selectedImages, selectedImageSet, selectImage]);
 
     const value = useMemo(() => ({
+        archiveView, setArchiveView, archiveBusy: archive.busy, archiveError: archive.error, setMediaArchived: archive.update,
         currentFolder, setCurrentFolder,
         searchFileName, setSearchFileName,
         localTerms, setLocalTerms, localHydrusTags, librarySearch, setLibrarySearch, localScope, setLocalScope,
@@ -450,6 +460,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         siderCollapsed,
         setSiderCollapsed,
     }), [
+        archiveView, archive.busy, archive.error, archive.update,
         currentFolder,
         searchFileName,
         localSearchField, qualities, localTerms, localHydrusTags, librarySearch, localScope,
