@@ -43,7 +43,7 @@ try{
  assert.equal(program.find(b=>b.origin==='encoder').preferences.length,'short_hair');
  assert(await editor.getByText('overridden in this scope',{exact:false}).count()>=1);
  await editor.getByLabel('Add ruleset',{exact:true}).selectOption('builtin-pose');await editor.getByRole('group',{name:'Ruleset box Pose',exact:true}).waitFor();
- await editor.getByRole('group',{name:'Ruleset box Pose',exact:true}).getByLabel('Collapse ruleset Pose').click();await editor.getByRole('group',{name:'Ruleset box Pose',exact:true}).getByLabel('Collapse ruleset Pose').filter({hasText:'Expand'}).waitFor();
+ await editor.getByRole('group',{name:'Ruleset box Pose',exact:true}).getByLabel('Collapse ruleset Pose').click();await editor.getByRole('group',{name:'Ruleset box Pose',exact:true}).getByLabel('Expand ruleset Pose').waitFor();
  await editor.getByRole('group',{name:'Ruleset box Pose',exact:true}).getByLabel('Remove ruleset box').click();
  await editor.getByRole('button',{name:'Select all chips',exact:true}).first().click();
  await editor.getByText('2 selected',{exact:true}).waitFor();const selected=await page.evaluate(()=>window.qaRules.properties.prompt_boxes.boxes[0].chips);assert(selected.some(c=>c.text==='protected tag'));

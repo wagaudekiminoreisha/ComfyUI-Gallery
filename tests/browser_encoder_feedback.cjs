@@ -31,6 +31,7 @@ const assert=require('node:assert/strict');
   const height=await page.evaluate(()=>window.qaFeedbackA.size[1]);await page.waitForTimeout(250);assert.equal(await page.evaluate(()=>window.qaFeedbackA.size[1]),height,'settled size must not oscillate');
   await a.getByLabel('Add ruleset',{exact:true}).selectOption('__hair_prompting__');await a.getByLabel('Hair mode',{exact:true}).selectOption('minimal');
   await page.waitForFunction(()=>window.qaFeedbackA.size[1]>=700&&window.qaFeedbackA.size[1]<=980);
+  await a.getByRole('button',{name:'Collapse hair prompting',exact:true}).click();await a.getByLabel('Hair mode',{exact:true}).waitFor({state:'hidden'});await a.getByRole('button',{name:'Expand hair prompting',exact:true}).click();assert.equal(await a.getByLabel('Hair mode',{exact:true}).inputValue(),'minimal');
   await a.getByRole('button',{name:'Remove hair prompting',exact:true}).click();await page.waitForFunction(()=>window.qaFeedbackA.size[1]<900);
   assert.equal(await page.evaluate(()=>window.qaFeedbackA.size[0]),600,'removing policy preserves node width');
   // In-editor movement, independent-editor copies and cancellation use real pointer input.
