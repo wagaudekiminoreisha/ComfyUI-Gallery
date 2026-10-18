@@ -33,7 +33,7 @@ class DirectConnectionTests(unittest.IsolatedAsyncioTestCase):
         async def comfy_origin_guard(request, handler):
             return web.Response(status=403, text='ComfyUI origin guard')
         app = web.Application(middlewares=[comfy_origin_guard])
-        module.register_direct_connection(app, web.RouteTableDef(), lambda: self.root, IDENTITY, lambda: self.settings, lambda request: self.root / 'user' / 'prompt-library.json')
+        module.register_direct_connection(app, web.RouteTableDef(), lambda: self.root, IDENTITY, lambda: self.settings, lambda request: str(self.root / 'user' / 'prompt-library.json'))
         self.client = TestClient(TestServer(app))
         await self.client.start_server()
 
@@ -89,6 +89,14 @@ class DirectConnectionTests(unittest.IsolatedAsyncioTestCase):
         other = await self.handshake()
         response = await self.client.post(PREFIX+'/catalogue', headers=other, json={'catalogueId': page['catalogueId']})
         self.assertEqual(response.status, 409)
+
+    async def test_missing_library_with_string_path_returns_empty_library(self):
+        headers = await self.handshake()
+        response = await self.client.get(PREFIX+'/library', headers=headers)
+        self.assertEqual(response.status, 200, await response.text())
+        result = await response.json()
+        self.assertEqual(result['library'], {'version': 2, 'tags': [], 'prefixes': []})
+        self.assertEqual(result['revision'], hashlib.sha256(b'').hexdigest())
 
     async def test_prefix_pairing_checks_revision_and_uses_real_local_hash(self):
         headers = await self.handshake()

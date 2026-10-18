@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import secrets
 import time
+from pathlib import Path
 from urllib.parse import quote, urlsplit
 from aiohttp import web
 from .output_browser import list_output, output_path, MEDIA_EXTENSIONS
@@ -95,7 +96,7 @@ def register_direct_connection(app, routes, get_root, identity, get_settings, ge
         session = authorized(request, origin)
         if tail == '/library' and request.method == 'GET':
             from .prefix_library import read
-            library, revision = await asyncio.to_thread(read, get_library_path(request)) if get_library_path else ({'version': 2, 'tags': [], 'prefixes': []}, '')
+            library, revision = await asyncio.to_thread(read, Path(get_library_path(request))) if get_library_path else ({'version': 2, 'tags': [], 'prefixes': []}, '')
             return web.json_response({'library': library, 'revision': revision})
         if tail == '/association' and request.method == 'POST':
             import re
@@ -121,7 +122,7 @@ def register_direct_connection(app, routes, get_root, identity, get_settings, ge
                     digest = item['hash']; ref = {'hash': digest}
                 else: raise ValueError('Invalid image identity.')
                 references['sha256:'+digest] = ref
-            result = await asyncio.to_thread(update, get_library_path(request), {'action': body['action'], 'revision': body.get('revision'), 'prefix_id': body.get('prefix_id'), 'image_keys': list(references), 'image_refs': references})
+            result = await asyncio.to_thread(update, Path(get_library_path(request)), {'action': body['action'], 'revision': body.get('revision'), 'prefix_id': body.get('prefix_id'), 'image_keys': list(references), 'image_refs': references})
             return web.json_response(result)
         if tail == '/catalogue' and request.method == 'POST':
             from .direct_catalogue import catalogue, listing, archive_exclusions
