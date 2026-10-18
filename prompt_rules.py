@@ -75,8 +75,8 @@ def validate_boxes(value):
         selections=box.get('preferences',{})
         if not isinstance(selections,dict): raise ValueError('Invalid preferences.')
         choices={choice['id']:choice for choice in definition.get('choices',[])}
-        for key,value in selections.items():
-            if key not in choices or value not in [option['id'] for option in choices[key]['options']]: raise ValueError('Unknown preference option.')
+        for key,selected_value in selections.items():
+            if key not in choices or selected_value not in [option['id'] for option in choices[key]['options']]: raise ValueError('Unknown preference option.')
     return value
 
 

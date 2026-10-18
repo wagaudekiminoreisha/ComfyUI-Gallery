@@ -17,7 +17,7 @@ export function HydrusSearchPanel({ localSuggestions, tags, setTags, match, setM
         setOrGroups(editing === orGroups.length ? [...orGroups, draft] : orGroups.map((old, i) => i === editing ? draft : old));
         setEditing(null);
     };
-    return <>
+    return <div data-image-search-drop title="Drop an image here to search by provenance">
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
             <HydrusTagSelect localSuggestions={localSuggestions} inputRef={inputRef} label="Hydrus search tags" value={tags} onChange={setTags} disabled={busy || disabled} onSubmit={onSearch} onChooseAll={() => setMatch('any')} style={{ flex: '1 1 340px', minWidth: 180 }} />
             {orGroups.map((group, index) => <Tag key={index} closable onClose={() => setOrGroups(orGroups.filter((_, i) => i !== index))} style={{ maxWidth: 230, cursor: 'pointer', padding: '6px 8px' }} title={group.join(' OR ')}>
@@ -40,5 +40,5 @@ export function HydrusSearchPanel({ localSuggestions, tags, setTags, match, setM
             <Select aria-label="Hydrus sort direction" value={ascending ? 'asc' : 'desc'} onChange={value => setAscending(value === 'asc')} disabled={busy || disabled || sortType === 4 || sortType === 3} options={[{ value: 'desc', label: 'Descending' }, { value: 'asc', label: 'Ascending' }]} />
             <Typography.Text type="secondary">Chooses the Hydrus page size. More results load as you scroll. Gallery order below sorts all loaded local and Hydrus results; Reshuffle needs no API request.</Typography.Text>
         </Space></details>
-    </>;
+    </div>;
 }

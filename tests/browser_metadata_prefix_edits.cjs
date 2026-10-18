@@ -14,7 +14,7 @@ const assert=require('node:assert/strict');
   await results.getByText('prompt.92.class_type',{exact:true}).waitFor();assert(await results.locator('mark').count()>0);
   await search.fill('not-a-metadata-value');await results.getByText('No metadata matches.',{exact:true}).waitFor();
   await search.fill('');await results.waitFor({state:'detached'});
-  await info.getByRole('button',{name:'Use for prefix…',exact:true}).click();
+  await info.getByRole('button',{name:'Prefix associations…',exact:true}).click();
   const flow=page.locator('[data-panel-key="source-prefix"]'),picker=flow.getByRole('combobox',{name:'Prefix for these images',exact:true});
   const before=await flow.getByRole('tab').filter({hasText:/^Positive/}).innerText();
   await picker.fill('Draft original');await page.getByTitle('Create new prefix “Draft original”',{exact:true}).waitFor();await picker.press('Enter');

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
 import { Alert, Button, Checkbox, Dropdown, Select, Space, Tabs, Tag, Typography, message } from 'antd';
-import { FloatingPanel } from './FloatingPanel';
+import { FloatingPanel,focusPanel } from './FloatingPanel';
 import { useGalleryContext } from './GalleryContext';
 import { useHydrus } from './HydrusContext';
 import { BASE_PATH } from './ComfyAppApi';
@@ -33,16 +33,22 @@ export type SearchPrefix = { id?: string; name: string; terms: string[] };
 export type ImageSearchRequest = { chips: QueryChip[]; field?: LocalSearchField; append?: boolean };
 export const IMAGE_SEARCH_EVENT = 'gallery-image-search';
 export const OPEN_VIEWER_EVENT = 'gallery-open-viewer';
-export const openImageSearch = (request: ImageSearchRequest) => window.dispatchEvent(new CustomEvent(IMAGE_SEARCH_EVENT, { detail: request }));
+export const openImageSearch = (request: ImageSearchRequest) => {window.dispatchEvent(new CustomEvent(IMAGE_SEARCH_EVENT, { detail: request }));focusPanel('tag-search');};
 export const IMAGE_DRAG_TYPE = 'application/x-gallery-image';
 
 /** A gallery image dropped from the gallery grid, the classic grid or this window. */
-export function droppedImage(event: DragEvent): { url: string; name: string } | undefined {
-    try { const value = JSON.parse(event.dataTransfer.getData(IMAGE_DRAG_TYPE) || event.dataTransfer.getData('custom') || 'null'); if (value?.url?.startsWith('/static_gallery/')) return { url: value.url, name: value.name || value.url.split('/').pop() }; } catch { /* not ours */ }
-    const uri = event.dataTransfer.getData('text/uri-list').split('\n')[0]?.trim();
-    if (!uri) return undefined;
-    const path = decodeURI(uri.replace(location.origin, '').replace(BASE_PATH, ''));
-    return path.startsWith('/static_gallery/') ? { url: path, name: path.split('/').pop() || path } : undefined;
+export function droppedImage(event: {dataTransfer:DataTransfer}): Extract<QueryChip,{kind:'image'}> | undefined {
+    try {
+        const value=JSON.parse(event.dataTransfer.getData(IMAGE_DRAG_TYPE)||event.dataTransfer.getData('custom')||'null');
+        if(value?.url?.startsWith('/static_gallery/'))return {kind:'image',url:value.url,name:value.name||value.url.split('/').pop(),hash:value.hash,metadata:value.metadata};
+        if(/^[a-f0-9]{64}$/i.test(value?.hash||''))return {kind:'image',url:'hydrus:'+value.hash,name:value.name||value.hash.slice(0,12),hash:value.hash,metadata:value.metadata};
+    }catch{/* Different drag format. */}
+    const uri=event.dataTransfer.getData('text/uri-list').split('\n').find(line=>line.trim()&&!line.startsWith('#'))?.trim();
+    if(!uri)return;
+    try{const url=new URL(uri,location.origin);if(url.origin!==location.origin)return;const hash=url.searchParams.get('hash');if(/\/Gallery\/hydrus\/(?:thumbnail|original)$/.test(url.pathname)&&/^[a-f0-9]{64}$/i.test(hash||''))return {kind:'image',url:'hydrus:'+hash,hash:hash!,name:hash!.slice(0,12)};
+        const path=decodeURI(url.pathname.replace(BASE_PATH,'')),local=url.searchParams.get('url')||path;
+        if(local.startsWith('/static_gallery/'))return {kind:'image',url:local,name:local.split('/').pop()||local};
+    }catch{/* Not an internal media URL. */}
 }
 
 const PAGE = 120;
@@ -74,7 +80,7 @@ export function ImageSearchPanel() {
     const [field, setField] = useState<LocalSearchField>('all');
     const [tab, setTab] = useState('');
     const [strict, setStrict] = useState(false);
-    const [broadPrefix,setBroadPrefix]=useState(false);
+    const [broadPrefix,setBroadPrefix]=useState(false),[includeLineage,setIncludeLineage]=useState(true),[includeSnapshots,setIncludeSnapshots]=useState(true);
     const [library, setLibrary] = useState<SharedLibrary>({ version: 2, tags: [], prefixes: [] });
     const [tabs, setTabs] = useState<ResultTab[]>([]);
     const [aliases, setAliases] = useState<string[][]>();
@@ -88,17 +94,20 @@ export function ImageSearchPanel() {
     const openRef = useRef(open); openRef.current = open;
     const root = gallery.settings.relativePath;
     useEffect(() => {
+        const drop=(event:globalThis.DragEvent)=>{if(event.defaultPrevented||!event.dataTransfer||!(event.target instanceof Element)||!event.target.closest('[data-image-search-drop],.cg-search'))return;const image=droppedImage(event as {dataTransfer:DataTransfer});if(image){event.preventDefault();openImageSearch({chips:[image]});}};
+        const over=(event:globalThis.DragEvent)=>{if(event.target instanceof Element&&event.target.closest('[data-image-search-drop],.cg-search')&&event.dataTransfer&&[...event.dataTransfer.types].some(type=>[IMAGE_DRAG_TYPE,'custom','text/uri-list'].includes(type)))event.preventDefault();};
+        document.addEventListener('dragover',over);document.addEventListener('drop',drop);
         const show = (event: Event) => {
             const request = (event as CustomEvent<ImageSearchRequest>).detail;
             if (request.append && openRef.current) setChips(old => [...old, ...request.chips.filter(chip => !old.some(item => encode(item) === encode(chip)))]);
-            else { setChips(request.chips); setField(request.field || 'all'); setTab('');setBroadPrefix(false); }
+            else { setChips(request.chips); setField(request.field || 'all'); setTab('');setBroadPrefix(false);setIncludeLineage(true);setIncludeSnapshots(true); }
             setOpen(true);
         };
         const reload = () => { void loadPrefixes().then(setLibrary).catch(() => undefined); setRevision(value => value + 1); };
         void loadPrefixes().then(setLibrary).catch(() => undefined);
         window.addEventListener(IMAGE_SEARCH_EVENT, show);
         window.addEventListener('gallery-prefix-library-changed', reload);window.addEventListener('gallery-prefix-snapshots-changed',reload);
-        return () => { window.removeEventListener(IMAGE_SEARCH_EVENT, show); window.removeEventListener('gallery-prefix-library-changed', reload);window.removeEventListener('gallery-prefix-snapshots-changed',reload); };
+        return () => {document.removeEventListener('dragover',over);document.removeEventListener('drop',drop); window.removeEventListener(IMAGE_SEARCH_EVENT, show); window.removeEventListener('gallery-prefix-library-changed', reload);window.removeEventListener('gallery-prefix-snapshots-changed',reload); };
     }, []);
     const pool = useSearchPool(open ? gallery.data?.folders : undefined, gallery.localHydrusTags);
     const files = useMemo(() => Object.values(gallery.data?.folders || {}).flatMap(folder => Object.values(folder)).filter(file => file.type === 'image'), [gallery.data]);
@@ -198,7 +207,8 @@ export function ImageSearchPanel() {
                     lineage.sections.push({ title: tag + 'Searched image', hits: hit(chip.url, 'searched', 'purple') });
                     if (!file && !chip.hash) continue;
                     const metadata = file?.metadata || chip.metadata;
-                    imageSnapshotIds(shared,imagePrefixKeys(file?localEntry(file,known[file.url]):{hash:chip.hash},root),metadata).forEach(snapshotTab);
+                    const own = chip.hash ? [chip.hash.toLowerCase()] : Object.values(await hashOf([chip.url]));
+                    imageSnapshotIds(shared,[...imagePrefixKeys(file?localEntry(file,known[file.url]):{hash:chip.hash},root),...own.map(hash=>'sha256:'+hash)],metadata).forEach(snapshotTab);
                     if (chip.hash) lineage.inputs = [{ input_name: '', hash: chip.hash, title: chip.name, metadata: { gallery_origin: 'hydrus', hydrus: { ...(chip.metadata as any || {}), hash: chip.hash } }, note: 'searched', original: true }];
                     const levels = ancestorLevels(metadata);
                     // Input copies are named by hash: the loaded image with that hash is the same picture, and is shown
@@ -210,7 +220,6 @@ export function ImageSearchPanel() {
                     const found = levels.filter(level => level.hash && byHash.has(level.hash.toLowerCase()));
                     if (found.length) lineage.sections.push({ title: tag + 'Made from (nearest first)', hits: found.flatMap(level => hit(byHash.get(level.hash!.toLowerCase())!, noteOf(level), level.original ? 'magenta' : 'cyan')) });
                     lineage.inputs = [...(lineage.inputs || []), ...levels.filter(level => !found.includes(level)).map(level => ({ input_name: level.input_name, hash: level.hash, title: level.title, metadata: level.metadata, note: noteOf(level), original: level.original }))];
-                    const own = chip.hash ? [chip.hash.toLowerCase()] : Object.values(await hashOf([chip.url]));
                     const fromIt = await lineageTree(files, own, [], hashOf, new Set([chip.url]), 6, Object.fromEntries(own.map(hash => [chip.url, hash])));
                     tabFor('generated', 'Generated from it', 'Images made from the searched image, grouped by the image they were made from.').sections.push(...bySource(fromIt, new Set(), 'Made from it').map(section => ({ ...section, title: tag + section.title })));
                     // Other images made from the same source image(s) as this one, and what came from those.
@@ -221,13 +230,12 @@ export function ImageSearchPanel() {
                     const sameSource = tabFor('source', 'Same source', 'Other images made from the same source image as the searched one (and what was made from those).');
                     if (siblings) sameSource.sections.push(...bySource(siblings, skip, '').map(section => ({ ...section, title: tag + section.title })));
                     // Images of the prefixes it belongs to that are not in the tabs above.
-                    const seen = new Set([...skip, ...(siblings?.nodes.keys() || [])]);
-                    for (const id of (broadPrefix?imagePrefixIds(shared, imagePrefixKeys(file ? localEntry(file, known[file.url]) : { hash: chip.hash }, root), metadata, pairedHashes):[])) {
+                    for (const id of (broadPrefix?imagePrefixIds(shared, [...imagePrefixKeys(file ? localEntry(file, known[file.url]) : { hash: chip.hash }, root),...own.map(hash=>'sha256:'+hash)], metadata, pairedHashes):[])) {
                         const name = shared.prefixes.find(prefix => prefix.id === id)?.name || 'prefix';
                         const paired = await pairedImages(files, shared, id, hashOf, known);
                         const tree = await lineageTree(files, paired.hashes, [id], hashOf, paired.urls);
-                        const hits = [...[...paired.urls].flatMap(url => seen.has(url) ? [] : hit(url, 'paired', 'gold')), ...[...tree.nodes.keys()].flatMap(url => seen.has(url) ? [] : hit(url, 'generated', 'blue'))];
-                        tabFor('prefix', 'Same prefix', 'Images of the prefixes the searched image belongs to (by pairing or by descent) that are not in the other tabs.').sections.push({ title: tag + '@' + name, hits });
+                        const hits = [...[...paired.urls].flatMap(url => hit(url, 'paired', 'gold')), ...[...tree.nodes.keys()].flatMap(url => hit(url, 'generated', 'blue'))];
+                        tabFor('prefix', 'Prefix associations', 'All paired images and generations belonging to the searched image’s parent prefixes, across snapshots.').sections.push({ title: tag + '@' + name, hits });
                     }
                 }
                 const terms = requiredTerms(prefixes.flatMap(chip => expandPrefix(shared, '@' + chip.name)));
@@ -235,7 +243,7 @@ export function ImageSearchPanel() {
                 if (!live) return;
                 // Tabs that add nothing (no images) are hidden; Lineage always shows.
                 const order = ['lineage', 'snapshot', 'prefix-all', 'sources', 'generated', 'source', 'prefix'];
-                const list = order.flatMap(key => result.get(key) ? [result.get(key)!] : []).filter(item => item.key === 'lineage' || item.key === 'prefix-all' || item.key === 'sources' || item.sections.some(section => section.hits.length) || !!item.inputs?.length);
+                const list = order.flatMap(key => result.get(key) ? [result.get(key)!] : []).filter(item => item.key === 'lineage' || item.key==='snapshot' || item.key === 'prefix-all' || item.key === 'sources' || item.sections.some(section => section.hits.length) || !!item.inputs?.length);
                 setLibrary(shared); setAliases(spellings); setTabs(list);
                 setTab(current => list.some(item => item.key === current) ? current : (list.find(item => images.length>0&&item.key==='lineage') || list.find(item => item.key === 'prefix-all') || list.find(item => item.key === 'generated') || list.find(item => item.key === 'source') || list[0])?.key || '');
             } catch (reason) { if (live) setError(String(reason)); }
@@ -254,7 +262,8 @@ export function ImageSearchPanel() {
     const matchesTags = (file: FileDetails) => !tags.length || tags.every(term => matchesLocalImage(file, term, field, gallery.localHydrusTags[file.url] || [], promptsOf(file)));
     const keep = (hits: Hit[]) => hits.filter(item => matchesTags(item.file) && (!strict || !aliases || hasAllTerms(imageTagSet(item.file, gallery.localHydrusTags[item.file.url] || []), aliases)));
     const tagOnly = useMemo<Hit[]>(() => open && !scoped && tags.length ? files.filter(matchesTags).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).map(file => ({ file })) : [], [open, scoped, tags.join('\n'), field, files, gallery.localHydrusTags]);
-    const shownTabs = tabs.map(item => ({ ...item, sections: item.sections.map(section => ({ ...section, hits: keep(section.hits) })), inputs: item.inputs?.filter(input => { const file = { name: input.title || input.input_name, url: '', type: 'image', timestamp: 0, date: '', metadata: input.metadata } as FileDetails; return matchesTags(file) && (!strict || !aliases || hasAllTerms(imageTagSet(file), aliases)); }) }));
+    const hasSnapshots=tabs.some(item=>item.key==='snapshot');
+    const shownTabs = tabs.filter(item=>{if(!images.length)return true;if(item.key==='snapshot')return includeSnapshots;if(['lineage','generated','source'].includes(item.key))return includeLineage;return true;}).map(item => ({ ...item, sections: item.sections.map(section => ({ ...section, hits: keep(section.hits) })), inputs: item.inputs?.filter(input => { const file = { name: input.title || input.input_name, url: '', type: 'image', timestamp: 0, date: '', metadata: input.metadata } as FileDetails; return matchesTags(file) && (!strict || !aliases || hasAllTerms(imageTagSet(file), aliases)); }) }));
     const active = shownTabs.find(item => item.key === tab) || shownTabs[0];
     const currentHits: Hit[] = scoped ? (active?.sections.flatMap(section => section.hits) || []) : tagOnly;
     const allHits = scoped ? shownTabs.flatMap(item => item.sections.flatMap(section => section.hits)) : tagOnly;
@@ -282,8 +291,8 @@ export function ImageSearchPanel() {
         return value;
     };
     const kindColor = (value: string) => value.startsWith('snapshot::')?'cyan':value.startsWith('prefix::') ? 'gold' : value.startsWith('image::') ? 'blue' : undefined;
-    const addImage = (image: { url: string; name: string }, replace = false) => {
-        const chip: QueryChip = { kind: 'image', url: image.url, name: image.name };
+    const addImage = (image: { url: string; name: string;hash?:string;metadata?:unknown }, replace = false) => {
+        const chip: QueryChip = { ...image,kind: 'image' };
         if(replace){setBroadPrefix(false);setTab('lineage');}
         setChips(old => replace ? [...old.filter(item => item.kind === 'tag'), chip] : [...old.filter(item => encode(item) !== encode(chip)), chip]);
     };
@@ -309,7 +318,7 @@ export function ImageSearchPanel() {
         { type: 'divider' as const },
         { key: 'search', label: 'Find related images' },
         { type: 'divider' as const },
-        { key: 'info', label: 'Metadata' }, { key: 'prefix', label: `Use for prefix… (${targets(file.url).length})` }, ...prefixActions(file.url),
+        { key: 'info', label: 'Metadata' }, { key: 'prefix', label: `Prefix associations… (${targets(file.url).length})` }, ...prefixActions(file.url),
         { key: 'source', label: `Append to Image Source (${targets(file.url).length})` }, { key: 'export', label: `Export to Hydrus (${targets(file.url).length})` },
         { key: 'open', label: 'Open original in a new tab' },
     ], onClick: ({ key }) => {
@@ -372,7 +381,8 @@ export function ImageSearchPanel() {
             </Space.Compact>
         </div>
         <Space wrap style={{ margin: '8px 0' }}>
-            {images.length>0&&<Checkbox checked={broadPrefix} onChange={event=>setBroadPrefix(event.target.checked)}>Include broader prefix results</Checkbox>}
+            {images.length>0&&<><Checkbox checked={includeLineage} onChange={event=>setIncludeLineage(event.target.checked)}>Lineage · same source / generated from</Checkbox>{hasSnapshots&&<Checkbox checked={includeSnapshots} onChange={event=>setIncludeSnapshots(event.target.checked)}>Snapshot associations</Checkbox>}</>}
+            {images.length>0&&<Checkbox checked={broadPrefix} onChange={event=>setBroadPrefix(event.target.checked)}>Prefix associations · all snapshots</Checkbox>}
             {prefixes.length > 0 && <Checkbox checked={strict} onChange={event => setStrict(event.target.checked)}>Only images that still have every prefix tag (aliases count)</Checkbox>}
             <Button size="small" disabled={!allHits.length} onClick={() => { scopeMain(allHits); message.success('The main gallery now shows these images (close the Scope chip there to undo)'); }}>Show all in main gallery</Button>
             <Button size="small" disabled={!currentHits.length} onClick={() => gallery.setSelectedImages(old => Array.from(new Set([...old, ...currentHits.map(item => item.file.url)])))}>Select all here</Button>

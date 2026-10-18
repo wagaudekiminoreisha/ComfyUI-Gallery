@@ -35,7 +35,12 @@ def read_library(path):
     except FileNotFoundError:raw=b''
     if len(raw)>8*1024*1024:raise ValueError('Rules library exceeds 8 MiB.')
     value=json.loads(raw) if raw else json.loads((Path(__file__).parent/'data/prompt-rulesets.json').read_text(encoding='utf-8'))
-    return validate_library(value),hashlib.sha256(raw).hexdigest()
+    # Offer newly shipped definitions without rewriting custom definitions or pinned attachments.
+    value=validate_library(value)
+    shipped=json.loads((Path(__file__).parent/'data/prompt-rulesets.json').read_text(encoding='utf-8'))
+    known={definition['id'] for definition in value['definitions']}
+    value['definitions'] += [definition for definition in shipped['definitions'] if definition['id'] not in known][:max(0,500-len(value['definitions']))]
+    return value,hashlib.sha256(raw).hexdigest()
 
 
 def register_rules_routes(routes,get_path):

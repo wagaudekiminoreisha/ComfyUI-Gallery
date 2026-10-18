@@ -44,8 +44,8 @@ export function PrefixEditor({ onLoad, shared, seed, active, name, setName, posi
     };
     const add = (side: 'positive' | 'negative' | 'hydrus') => (side === 'negative' ? setNegative : setPositive)(old => Array.from(new Set([...old, ...(seed[side] || [])])));
     return <div className="cg-prefix-editor" style={{ border: '1px solid #8884', borderRadius: 8, padding: 10 }}>
-        <SnapshotRail prefixId={existing?.id} selected={snapshot} onSelect={row=>{const positive=row?.terms||expandPrefix(shared,'@'+existing!.name),negative=row?.negative_terms||existing!.negative_terms||[];onLoad({name,positive,negative});setSnapshot(row?.id);setPositive(positive);setNegative(negative);}}/>
-        <Typography.Text strong>Prefix editor{snapshot?' · snapshot '+snapshot.slice(0,8):''}</Typography.Text>
+        <div className="cg-associations-layout"><SnapshotRail prefixId={existing?.id} selected={snapshot} onSelect={row=>{const positive=row?.terms||expandPrefix(shared,'@'+existing!.name),negative=row?.negative_terms||existing!.negative_terms||[];onLoad({name,positive,negative});setSnapshot(row?.id);setPositive(positive);setNegative(negative);}}/>
+        <div className="cg-associations-main"><Typography.Text strong>Prefix editor{snapshot?' · snapshot '+snapshot.slice(0,8):''}</Typography.Text>
         <Button disabled={!existing} onClick={()=>openRules(snapshot?'snapshot:'+snapshot:existing?.id)}>Prefix rules…</Button>
         {!!seed.imageKeys?.length && <Typography.Paragraph style={{ margin: '4px 0 0' }}>Saving pairs this prefix with the selected image(s). Its terms will be enabled when you append them to a workflow.</Typography.Paragraph>}
         <Space wrap style={{ marginTop: 8, width: '100%' }}>
@@ -84,5 +84,5 @@ export function PrefixEditor({ onLoad, shared, seed, active, name, setName, posi
                 {existing&&!snapshot && <PrefixImages library={shared} prefixId={existing.id} defaultOpen onRemove={onUnpair} />}
             </div>
         </div>
-    </div>;
+    </div></div></div>;
 }

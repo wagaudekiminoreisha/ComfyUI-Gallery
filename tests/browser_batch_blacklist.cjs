@@ -20,7 +20,7 @@ try{
  await editor.getByRole('button',{name:'Select chips',exact:true}).click();await editor.getByRole('button',{name:'Edit b',exact:true}).click();assert.equal(await editor.getByRole('group',{name:'Selected chip actions'}).count(),0);
  await editor.getByRole('button',{name:'Select chips',exact:true}).click();await editor.getByRole('button',{name:'Edit b',exact:true}).click();await editor.getByRole('textbox',{name:'Tag text',exact:true}).waitFor();
  await page.reload();await page.getByRole('tab',{name:'Gallery workspace',exact:true}).click();
- await page.getByAltText('study-1.png',{exact:true}).click({button:'right'});await page.getByRole('menuitem',{name:'Use for prefix… (1)',exact:true}).click();
- const flow=page.getByRole('dialog',{name:/^Use for prefix/});await flow.getByText('Batch protections: 2',{exact:false}).waitFor();
+ await page.getByAltText('study-1.png',{exact:true}).click({button:'right'});await page.getByRole('menuitem',{name:'Prefix associations… (1)',exact:true}).click();
+ const flow=page.getByRole('dialog',{name:/^Prefix associations/});await flow.getByText('Batch protections: 2',{exact:false}).waitFor();
  assert.deepEqual(errors,[]);console.log('PASS blacklist select-all/ranges, live pruning, selection-mode protection, single editing, persistence and gallery sharing');
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exit(1)});

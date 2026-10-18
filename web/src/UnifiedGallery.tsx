@@ -247,7 +247,7 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
         { key: 'select', label: selected.has(entry.id) ? 'Deselect image' : 'Select image' },
         { key: 'source', disabled: !targets(entry).some(isImage), label: `Append to Image Source (${targets(entry).filter(item => isImage(item)).length})` },
         { key: 'info', label: 'Metadata' },
-        { key: 'prefix', label: `Use for prefix… (${targets(entry).filter(isImage).length})` },
+        { key: 'prefix', label: `Prefix associations… (${targets(entry).filter(isImage).length})` },
         { key: 'imagesearch', label: 'Find related images' },
         { key: 'download', label: 'Download original(s)' },
         ...(entry.local ? [{ key: 'export', label: 'Export local selection to Hydrus' }, { key: 'refresh', label: 'Refresh Hydrus status' }] : [{ key: 'copy', disabled: !targets(entry).some(item => item.remote && isImage(item)), label: 'Save copy to input only (no workflow append)' }]),
@@ -281,7 +281,7 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
                                         grid.current?.scrollToItem({ rowIndex: Math.floor(nextIndex / count), columnIndex: nextIndex % count });
                                         requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-gallery-entry="' + CSS.escape(next.id) + '"]')?.focus());
                                     } if (event.key === 'Enter') { event.preventDefault(); setViewer(entry.id); } if (event.key === ' ') { event.preventDefault(); toggle(entry, event.shiftKey); } }}>
-                                <div draggable={!!entry.local && !selectionActive} onDragStart={event => { if (entry.local) { event.dataTransfer.setData('text/uri-list', original(entry)); event.dataTransfer.setData('custom', JSON.stringify({ name: entry.name, folder: gallery.currentFolder, type: entry.local.type, url: entry.local.url })); } }} style={{ height: 'calc(100% - 54px)', background: token.colorFillQuaternary, cursor: 'pointer' }} onClick={event => {
+                                <div draggable={isImage(entry) && !selectionActive} onDragStart={event => {event.dataTransfer.setData('application/x-gallery-image',JSON.stringify({url:entry.local?.url||'hydrus:'+entry.hash,hash:entry.hash,name:entry.name,metadata:entry.remote||entry.local?.metadata})); if (entry.local) { event.dataTransfer.setData('text/uri-list', original(entry)); event.dataTransfer.setData('custom', JSON.stringify({ name: entry.name, folder: gallery.currentFolder, type: entry.local.type, url: entry.local.url })); } }} style={{ height: 'calc(100% - 54px)', background: token.colorFillQuaternary, cursor: 'pointer' }} onClick={event => {
                                     if (event.detail > 1) return;
                                     lastClick.current = undefined;
                                     if (selectionActive) {
@@ -360,7 +360,7 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
                     <Checkbox className="cg-file-checkbox" checked={selected.has(current.id)} disabled={disabled || current.source === 'node'} onClick={event => toggle(current, event.shiftKey)}>Selected</Checkbox>
                     <Space.Compact><Button size="small" title="Zoom out" onClick={() => setZoom(value => Math.max(.25, value / 1.5))}>−</Button><Button size="small" title="Fit to the window" onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</Button><Button size="small" title="Zoom in" onClick={() => setZoom(value => Math.min(8, value * 1.5))}>+</Button></Space.Compact>
                     <Button size="small" disabled={current.source === 'node'} onClick={() => openImageInfo({ url: current.local?.url, remote: current.local ? undefined : current.remote })}>Metadata</Button>
-                    <Button size="small" disabled={current.source === 'node'} onClick={() => openSourcePrefix([current])}>Use for prefix…</Button>
+                    <Button size="small" disabled={current.source === 'node'} onClick={() => openSourcePrefix([current])}>Prefix associations…</Button>
                     <Button size="small" disabled={disabled || current.source === 'node' || !targets(current).some(isImage)} onClick={() => void act('source', current)}>Append for img2img</Button>
                     <Button size="small" onClick={closeViewer}>{viewerList ? 'Close' : 'Show in grid'}</Button>
                     <Button size="small" disabled={disabled || !current.local?.url.startsWith('/static_gallery/')} onClick={() => void act('archive', current)}>{gallery.archiveView ? 'Restore' : 'Archive'}</Button>

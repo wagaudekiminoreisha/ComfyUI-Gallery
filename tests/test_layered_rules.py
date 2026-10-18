@@ -20,7 +20,8 @@ class SnapshotTests(unittest.TestCase):
  def test_parent_consolidation_and_content_addressed_membership(self):
   original=copy.deepcopy(self.library)
   self.assertIsNone(capture_snapshot(self.library,{'prefix_id':'p','terms':['short_hair','blonde hair'],'image_keys':['sha256:a']}))
-  self.assertEqual(self.library,original)
+  self.assertEqual(self.library['prefixes'],original['prefixes'])
+  self.assertEqual(self.library['associations']['sha256:a']['prefix_id'],'p')
   data={'prefix_id':'p','terms':['long hair','blonde hair'],'image_keys':['sha256:a'],'image_refs':{'sha256:a':{'name':'First'}}}
   first=capture_snapshot(self.library,data)
   second=capture_snapshot(self.library,{**data,'terms':['BLONDE_HAIR','long hair'],'image_keys':['sha256:b']})

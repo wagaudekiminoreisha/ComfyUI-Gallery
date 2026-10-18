@@ -31,3 +31,17 @@ Local navigation includes empty roots and subfolders, including output/download.
 Hydrus Search uses a page size (up to 200), not a total result cap. The backend freezes matching identifiers for a ten-minute sliding session and retrieves metadata only for each requested page. Scrolling near the end requests the next page; Load more is a fallback/retry. Query changes, closing the workspace and changed connections invalidate in-flight UI updates. Expired sessions ask for a fresh search. Newly added remote files appear on the next search.
 
 Regression coverage: test_layered_rules.py, browser_layered_rules.cjs and browser_paging.cjs, plus the existing rules, source, metadata and archive suites.
+
+## Association editing and stock library update
+
+The former Use for prefix action is now **Prefix associations**. **Update shared** changes the shared parent tags for every parent association; it is not an automatic snapshot operation. **Save as snapshot** creates or reuses a variant for the selected image(s), without requiring a generation. If tags and effective rules match the parent, the images are paired with that parent instead. Editing a selected snapshot creates/reuses another variant. Encoder-local changes still capture on queue. Snapshot memberships are included in broad parent-prefix results.
+
+The rail is physically on the left of both association and full prefix editors. Drop local or Hydrus images on panel headers or the Local/Hydrus search fields to open an image query. **Lineage · same source / generated from**, **Snapshot associations** (shown when detected), and **Prefix associations · all snapshots** control which result tabs are included. The broad prefix view includes the whole parent, rather than only results left over after lineage matching. Merely seeing a prefix's tags is not proof of snapshot membership.
+
+Unsaved rules/script decisions use themed application dialogs. The old policy-scope string is presented as **Policy channel**: Main inherits/overrides matching families; Create independent channel creates a separate identity whose rules accumulate. Channels are not subject or region ownership bindings.
+
+Group headers fold by clicking the arrow or unused header space. The grouping dropdown remains separate. **Add here** selects the group without jumping to the end text input; **Separate group** clears the target and retains the selected grouping category for a new group.
+
+Sixteen new stock definitions are offered to existing libraries without overwriting custom definitions or pinned attachments. All default preferences keep supplied tags, and no new global boxes are attached automatically. `tools/build_stock_rulesets.py` filters curated pools and reviewed topic groups against general-category tags in the pinned vocabulary, excluding artist, character and copyright categories. Clothes presets deliberately support layers such as skirt + pants or leggings. These are deterministic prompt edits, not claims about guaranteed visual outcomes.
+
+Hybrid infinite loading watches the end of the complete sorted local+Hydrus grid. It fetches the next Hydrus page when that end is approached; the visible tile need not be Hydrus. Page size defaults to 100 and is capped at 200. Metadata is loaded per requested page from a stable identifier session; there is no continuous poll for new remote media. Changing order can move already loaded items, and new media enters on a fresh Search.

@@ -19,7 +19,7 @@ export function RuleBoxes({value,onChange,definitions,origin='encoder',inherited
   </div>
   {(!box.collapsed||readOnly)&&<div>
    <small>{box.label||box.definition.family} · pinned ruleset snapshot</small>
-   <label style={{display:'block',marginTop:6}}>Policy scope <input aria-label="Ruleset scope" disabled={readOnly} value={box.scope} onChange={event=>patch(box.id,{scope:event.target.value||'main'})}/></label>
+   <label style={{display:'block',marginTop:6}}>Policy channel <select aria-label="Ruleset scope" disabled={readOnly} value={box.scope} onChange={event=>patch(box.id,{scope:event.target.value==='__separate__'?'channel-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6):event.target.value})}><option value="main">Main · inherit and override</option>{[...new Set(all.map(row=>row.scope))].filter(scope=>scope!=='main').map((scope,index)=><option key={scope} value={scope}>Additional channel {index+1}{!scope.startsWith('channel-')?' · '+scope:''}</option>)}<option value="__separate__">Create independent channel…</option></select></label><small>Same family + channel: encoder overrides snapshot, prefix and global defaults. Independent channels combine; they do not bind subjects or regions.</small>
    {box.definition.rules.map((rule,index)=><RuleOperation key={index} rule={rule} template={template} inactive={!active.has(box)}/>)}
    {box.definition.choices.map(choice=>{
     const option=choice.options.find(option=>option.id===(box.preferences[choice.id]??choice.default));

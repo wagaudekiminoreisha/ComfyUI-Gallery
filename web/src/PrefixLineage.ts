@@ -215,6 +215,7 @@ export function ancestry(metadata: unknown, maxDepth = 6): { hashes: Set<string>
 export function imagePrefixIds(library: PrefixLibrary, keys: string[], metadata: unknown, pairedHashes: Map<string, Set<string>> = new Map()): string[] {
     const ids = new Set<string>();
     for (const key of keys) { const id = library.associations?.[key]?.prefix_id; if (id) ids.add(id); }
+    imageSnapshotIds(library,keys,metadata).forEach(id=>{const parent=library.snapshots?.[id]?.prefix_id;if(parent)ids.add(parent);});
     const { hashes, prefixIds } = ancestry(metadata);
     prefixIds.forEach(id => ids.add(id));
     hashes.forEach(hash => pairedHashes.get(hash)?.forEach(id => ids.add(id)));

@@ -36,8 +36,8 @@ try{
  await editor.getByRole('combobox',{name:'Convert prompt format',exact:true}).selectOption('tag');await text('a, b, c, d');
  await add.focus();await add.press('Control+a');await editor.getByText('4 selected',{exact:true}).waitFor();await add.press('Backspace');await page.waitForFunction(()=>window.qaBatch.widgets[0].value==='⟦source⟧');
  await page.evaluate(()=>document.querySelector('#qa-batch').remove());
- await page.getByAltText('study-1.png',{exact:true}).click({button:'right'});await page.getByRole('menuitem',{name:'Use for prefix… (1)',exact:true}).click();
- const flow=page.getByRole('dialog',{name:/^Use for prefix/});await flow.getByRole('button',{name:'Clear',exact:true}).click();
+ await page.getByAltText('study-1.png',{exact:true}).click({button:'right'});await page.getByRole('menuitem',{name:'Prefix associations… (1)',exact:true}).click();
+ const flow=page.getByRole('dialog',{name:/^Prefix associations/});await flow.getByRole('button',{name:'Clear',exact:true}).click();
  const terms=flow.getByRole('textbox',{name:/^Terms: tags/});await terms.fill('x, y, z');await terms.press('Enter');
  await flow.getByRole('combobox',{name:'Convert prompt format',exact:true}).selectOption('alternatives');
  await flow.getByRole('tab',{name:'Positive (1)',exact:true}).waitFor();

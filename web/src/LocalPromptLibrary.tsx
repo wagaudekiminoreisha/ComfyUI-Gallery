@@ -148,7 +148,7 @@ export function LocalPromptSearch({ onLocalSearch, managerOnly = false }: { onLo
         {!managerOnly && gallery.localScope && <Tag color="blue" closable onClose={() => gallery.setLocalScope(null)} title="Only images found by the image search are shown. Close to show everything again." style={{ alignSelf: 'center' }}>Scope: {gallery.localScope.label} ({gallery.localScope.urls.size})</Tag>}
         {!managerOnly && <><div className="cg-search" title="Drop an image here to search by it together with these terms"
             onDragOver={event => { if ([...event.dataTransfer.types].some(type => type === 'application/x-gallery-image' || type === 'custom' || type === 'text/uri-list')) event.preventDefault(); }}
-            onDrop={event => { const image = droppedImage(event); if (!image) return; event.preventDefault(); openImageSearch({ field: gallery.localSearchField, chips: [...gallery.localTerms.map(text => ({ kind: 'tag' as const, text })), { kind: 'image', url: image.url, name: image.name }] }); }}
+            onDrop={event => { const image = droppedImage(event); if (!image) return; event.preventDefault(); openImageSearch({ field: gallery.localSearchField, chips: [...gallery.localTerms.map(text => ({ kind: 'tag' as const, text })), image] }); }}
             onKeyDownCapture={event => {
             if (event.key === 'Enter' && (!gallery.searchFileName.trim() || gallery.localTerms.includes(gallery.searchFileName.trim()))) {
                 event.preventDefault(); event.stopPropagation(); gallery.setSearchFileName(''); onLocalSearch();

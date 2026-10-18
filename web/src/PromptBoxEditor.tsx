@@ -127,6 +127,7 @@ function PartInput({ chip, suggest, onAdd, onClose, onRemoveTag }: { chip: OrChi
  */
 function ChipView({ chip, selected, picked, onSelect, onPick, onRemove, onDrop, onKind, onItems, suggest }: { chip: Chip; selected: boolean; picked?: boolean; onSelect: () => void; onPick?: (range: boolean) => void; onRemove?: () => void; onDrop?: (chip: Chip, after: boolean) => void; onKind?: (mode: AddMode) => void; onItems?: (items: string[]) => void; suggest?: (query: string) => Promise<Suggestion[]> }) {
     const [mark, setMark] = useState<'before' | 'after'>();
+    const [folded,setFolded]=useState(false);
     const weighted = chip.weight !== undefined && chip.weight !== 1;
     const mode = addModeOf(chip), color = modeColor(mode);
     const grouped = chip.kind === 'or';
@@ -156,17 +157,18 @@ function ChipView({ chip, selected, picked, onSelect, onPick, onRemove, onDrop, 
         {grouped
             ? <>
                 {/* The header names the grouping (and changes it); the body keeps the separators. */}
-                <span title={ADD_MODES.find(item => item.value === mode)?.hint} style={{ display: 'flex', alignItems: 'center', gap: 4, background: color, color: '#fff', fontSize: 10, lineHeight: '15px', padding: '0 2px 0 4px', textTransform: 'uppercase', letterSpacing: .3, borderRadius: '5px 5px 0 0' }}>
-                    {onKind
+                <span data-group-header title="Click header to collapse or expand; use the dropdown to change grouping" onClick={event=>{if((event.target as HTMLElement).closest('select,button,input'))return;event.stopPropagation();setFolded(!folded);}} style={{ display: 'flex', alignItems: 'center', gap: 4, background: color, color: '#fff', fontSize: 10, lineHeight: '15px', padding: '0 2px 0 4px', textTransform: 'uppercase', letterSpacing: .3, borderRadius: '5px 5px 0 0' }}>
+                    <button type="button" aria-label={folded?'Expand tag group':'Collapse tag group'} onClick={event=>{event.stopPropagation();setFolded(!folded);}} style={{...S.btn,minWidth:30,minHeight:26,background:'transparent',color:'white',border:0}}>{folded?'▸':'▾'}</button><span style={{flex:1,minWidth:55,cursor:'pointer'}}> {promptLeaves(compileChip({...chip,enabled:true})).length} tags </span>{onKind
                         ? <select aria-label="Chip kind" value={mode} onClick={event => event.stopPropagation()} onChange={event => onKind(event.target.value as AddMode)}
-                            style={{ flex: 1, minWidth: 0, background: 'transparent', color: '#fff', border: 0, font: 'inherit', textTransform: 'uppercase', letterSpacing: .3, cursor: 'pointer', padding: 0 }}>
+                            style={{ width:150, minWidth:110, minHeight:26, background: 'transparent', color: '#fff', border: 0, font: 'inherit', textTransform: 'uppercase', letterSpacing: .3, cursor: 'pointer', padding: 0 }}>
                             {ADD_MODES.map(item => <option key={item.value} value={item.value} style={{ color: '#000', textTransform: 'none' }}>{item.value === 'each' ? 'Optional' : item.name}</option>)}
                         </select>
                         : <span style={{ flex: 1 }}>{groupingName(chip)}</span>}
+                    {onKind&&<button type="button" aria-label="Select tag group for additions" onClick={event=>{event.stopPropagation();onSelect();}} style={{...S.btn,background:'transparent',color:'white',minHeight:26}}>＋ Add here</button>}
                     {weighted && <span>×{chip.weight}</span>}
                     {remove}
                 </span>
-                {label}
+                {!folded&&label}
             </>
             : <>{label}{remove}</>}
     </span>;
@@ -242,7 +244,7 @@ function AddInput({ onBackspace, target, onTargetMode, placeholder, suggest, onT
     const [items, setItems] = useState<Suggestion[]>([]);
     const [active, setActive] = useState(-1);
     const [mode, setMode] = useState<AddMode>('tag');
-    useEffect(() => { setMode(target ? addModeOf(target) : 'tag'); }, [target?.id, target && addModeOf(target)]);
+    useEffect(() => { if(target)setMode(addModeOf(target)); }, [target?.id, target && addModeOf(target)]);
     const [pending, setPending] = useState<string[]>([]);
     const request = useRef(0);
     const input = useRef<HTMLInputElement>(null);
@@ -408,7 +410,7 @@ function GroupView({ box, index, count, state, onChange, suggest, bare, placehol
             if (chipId && (selecting || event.ctrlKey || event.metaKey || event.shiftKey)) return;
             if (chipId) setActiveChipId(chipId);
             else if (!element.closest('[data-add-input]')) setActiveChipId(undefined);
-            if (!element.closest('button,input,textarea,select,[data-chip-id],[draggable="true"]')) { if (box.collapsed) patch({ collapsed: false }); focusInput(); }
+            if (!element.closest('button,input,textarea,select,[data-chip-id],[draggable="true"]')) {setActiveChipId(undefined);setSelected(undefined); if (box.collapsed) patch({ collapsed: false }); focusInput(); }
         }}
         onDragOver={event => { if (dragging?.kind === 'box' && dragging.id !== box.id) { event.preventDefault(); setMark(lower(event) ? 'after' : 'before'); } else if (dragging?.kind === 'chip') event.preventDefault(); }}
         onDragLeave={() => setMark(undefined)}
@@ -451,12 +453,12 @@ function GroupView({ box, index, count, state, onChange, suggest, bare, placehol
             ? !!preview && <CollapsedTags text={preview} enabled={box.enabled}/>
             : <div style={S.body}>
                 {box.chipsCollapsed&&<CollapsedTags text={preview} enabled={box.enabled}/>}
-                <div data-tag-surface style={{ ...S.chips, minHeight: 48, alignItems: 'flex-start', cursor: 'text' }}><span hidden={box.chipsCollapsed} style={{ display: box.chipsCollapsed ? 'none' : 'contents' }}>{box.chips.map(item => <ChipView key={item.id} chip={item} selected={item.id === selected || item.id === activeChipId} picked={picked.includes(item.id)} onSelect={() => { if (selecting) { pick(item.id); return; } setSelected(item.id); setActiveChipId(item.id); focusInput(); }} onRemove={() => remove(item.id)}
+                <div data-tag-surface style={{ ...S.chips, minHeight: 48, alignItems: 'flex-start', cursor: 'text' }}><span hidden={box.chipsCollapsed} style={{ display: box.chipsCollapsed ? 'none' : 'contents' }}>{box.chips.map(item => <ChipView key={item.id} chip={item} selected={item.id === selected || item.id === activeChipId} picked={picked.includes(item.id)} onSelect={() => { if (selecting) { pick(item.id); return; } setSelected(item.id); setActiveChipId(item.id); }} onRemove={() => remove(item.id)}
                     onPick={range => pick(item.id, range)}
                     onDrop={(sourceChip, after) => onChange(dropPromptChip(state, sourceChip, box.id, { chipId: item.id, after }))}
                     onKind={mode => onChange(convertChip(state, box.id, item.id, mode))} suggest={suggest}
                     onItems={items => { const next = withItems(item, items); onChange(editChips(state, box.id, chips => next ? chips.map(other => other.id === item.id ? next : other) : chips.filter(other => other.id !== item.id))); }} />)}</span>
-                <AddInput onBackspace={() => { if (pickedIds.length) { removePicked(); return; } const id = activeChipId || box.chips[box.chips.length - 1]?.id; if (id) remove(id); }} target={target} onTargetMode={mode => { if (target) onChange(convertChip(state, box.id, target.id, mode)); }} placeholder={placeholder} suggest={query => query.startsWith('-') ? Promise.resolve(availableBatchTags(box.chips).filter(tag => tag.includes(query.slice(1).toLowerCase())).map(tag => ({ label: '-' + tag, kind: 'tag' as const }))) : suggest(query)} onText={text => text.startsWith('-') ? onChange(editChips(state, box.id, chips => chips.map(chip => target && chip.id !== target.id ? chip : removeTagsFromChip(chip, [text.slice(1).trim()])).filter((chip): chip is Chip => !!chip))) : target ? append(parseTyped(text).flatMap(chipTerms)) : onChange(addChips(state, box.id, text))}
+                {target&&<Btn label="Start separate tag group" onClick={()=>{setActiveChipId(undefined);setSelected(undefined);focusInput();}}>＋ Separate group</Btn>}<AddInput onBackspace={() => { if (pickedIds.length) { removePicked(); return; } const id = activeChipId || box.chips[box.chips.length - 1]?.id; if (id) remove(id); }} target={target} onTargetMode={mode => { if (target) onChange(convertChip(state, box.id, target.id, mode)); }} placeholder={placeholder} suggest={query => query.startsWith('-') ? Promise.resolve(availableBatchTags(box.chips).filter(tag => tag.includes(query.slice(1).toLowerCase())).map(tag => ({ label: '-' + tag, kind: 'tag' as const }))) : suggest(query)} onText={text => text.startsWith('-') ? onChange(editChips(state, box.id, chips => chips.map(chip => target && chip.id !== target.id ? chip : removeTagsFromChip(chip, [text.slice(1).trim()])).filter((chip): chip is Chip => !!chip))) : target ? append(parseTyped(text).flatMap(chipTerms)) : onChange(addChips(state, box.id, text))}
                     onGroup={(mode, tags) => { if (target) { append(tags); return; } const made = groupChips(mode, tags); if (made.length) onChange(editChips(state, box.id, chips => [...chips, ...made])); }}
                     onPrefix={(item, head) => target ? append([...parseTyped(head).flatMap(chipTerms), ...(item.terms || [])]) : onChange(addChips(state, box.id, [head, (item.terms || []).join(', ')].filter(Boolean).join(', ')))} />
                 </div>
@@ -587,7 +589,7 @@ export function PromptBoxEditor({ state, source, preview, suggest, onChange, not
             <div className="cg-rule-controls cg-rule-toolbar"><button type="button" onClick={()=>openRules()}>Manage rulesets</button> <button type="button" onClick={onReloadRules}>Reload global defaults</button></div>
             {rulesNotice&&<p role="status">{rulesNotice}</p>}
             {ruleErrors.map(error=><div role="alert" key={error}>{error} Encoding will stop until the rules agree.</div>)}
-            <small>Encoder overrides prefix rules, then global defaults, for the same family and scope. Rules run after optional choices. Scope does not create regional conditioning.</small>
+            <small>Encoder overrides prefix rules, then global defaults, for the same family and policy channel. Rules run after optional choices. Channels do not create regional conditioning.</small>
         </details>
         {!!snapshotReferences.length&&<details className="cg-rule-tree"><summary>Prefix snapshots · {snapshotReferences.filter(row=>row.snapshot_id).length}</summary>{snapshotReferences.map((row,index)=><button type="button" style={S.btn} key={index} onClick={()=>onOpenSnapshot?.(row)}>{row.prefix_name} · {row.snapshot_id?row.snapshot_id.slice(0,8):'parent tags'}</button>)}</details>}
         <HairReview text={preview} policy={state.hairPolicy??undefined} />

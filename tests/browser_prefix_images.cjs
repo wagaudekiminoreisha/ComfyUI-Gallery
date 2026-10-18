@@ -28,9 +28,9 @@ const assert = require('node:assert/strict');
   await info.getByRole('heading',{name:'Picked options'}).waitFor();
   assert.equal(await info.getByRole('tab').count(),0);
   await shot('metadata');
-  // "Use for prefix…" pairs the image with an existing prefix without changing its tags.
-  await info.getByRole('button',{name:'Use for prefix…'}).click();
-  const flow=page.getByRole('dialog',{name:/^Use for prefix/});
+  // "Prefix associations…" pairs the image with an existing prefix without changing its tags.
+  await info.getByRole('button',{name:'Prefix associations…'}).click();
+  const flow=page.getByRole('dialog',{name:/^Prefix associations/});
   await choose('Prefix for these images','Pose · positive only');
   await flow.getByRole('button',{name:'Pair only'}).click();
   await flow.getByText('Paired with:').waitFor();

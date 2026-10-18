@@ -420,6 +420,5212 @@
           ]
         }
       ]
+    },
+    {
+      "version": 1,
+      "id": "stock-eyes",
+      "name": "Eyes",
+      "family": "eyes",
+      "rules": [],
+      "choices": [
+        {
+          "id": "colour",
+          "label": "Eye colour",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "aqua_eyes",
+                    "black_eyes",
+                    "blue_eyes",
+                    "brown_eyes",
+                    "green_eyes",
+                    "grey_eyes",
+                    "orange_eyes",
+                    "pink_eyes",
+                    "purple_eyes",
+                    "red_eyes",
+                    "white_eyes",
+                    "yellow_eyes"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "aqua_eyes",
+              "label": "Use aqua eyes",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_eyes",
+                    "black_eyes",
+                    "blue_eyes",
+                    "brown_eyes",
+                    "green_eyes",
+                    "grey_eyes",
+                    "orange_eyes",
+                    "pink_eyes",
+                    "purple_eyes",
+                    "red_eyes",
+                    "white_eyes",
+                    "yellow_eyes"
+                  ],
+                  "value": "aqua_eyes"
+                }
+              ]
+            },
+            {
+              "id": "black_eyes",
+              "label": "Use black eyes",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_eyes",
+                    "black_eyes",
+                    "blue_eyes",
+                    "brown_eyes",
+                    "green_eyes",
+                    "grey_eyes",
+                    "orange_eyes",
+                    "pink_eyes",
+                    "purple_eyes",
+                    "red_eyes",
+                    "white_eyes",
+                    "yellow_eyes"
+                  ],
+                  "value": "black_eyes"
+                }
+              ]
+            },
+            {
+              "id": "blue_eyes",
+              "label": "Use blue eyes",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_eyes",
+                    "black_eyes",
+                    "blue_eyes",
+                    "brown_eyes",
+                    "green_eyes",
+                    "grey_eyes",
+                    "orange_eyes",
+                    "pink_eyes",
+                    "purple_eyes",
+                    "red_eyes",
+                    "white_eyes",
+                    "yellow_eyes"
+                  ],
+                  "value": "blue_eyes"
+                }
+              ]
+            },
+            {
+              "id": "brown_eyes",
+              "label": "Use brown eyes",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_eyes",
+                    "black_eyes",
+                    "blue_eyes",
+                    "brown_eyes",
+                    "green_eyes",
+                    "grey_eyes",
+                    "orange_eyes",
+                    "pink_eyes",
+                    "purple_eyes",
+                    "red_eyes",
+                    "white_eyes",
+                    "yellow_eyes"
+                  ],
+                  "value": "brown_eyes"
+                }
+              ]
+            },
+            {
+              "id": "green_eyes",
+              "label": "Use green eyes",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_eyes",
+                    "black_eyes",
+                    "blue_eyes",
+                    "brown_eyes",
+                    "green_eyes",
+                    "grey_eyes",
+                    "orange_eyes",
+                    "pink_eyes",
+                    "purple_eyes",
+                    "red_eyes",
+                    "white_eyes",
+                    "yellow_eyes"
+                  ],
+                  "value": "green_eyes"
+                }
+              ]
+            },
+            {
+              "id": "grey_eyes",
+              "label": "Use grey eyes",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_eyes",
+                    "black_eyes",
+                    "blue_eyes",
+                    "brown_eyes",
+                    "green_eyes",
+                    "grey_eyes",
+                    "orange_eyes",
+                    "pink_eyes",
+                    "purple_eyes",
+                    "red_eyes",
+                    "white_eyes",
+                    "yellow_eyes"
+                  ],
+                  "value": "grey_eyes"
+                }
+              ]
+            },
+            {
+              "id": "orange_eyes",
+              "label": "Use orange eyes",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_eyes",
+                    "black_eyes",
+                    "blue_eyes",
+                    "brown_eyes",
+                    "green_eyes",
+                    "grey_eyes",
+                    "orange_eyes",
+                    "pink_eyes",
+                    "purple_eyes",
+                    "red_eyes",
+                    "white_eyes",
+                    "yellow_eyes"
+                  ],
+                  "value": "orange_eyes"
+                }
+              ]
+            },
+            {
+              "id": "pink_eyes",
+              "label": "Use pink eyes",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_eyes",
+                    "black_eyes",
+                    "blue_eyes",
+                    "brown_eyes",
+                    "green_eyes",
+                    "grey_eyes",
+                    "orange_eyes",
+                    "pink_eyes",
+                    "purple_eyes",
+                    "red_eyes",
+                    "white_eyes",
+                    "yellow_eyes"
+                  ],
+                  "value": "pink_eyes"
+                }
+              ]
+            },
+            {
+              "id": "purple_eyes",
+              "label": "Use purple eyes",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_eyes",
+                    "black_eyes",
+                    "blue_eyes",
+                    "brown_eyes",
+                    "green_eyes",
+                    "grey_eyes",
+                    "orange_eyes",
+                    "pink_eyes",
+                    "purple_eyes",
+                    "red_eyes",
+                    "white_eyes",
+                    "yellow_eyes"
+                  ],
+                  "value": "purple_eyes"
+                }
+              ]
+            },
+            {
+              "id": "red_eyes",
+              "label": "Use red eyes",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_eyes",
+                    "black_eyes",
+                    "blue_eyes",
+                    "brown_eyes",
+                    "green_eyes",
+                    "grey_eyes",
+                    "orange_eyes",
+                    "pink_eyes",
+                    "purple_eyes",
+                    "red_eyes",
+                    "white_eyes",
+                    "yellow_eyes"
+                  ],
+                  "value": "red_eyes"
+                }
+              ]
+            },
+            {
+              "id": "white_eyes",
+              "label": "Use white eyes",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_eyes",
+                    "black_eyes",
+                    "blue_eyes",
+                    "brown_eyes",
+                    "green_eyes",
+                    "grey_eyes",
+                    "orange_eyes",
+                    "pink_eyes",
+                    "purple_eyes",
+                    "red_eyes",
+                    "white_eyes",
+                    "yellow_eyes"
+                  ],
+                  "value": "white_eyes"
+                }
+              ]
+            },
+            {
+              "id": "yellow_eyes",
+              "label": "Use yellow eyes",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_eyes",
+                    "black_eyes",
+                    "blue_eyes",
+                    "brown_eyes",
+                    "green_eyes",
+                    "grey_eyes",
+                    "orange_eyes",
+                    "pink_eyes",
+                    "purple_eyes",
+                    "red_eyes",
+                    "white_eyes",
+                    "yellow_eyes"
+                  ],
+                  "value": "yellow_eyes"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "eyelids",
+          "label": "Eyelids",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "closed_eyes",
+                    "half-closed_eyes",
+                    "one_eye_closed"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "closed_eyes",
+              "label": "Use closed eyes",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "closed_eyes",
+                    "half-closed_eyes",
+                    "one_eye_closed"
+                  ],
+                  "value": "closed_eyes"
+                }
+              ]
+            },
+            {
+              "id": "half-closed_eyes",
+              "label": "Use half-closed eyes",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "closed_eyes",
+                    "half-closed_eyes",
+                    "one_eye_closed"
+                  ],
+                  "value": "half-closed_eyes"
+                }
+              ]
+            },
+            {
+              "id": "one_eye_closed",
+              "label": "Use one eye closed",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "closed_eyes",
+                    "half-closed_eyes",
+                    "one_eye_closed"
+                  ],
+                  "value": "one_eye_closed"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "gaze",
+          "label": "Gaze",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "looking_at_viewer"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "looking_at_viewer",
+              "label": "Use looking at viewer",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "looking_at_viewer"
+                  ],
+                  "value": "looking_at_viewer"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": 1,
+      "id": "stock-expression",
+      "name": "Expression",
+      "family": "expression",
+      "rules": [],
+      "choices": [
+        {
+          "id": "mood",
+          "label": "Mouth expression",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "smile",
+                    "grin",
+                    "frown",
+                    "pout",
+                    "expressionless"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "smile",
+              "label": "Use smile",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "smile",
+                    "grin",
+                    "frown",
+                    "pout",
+                    "expressionless"
+                  ],
+                  "value": "smile"
+                }
+              ]
+            },
+            {
+              "id": "grin",
+              "label": "Use grin",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "smile",
+                    "grin",
+                    "frown",
+                    "pout",
+                    "expressionless"
+                  ],
+                  "value": "grin"
+                }
+              ]
+            },
+            {
+              "id": "frown",
+              "label": "Use frown",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "smile",
+                    "grin",
+                    "frown",
+                    "pout",
+                    "expressionless"
+                  ],
+                  "value": "frown"
+                }
+              ]
+            },
+            {
+              "id": "pout",
+              "label": "Use pout",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "smile",
+                    "grin",
+                    "frown",
+                    "pout",
+                    "expressionless"
+                  ],
+                  "value": "pout"
+                }
+              ]
+            },
+            {
+              "id": "expressionless",
+              "label": "Use expressionless",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "smile",
+                    "grin",
+                    "frown",
+                    "pout",
+                    "expressionless"
+                  ],
+                  "value": "expressionless"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "mouth",
+          "label": "Mouth opening",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "closed_mouth",
+                    "open_mouth",
+                    "parted_lips"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "closed_mouth",
+              "label": "Use closed mouth",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "closed_mouth",
+                    "open_mouth",
+                    "parted_lips"
+                  ],
+                  "value": "closed_mouth"
+                }
+              ]
+            },
+            {
+              "id": "open_mouth",
+              "label": "Use open mouth",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "closed_mouth",
+                    "open_mouth",
+                    "parted_lips"
+                  ],
+                  "value": "open_mouth"
+                }
+              ]
+            },
+            {
+              "id": "parted_lips",
+              "label": "Use parted lips",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "closed_mouth",
+                    "open_mouth",
+                    "parted_lips"
+                  ],
+                  "value": "parted_lips"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "extras",
+          "label": "Expression details",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "blush",
+                    "tears",
+                    "sweat",
+                    "nose_blush"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "blush",
+              "label": "Add blush",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "blush"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "tears",
+              "label": "Add tears",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "tears"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "sweat",
+              "label": "Add sweat",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "sweat"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "nose_blush",
+              "label": "Add nose blush",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "nose_blush"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": 1,
+      "id": "stock-framing",
+      "name": "Framing and viewpoint",
+      "family": "framing",
+      "rules": [],
+      "choices": [
+        {
+          "id": "crop",
+          "label": "Framing",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "close-up",
+                    "portrait",
+                    "upper_body",
+                    "cowboy_shot",
+                    "full_body"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "close-up",
+              "label": "Use close-up",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "close-up",
+                    "portrait",
+                    "upper_body",
+                    "cowboy_shot",
+                    "full_body"
+                  ],
+                  "value": "close-up"
+                }
+              ]
+            },
+            {
+              "id": "portrait",
+              "label": "Use portrait",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "close-up",
+                    "portrait",
+                    "upper_body",
+                    "cowboy_shot",
+                    "full_body"
+                  ],
+                  "value": "portrait"
+                }
+              ]
+            },
+            {
+              "id": "upper_body",
+              "label": "Use upper body",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "close-up",
+                    "portrait",
+                    "upper_body",
+                    "cowboy_shot",
+                    "full_body"
+                  ],
+                  "value": "upper_body"
+                }
+              ]
+            },
+            {
+              "id": "cowboy_shot",
+              "label": "Use cowboy shot",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "close-up",
+                    "portrait",
+                    "upper_body",
+                    "cowboy_shot",
+                    "full_body"
+                  ],
+                  "value": "cowboy_shot"
+                }
+              ]
+            },
+            {
+              "id": "full_body",
+              "label": "Use full body",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "close-up",
+                    "portrait",
+                    "upper_body",
+                    "cowboy_shot",
+                    "full_body"
+                  ],
+                  "value": "full_body"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "angle",
+          "label": "Camera elevation",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "from_above",
+                    "from_below"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "from_above",
+              "label": "Use from above",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "from_above",
+                    "from_below"
+                  ],
+                  "value": "from_above"
+                }
+              ]
+            },
+            {
+              "id": "from_below",
+              "label": "Use from below",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "from_above",
+                    "from_below"
+                  ],
+                  "value": "from_below"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "view",
+          "label": "Body view",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "back"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "back",
+              "label": "Use back",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "back"
+                  ],
+                  "value": "back"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": 1,
+      "id": "stock-subject-count",
+      "name": "Subject counts",
+      "family": "subject-count",
+      "rules": [],
+      "choices": [
+        {
+          "id": "female",
+          "label": "Female count",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "1girl",
+                    "2girls",
+                    "3girls",
+                    "4girls",
+                    "5girls",
+                    "6+girls"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "1girl",
+              "label": "Use 1girl",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "1girl",
+                    "2girls",
+                    "3girls",
+                    "4girls",
+                    "5girls",
+                    "6+girls"
+                  ],
+                  "value": "1girl"
+                }
+              ]
+            },
+            {
+              "id": "2girls",
+              "label": "Use 2girls",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "1girl",
+                    "2girls",
+                    "3girls",
+                    "4girls",
+                    "5girls",
+                    "6+girls"
+                  ],
+                  "value": "2girls"
+                }
+              ]
+            },
+            {
+              "id": "3girls",
+              "label": "Use 3girls",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "1girl",
+                    "2girls",
+                    "3girls",
+                    "4girls",
+                    "5girls",
+                    "6+girls"
+                  ],
+                  "value": "3girls"
+                }
+              ]
+            },
+            {
+              "id": "4girls",
+              "label": "Use 4girls",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "1girl",
+                    "2girls",
+                    "3girls",
+                    "4girls",
+                    "5girls",
+                    "6+girls"
+                  ],
+                  "value": "4girls"
+                }
+              ]
+            },
+            {
+              "id": "5girls",
+              "label": "Use 5girls",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "1girl",
+                    "2girls",
+                    "3girls",
+                    "4girls",
+                    "5girls",
+                    "6+girls"
+                  ],
+                  "value": "5girls"
+                }
+              ]
+            },
+            {
+              "id": "6+girls",
+              "label": "Use 6+girls",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "1girl",
+                    "2girls",
+                    "3girls",
+                    "4girls",
+                    "5girls",
+                    "6+girls"
+                  ],
+                  "value": "6+girls"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "male",
+          "label": "Male count",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "1boy",
+                    "2boys",
+                    "3boys",
+                    "4boys",
+                    "5boys",
+                    "6+boys"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "1boy",
+              "label": "Use 1boy",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "1boy",
+                    "2boys",
+                    "3boys",
+                    "4boys",
+                    "5boys",
+                    "6+boys"
+                  ],
+                  "value": "1boy"
+                }
+              ]
+            },
+            {
+              "id": "2boys",
+              "label": "Use 2boys",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "1boy",
+                    "2boys",
+                    "3boys",
+                    "4boys",
+                    "5boys",
+                    "6+boys"
+                  ],
+                  "value": "2boys"
+                }
+              ]
+            },
+            {
+              "id": "3boys",
+              "label": "Use 3boys",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "1boy",
+                    "2boys",
+                    "3boys",
+                    "4boys",
+                    "5boys",
+                    "6+boys"
+                  ],
+                  "value": "3boys"
+                }
+              ]
+            },
+            {
+              "id": "4boys",
+              "label": "Use 4boys",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "1boy",
+                    "2boys",
+                    "3boys",
+                    "4boys",
+                    "5boys",
+                    "6+boys"
+                  ],
+                  "value": "4boys"
+                }
+              ]
+            },
+            {
+              "id": "5boys",
+              "label": "Use 5boys",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "1boy",
+                    "2boys",
+                    "3boys",
+                    "4boys",
+                    "5boys",
+                    "6+boys"
+                  ],
+                  "value": "5boys"
+                }
+              ]
+            },
+            {
+              "id": "6+boys",
+              "label": "Use 6+boys",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "1boy",
+                    "2boys",
+                    "3boys",
+                    "4boys",
+                    "5boys",
+                    "6+boys"
+                  ],
+                  "value": "6+boys"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "composition",
+          "label": "Composition",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "solo",
+              "label": "Single subject",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "solo"
+                  ]
+                },
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "2girls",
+                    "3girls",
+                    "4girls",
+                    "5girls",
+                    "6+girls",
+                    "2boys",
+                    "3boys",
+                    "4boys",
+                    "5boys",
+                    "6+boys",
+                    "multiple_girls",
+                    "multiple_boys",
+                    "crowd"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "unspecified",
+              "label": "Leave counts unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "solo",
+                    "1girl",
+                    "2girls",
+                    "3girls",
+                    "4girls",
+                    "5girls",
+                    "6+girls",
+                    "1boy",
+                    "2boys",
+                    "3boys",
+                    "4boys",
+                    "5boys",
+                    "6+boys",
+                    "multiple_girls",
+                    "multiple_boys",
+                    "crowd"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": 1,
+      "id": "stock-hair-arrangement",
+      "name": "Hair arrangement and texture",
+      "family": "hair-arrangement",
+      "rules": [],
+      "choices": [
+        {
+          "id": "arrangement",
+          "label": "Arrangement",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "hair_down",
+                    "ponytail",
+                    "high_ponytail",
+                    "low_ponytail",
+                    "twintails",
+                    "braid",
+                    "single_braid",
+                    "twin_braids",
+                    "hair_bun",
+                    "double_bun",
+                    "bob_cut",
+                    "hime_cut"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "hair_down",
+              "label": "Use hair down",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "hair_down",
+                    "ponytail",
+                    "high_ponytail",
+                    "low_ponytail",
+                    "twintails",
+                    "braid",
+                    "single_braid",
+                    "twin_braids",
+                    "hair_bun",
+                    "double_bun",
+                    "bob_cut",
+                    "hime_cut"
+                  ],
+                  "value": "hair_down"
+                }
+              ]
+            },
+            {
+              "id": "ponytail",
+              "label": "Use ponytail",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "hair_down",
+                    "ponytail",
+                    "high_ponytail",
+                    "low_ponytail",
+                    "twintails",
+                    "braid",
+                    "single_braid",
+                    "twin_braids",
+                    "hair_bun",
+                    "double_bun",
+                    "bob_cut",
+                    "hime_cut"
+                  ],
+                  "value": "ponytail"
+                }
+              ]
+            },
+            {
+              "id": "high_ponytail",
+              "label": "Use high ponytail",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "hair_down",
+                    "ponytail",
+                    "high_ponytail",
+                    "low_ponytail",
+                    "twintails",
+                    "braid",
+                    "single_braid",
+                    "twin_braids",
+                    "hair_bun",
+                    "double_bun",
+                    "bob_cut",
+                    "hime_cut"
+                  ],
+                  "value": "high_ponytail"
+                }
+              ]
+            },
+            {
+              "id": "low_ponytail",
+              "label": "Use low ponytail",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "hair_down",
+                    "ponytail",
+                    "high_ponytail",
+                    "low_ponytail",
+                    "twintails",
+                    "braid",
+                    "single_braid",
+                    "twin_braids",
+                    "hair_bun",
+                    "double_bun",
+                    "bob_cut",
+                    "hime_cut"
+                  ],
+                  "value": "low_ponytail"
+                }
+              ]
+            },
+            {
+              "id": "twintails",
+              "label": "Use twintails",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "hair_down",
+                    "ponytail",
+                    "high_ponytail",
+                    "low_ponytail",
+                    "twintails",
+                    "braid",
+                    "single_braid",
+                    "twin_braids",
+                    "hair_bun",
+                    "double_bun",
+                    "bob_cut",
+                    "hime_cut"
+                  ],
+                  "value": "twintails"
+                }
+              ]
+            },
+            {
+              "id": "braid",
+              "label": "Use braid",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "hair_down",
+                    "ponytail",
+                    "high_ponytail",
+                    "low_ponytail",
+                    "twintails",
+                    "braid",
+                    "single_braid",
+                    "twin_braids",
+                    "hair_bun",
+                    "double_bun",
+                    "bob_cut",
+                    "hime_cut"
+                  ],
+                  "value": "braid"
+                }
+              ]
+            },
+            {
+              "id": "single_braid",
+              "label": "Use single braid",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "hair_down",
+                    "ponytail",
+                    "high_ponytail",
+                    "low_ponytail",
+                    "twintails",
+                    "braid",
+                    "single_braid",
+                    "twin_braids",
+                    "hair_bun",
+                    "double_bun",
+                    "bob_cut",
+                    "hime_cut"
+                  ],
+                  "value": "single_braid"
+                }
+              ]
+            },
+            {
+              "id": "twin_braids",
+              "label": "Use twin braids",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "hair_down",
+                    "ponytail",
+                    "high_ponytail",
+                    "low_ponytail",
+                    "twintails",
+                    "braid",
+                    "single_braid",
+                    "twin_braids",
+                    "hair_bun",
+                    "double_bun",
+                    "bob_cut",
+                    "hime_cut"
+                  ],
+                  "value": "twin_braids"
+                }
+              ]
+            },
+            {
+              "id": "hair_bun",
+              "label": "Use hair bun",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "hair_down",
+                    "ponytail",
+                    "high_ponytail",
+                    "low_ponytail",
+                    "twintails",
+                    "braid",
+                    "single_braid",
+                    "twin_braids",
+                    "hair_bun",
+                    "double_bun",
+                    "bob_cut",
+                    "hime_cut"
+                  ],
+                  "value": "hair_bun"
+                }
+              ]
+            },
+            {
+              "id": "double_bun",
+              "label": "Use double bun",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "hair_down",
+                    "ponytail",
+                    "high_ponytail",
+                    "low_ponytail",
+                    "twintails",
+                    "braid",
+                    "single_braid",
+                    "twin_braids",
+                    "hair_bun",
+                    "double_bun",
+                    "bob_cut",
+                    "hime_cut"
+                  ],
+                  "value": "double_bun"
+                }
+              ]
+            },
+            {
+              "id": "bob_cut",
+              "label": "Use bob cut",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "hair_down",
+                    "ponytail",
+                    "high_ponytail",
+                    "low_ponytail",
+                    "twintails",
+                    "braid",
+                    "single_braid",
+                    "twin_braids",
+                    "hair_bun",
+                    "double_bun",
+                    "bob_cut",
+                    "hime_cut"
+                  ],
+                  "value": "bob_cut"
+                }
+              ]
+            },
+            {
+              "id": "hime_cut",
+              "label": "Use hime cut",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "hair_down",
+                    "ponytail",
+                    "high_ponytail",
+                    "low_ponytail",
+                    "twintails",
+                    "braid",
+                    "single_braid",
+                    "twin_braids",
+                    "hair_bun",
+                    "double_bun",
+                    "bob_cut",
+                    "hime_cut"
+                  ],
+                  "value": "hime_cut"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "texture",
+          "label": "Texture",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "straight_hair",
+                    "wavy_hair",
+                    "curly_hair",
+                    "messy_hair"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "straight_hair",
+              "label": "Use straight hair",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "straight_hair",
+                    "wavy_hair",
+                    "curly_hair",
+                    "messy_hair"
+                  ],
+                  "value": "straight_hair"
+                }
+              ]
+            },
+            {
+              "id": "wavy_hair",
+              "label": "Use wavy hair",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "straight_hair",
+                    "wavy_hair",
+                    "curly_hair",
+                    "messy_hair"
+                  ],
+                  "value": "wavy_hair"
+                }
+              ]
+            },
+            {
+              "id": "curly_hair",
+              "label": "Use curly hair",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "straight_hair",
+                    "wavy_hair",
+                    "curly_hair",
+                    "messy_hair"
+                  ],
+                  "value": "curly_hair"
+                }
+              ]
+            },
+            {
+              "id": "messy_hair",
+              "label": "Use messy hair",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "straight_hair",
+                    "wavy_hair",
+                    "curly_hair",
+                    "messy_hair"
+                  ],
+                  "value": "messy_hair"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "details",
+          "label": "Add hair detail",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "sidelocks",
+                    "ahoge",
+                    "hair_between_eyes"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "sidelocks",
+              "label": "Add sidelocks",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "sidelocks"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "ahoge",
+              "label": "Add ahoge",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "ahoge"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "hair_between_eyes",
+              "label": "Add hair between eyes",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "hair_between_eyes"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": 1,
+      "id": "stock-skin",
+      "name": "Skin appearance",
+      "family": "skin",
+      "rules": [],
+      "choices": [
+        {
+          "id": "tone",
+          "label": "Skin tone",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "pale_skin",
+                    "dark_skin",
+                    "very_dark_skin",
+                    "tan"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "pale_skin",
+              "label": "Use pale skin",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "pale_skin",
+                    "dark_skin",
+                    "very_dark_skin",
+                    "tan"
+                  ],
+                  "value": "pale_skin"
+                }
+              ]
+            },
+            {
+              "id": "dark_skin",
+              "label": "Use dark skin",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "pale_skin",
+                    "dark_skin",
+                    "very_dark_skin",
+                    "tan"
+                  ],
+                  "value": "dark_skin"
+                }
+              ]
+            },
+            {
+              "id": "very_dark_skin",
+              "label": "Use very dark skin",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "pale_skin",
+                    "dark_skin",
+                    "very_dark_skin",
+                    "tan"
+                  ],
+                  "value": "very_dark_skin"
+                }
+              ]
+            },
+            {
+              "id": "tan",
+              "label": "Use tan",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "pale_skin",
+                    "dark_skin",
+                    "very_dark_skin",
+                    "tan"
+                  ],
+                  "value": "tan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "fantasy",
+          "label": "Fantasy skin",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "aqua_skin",
+                    "black_skin",
+                    "blue_skin",
+                    "green_skin",
+                    "grey_skin",
+                    "orange_skin",
+                    "pink_skin",
+                    "purple_skin",
+                    "red_skin",
+                    "white_skin",
+                    "yellow_skin",
+                    "gold_skin",
+                    "silver_skin"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "aqua_skin",
+              "label": "Use aqua skin",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_skin",
+                    "black_skin",
+                    "blue_skin",
+                    "green_skin",
+                    "grey_skin",
+                    "orange_skin",
+                    "pink_skin",
+                    "purple_skin",
+                    "red_skin",
+                    "white_skin",
+                    "yellow_skin",
+                    "gold_skin",
+                    "silver_skin"
+                  ],
+                  "value": "aqua_skin"
+                }
+              ]
+            },
+            {
+              "id": "black_skin",
+              "label": "Use black skin",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_skin",
+                    "black_skin",
+                    "blue_skin",
+                    "green_skin",
+                    "grey_skin",
+                    "orange_skin",
+                    "pink_skin",
+                    "purple_skin",
+                    "red_skin",
+                    "white_skin",
+                    "yellow_skin",
+                    "gold_skin",
+                    "silver_skin"
+                  ],
+                  "value": "black_skin"
+                }
+              ]
+            },
+            {
+              "id": "blue_skin",
+              "label": "Use blue skin",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_skin",
+                    "black_skin",
+                    "blue_skin",
+                    "green_skin",
+                    "grey_skin",
+                    "orange_skin",
+                    "pink_skin",
+                    "purple_skin",
+                    "red_skin",
+                    "white_skin",
+                    "yellow_skin",
+                    "gold_skin",
+                    "silver_skin"
+                  ],
+                  "value": "blue_skin"
+                }
+              ]
+            },
+            {
+              "id": "green_skin",
+              "label": "Use green skin",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_skin",
+                    "black_skin",
+                    "blue_skin",
+                    "green_skin",
+                    "grey_skin",
+                    "orange_skin",
+                    "pink_skin",
+                    "purple_skin",
+                    "red_skin",
+                    "white_skin",
+                    "yellow_skin",
+                    "gold_skin",
+                    "silver_skin"
+                  ],
+                  "value": "green_skin"
+                }
+              ]
+            },
+            {
+              "id": "grey_skin",
+              "label": "Use grey skin",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_skin",
+                    "black_skin",
+                    "blue_skin",
+                    "green_skin",
+                    "grey_skin",
+                    "orange_skin",
+                    "pink_skin",
+                    "purple_skin",
+                    "red_skin",
+                    "white_skin",
+                    "yellow_skin",
+                    "gold_skin",
+                    "silver_skin"
+                  ],
+                  "value": "grey_skin"
+                }
+              ]
+            },
+            {
+              "id": "orange_skin",
+              "label": "Use orange skin",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_skin",
+                    "black_skin",
+                    "blue_skin",
+                    "green_skin",
+                    "grey_skin",
+                    "orange_skin",
+                    "pink_skin",
+                    "purple_skin",
+                    "red_skin",
+                    "white_skin",
+                    "yellow_skin",
+                    "gold_skin",
+                    "silver_skin"
+                  ],
+                  "value": "orange_skin"
+                }
+              ]
+            },
+            {
+              "id": "pink_skin",
+              "label": "Use pink skin",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_skin",
+                    "black_skin",
+                    "blue_skin",
+                    "green_skin",
+                    "grey_skin",
+                    "orange_skin",
+                    "pink_skin",
+                    "purple_skin",
+                    "red_skin",
+                    "white_skin",
+                    "yellow_skin",
+                    "gold_skin",
+                    "silver_skin"
+                  ],
+                  "value": "pink_skin"
+                }
+              ]
+            },
+            {
+              "id": "purple_skin",
+              "label": "Use purple skin",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_skin",
+                    "black_skin",
+                    "blue_skin",
+                    "green_skin",
+                    "grey_skin",
+                    "orange_skin",
+                    "pink_skin",
+                    "purple_skin",
+                    "red_skin",
+                    "white_skin",
+                    "yellow_skin",
+                    "gold_skin",
+                    "silver_skin"
+                  ],
+                  "value": "purple_skin"
+                }
+              ]
+            },
+            {
+              "id": "red_skin",
+              "label": "Use red skin",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_skin",
+                    "black_skin",
+                    "blue_skin",
+                    "green_skin",
+                    "grey_skin",
+                    "orange_skin",
+                    "pink_skin",
+                    "purple_skin",
+                    "red_skin",
+                    "white_skin",
+                    "yellow_skin",
+                    "gold_skin",
+                    "silver_skin"
+                  ],
+                  "value": "red_skin"
+                }
+              ]
+            },
+            {
+              "id": "white_skin",
+              "label": "Use white skin",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_skin",
+                    "black_skin",
+                    "blue_skin",
+                    "green_skin",
+                    "grey_skin",
+                    "orange_skin",
+                    "pink_skin",
+                    "purple_skin",
+                    "red_skin",
+                    "white_skin",
+                    "yellow_skin",
+                    "gold_skin",
+                    "silver_skin"
+                  ],
+                  "value": "white_skin"
+                }
+              ]
+            },
+            {
+              "id": "yellow_skin",
+              "label": "Use yellow skin",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_skin",
+                    "black_skin",
+                    "blue_skin",
+                    "green_skin",
+                    "grey_skin",
+                    "orange_skin",
+                    "pink_skin",
+                    "purple_skin",
+                    "red_skin",
+                    "white_skin",
+                    "yellow_skin",
+                    "gold_skin",
+                    "silver_skin"
+                  ],
+                  "value": "yellow_skin"
+                }
+              ]
+            },
+            {
+              "id": "gold_skin",
+              "label": "Use gold skin",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_skin",
+                    "black_skin",
+                    "blue_skin",
+                    "green_skin",
+                    "grey_skin",
+                    "orange_skin",
+                    "pink_skin",
+                    "purple_skin",
+                    "red_skin",
+                    "white_skin",
+                    "yellow_skin",
+                    "gold_skin",
+                    "silver_skin"
+                  ],
+                  "value": "gold_skin"
+                }
+              ]
+            },
+            {
+              "id": "silver_skin",
+              "label": "Use silver skin",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_skin",
+                    "black_skin",
+                    "blue_skin",
+                    "green_skin",
+                    "grey_skin",
+                    "orange_skin",
+                    "pink_skin",
+                    "purple_skin",
+                    "red_skin",
+                    "white_skin",
+                    "yellow_skin",
+                    "gold_skin",
+                    "silver_skin"
+                  ],
+                  "value": "silver_skin"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "detail",
+          "label": "Add skin detail",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "freckles",
+                    "mole",
+                    "scar",
+                    "tattoo",
+                    "shiny_skin"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "freckles",
+              "label": "Add freckles",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "freckles"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "mole",
+              "label": "Add mole",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "mole"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "scar",
+              "label": "Add scar",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "scar"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "tattoo",
+              "label": "Add tattoo",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "tattoo"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "shiny_skin",
+              "label": "Add shiny skin",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "shiny_skin"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": 1,
+      "id": "stock-lighting",
+      "name": "Lighting",
+      "family": "lighting",
+      "rules": [],
+      "choices": [
+        {
+          "id": "direction",
+          "label": "Add lighting",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "backlighting",
+                    "sidelighting",
+                    "sunlight",
+                    "moonlight",
+                    "candlelight",
+                    "dim_lighting"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "backlighting",
+              "label": "Add backlighting",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "backlighting"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "sidelighting",
+              "label": "Add sidelighting",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "sidelighting"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "sunlight",
+              "label": "Add sunlight",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "sunlight"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "moonlight",
+              "label": "Add moonlight",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "moonlight"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "candlelight",
+              "label": "Add candlelight",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "candlelight"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "dim_lighting",
+              "label": "Add dim lighting",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "dim_lighting"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "strip",
+          "label": "Lighting vocabulary",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave named lighting unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "aurora",
+                    "backlighting",
+                    "bloom",
+                    "candlelight",
+                    "caustics",
+                    "ceiling_light",
+                    "chandelier",
+                    "chiaroscuro",
+                    "colored_shadow",
+                    "crack_of_light",
+                    "dappled_moonlight",
+                    "dappled_sunlight",
+                    "dark",
+                    "darkness",
+                    "dawn",
+                    "day",
+                    "desk_lamp",
+                    "dim_lighting",
+                    "dispersion_(optics)",
+                    "dusk",
+                    "embers",
+                    "evening",
+                    "fire",
+                    "flare",
+                    "flashlight",
+                    "floodlights",
+                    "floor_lamp",
+                    "glass",
+                    "glowing_headgear",
+                    "glowstick",
+                    "lamp",
+                    "lamppost",
+                    "lantern",
+                    "light_rays",
+                    "lightning",
+                    "moon",
+                    "moonbeam",
+                    "moonlight",
+                    "morning",
+                    "muzzle_flash",
+                    "night",
+                    "oil_lamp",
+                    "overexposure",
+                    "prism",
+                    "rainbow",
+                    "refraction",
+                    "see-through_silhouette",
+                    "shade",
+                    "shadow",
+                    "sidelighting",
+                    "silhouette",
+                    "spotlight",
+                    "stage",
+                    "stage_lights",
+                    "star_(sky)",
+                    "starry_sky",
+                    "subsurface_scattering",
+                    "sun",
+                    "sunbeam",
+                    "sunlight",
+                    "sunrise",
+                    "sunset",
+                    "torch",
+                    "tree",
+                    "tree_shade",
+                    "twilight",
+                    "ultraviolet_light",
+                    "underlighting",
+                    "underwater",
+                    "wall_lamp",
+                    "water",
+                    "window",
+                    "window_shadow",
+                    "wooden_lantern"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": 1,
+      "id": "stock-background",
+      "name": "Background",
+      "family": "background",
+      "rules": [],
+      "choices": [
+        {
+          "id": "colour",
+          "label": "Simple background colour",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "aqua_background",
+                    "black_background",
+                    "blue_background",
+                    "brown_background",
+                    "green_background",
+                    "grey_background",
+                    "orange_background",
+                    "pink_background",
+                    "purple_background",
+                    "red_background",
+                    "white_background",
+                    "yellow_background",
+                    "silver_background"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "aqua_background",
+              "label": "Use aqua background",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_background",
+                    "black_background",
+                    "blue_background",
+                    "brown_background",
+                    "green_background",
+                    "grey_background",
+                    "orange_background",
+                    "pink_background",
+                    "purple_background",
+                    "red_background",
+                    "white_background",
+                    "yellow_background",
+                    "silver_background"
+                  ],
+                  "value": "aqua_background"
+                }
+              ]
+            },
+            {
+              "id": "black_background",
+              "label": "Use black background",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_background",
+                    "black_background",
+                    "blue_background",
+                    "brown_background",
+                    "green_background",
+                    "grey_background",
+                    "orange_background",
+                    "pink_background",
+                    "purple_background",
+                    "red_background",
+                    "white_background",
+                    "yellow_background",
+                    "silver_background"
+                  ],
+                  "value": "black_background"
+                }
+              ]
+            },
+            {
+              "id": "blue_background",
+              "label": "Use blue background",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_background",
+                    "black_background",
+                    "blue_background",
+                    "brown_background",
+                    "green_background",
+                    "grey_background",
+                    "orange_background",
+                    "pink_background",
+                    "purple_background",
+                    "red_background",
+                    "white_background",
+                    "yellow_background",
+                    "silver_background"
+                  ],
+                  "value": "blue_background"
+                }
+              ]
+            },
+            {
+              "id": "brown_background",
+              "label": "Use brown background",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_background",
+                    "black_background",
+                    "blue_background",
+                    "brown_background",
+                    "green_background",
+                    "grey_background",
+                    "orange_background",
+                    "pink_background",
+                    "purple_background",
+                    "red_background",
+                    "white_background",
+                    "yellow_background",
+                    "silver_background"
+                  ],
+                  "value": "brown_background"
+                }
+              ]
+            },
+            {
+              "id": "green_background",
+              "label": "Use green background",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_background",
+                    "black_background",
+                    "blue_background",
+                    "brown_background",
+                    "green_background",
+                    "grey_background",
+                    "orange_background",
+                    "pink_background",
+                    "purple_background",
+                    "red_background",
+                    "white_background",
+                    "yellow_background",
+                    "silver_background"
+                  ],
+                  "value": "green_background"
+                }
+              ]
+            },
+            {
+              "id": "grey_background",
+              "label": "Use grey background",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_background",
+                    "black_background",
+                    "blue_background",
+                    "brown_background",
+                    "green_background",
+                    "grey_background",
+                    "orange_background",
+                    "pink_background",
+                    "purple_background",
+                    "red_background",
+                    "white_background",
+                    "yellow_background",
+                    "silver_background"
+                  ],
+                  "value": "grey_background"
+                }
+              ]
+            },
+            {
+              "id": "orange_background",
+              "label": "Use orange background",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_background",
+                    "black_background",
+                    "blue_background",
+                    "brown_background",
+                    "green_background",
+                    "grey_background",
+                    "orange_background",
+                    "pink_background",
+                    "purple_background",
+                    "red_background",
+                    "white_background",
+                    "yellow_background",
+                    "silver_background"
+                  ],
+                  "value": "orange_background"
+                }
+              ]
+            },
+            {
+              "id": "pink_background",
+              "label": "Use pink background",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_background",
+                    "black_background",
+                    "blue_background",
+                    "brown_background",
+                    "green_background",
+                    "grey_background",
+                    "orange_background",
+                    "pink_background",
+                    "purple_background",
+                    "red_background",
+                    "white_background",
+                    "yellow_background",
+                    "silver_background"
+                  ],
+                  "value": "pink_background"
+                }
+              ]
+            },
+            {
+              "id": "purple_background",
+              "label": "Use purple background",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_background",
+                    "black_background",
+                    "blue_background",
+                    "brown_background",
+                    "green_background",
+                    "grey_background",
+                    "orange_background",
+                    "pink_background",
+                    "purple_background",
+                    "red_background",
+                    "white_background",
+                    "yellow_background",
+                    "silver_background"
+                  ],
+                  "value": "purple_background"
+                }
+              ]
+            },
+            {
+              "id": "red_background",
+              "label": "Use red background",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_background",
+                    "black_background",
+                    "blue_background",
+                    "brown_background",
+                    "green_background",
+                    "grey_background",
+                    "orange_background",
+                    "pink_background",
+                    "purple_background",
+                    "red_background",
+                    "white_background",
+                    "yellow_background",
+                    "silver_background"
+                  ],
+                  "value": "red_background"
+                }
+              ]
+            },
+            {
+              "id": "white_background",
+              "label": "Use white background",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_background",
+                    "black_background",
+                    "blue_background",
+                    "brown_background",
+                    "green_background",
+                    "grey_background",
+                    "orange_background",
+                    "pink_background",
+                    "purple_background",
+                    "red_background",
+                    "white_background",
+                    "yellow_background",
+                    "silver_background"
+                  ],
+                  "value": "white_background"
+                }
+              ]
+            },
+            {
+              "id": "yellow_background",
+              "label": "Use yellow background",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_background",
+                    "black_background",
+                    "blue_background",
+                    "brown_background",
+                    "green_background",
+                    "grey_background",
+                    "orange_background",
+                    "pink_background",
+                    "purple_background",
+                    "red_background",
+                    "white_background",
+                    "yellow_background",
+                    "silver_background"
+                  ],
+                  "value": "yellow_background"
+                }
+              ]
+            },
+            {
+              "id": "silver_background",
+              "label": "Use silver background",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_background",
+                    "black_background",
+                    "blue_background",
+                    "brown_background",
+                    "green_background",
+                    "grey_background",
+                    "orange_background",
+                    "pink_background",
+                    "purple_background",
+                    "red_background",
+                    "white_background",
+                    "yellow_background",
+                    "silver_background"
+                  ],
+                  "value": "silver_background"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "scene",
+          "label": "Add scene",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "indoors",
+                    "outdoors",
+                    "bedroom",
+                    "classroom",
+                    "street",
+                    "forest",
+                    "beach",
+                    "garden"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "indoors",
+              "label": "Add indoors",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "indoors"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "outdoors",
+              "label": "Add outdoors",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "outdoors"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "bedroom",
+              "label": "Add bedroom",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "bedroom"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "classroom",
+              "label": "Add classroom",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "classroom"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "street",
+              "label": "Add street",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "street"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "forest",
+              "label": "Add forest",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "forest"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "beach",
+              "label": "Add beach",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "beach"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "garden",
+              "label": "Add garden",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "garden"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "simplify",
+          "label": "Background detail",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "simple",
+              "label": "Simple background",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "3d_background",
+                    "abstract_background",
+                    "animal",
+                    "animal_background",
+                    "argyle_background",
+                    "backlighting",
+                    "blending",
+                    "blurry_background",
+                    "border",
+                    "bow",
+                    "bubble",
+                    "bubble_background",
+                    "butterfly",
+                    "butterfly_background",
+                    "card_background",
+                    "checkered_background",
+                    "cherry",
+                    "cherry_background",
+                    "chibi_inset",
+                    "cloud",
+                    "cloud_background",
+                    "collage_background",
+                    "cross_background",
+                    "dark_background",
+                    "dithered_background",
+                    "dotted_background",
+                    "drama_layer",
+                    "fiery_background",
+                    "fire",
+                    "flag",
+                    "flag_background",
+                    "floral_background",
+                    "flower",
+                    "food",
+                    "food-themed_background",
+                    "fruit",
+                    "fruit_background",
+                    "game_screenshot_background",
+                    "gingham_background",
+                    "gradient_background",
+                    "greyscale_with_colored_background",
+                    "grid_background",
+                    "halftone_background",
+                    "heart",
+                    "heart_background",
+                    "heaven_condition",
+                    "honeycomb_background",
+                    "horizon",
+                    "imageboard_colors",
+                    "lace_background",
+                    "leaf",
+                    "leaf_background",
+                    "lightning",
+                    "lightning_background",
+                    "monochrome_background",
+                    "mosaic_background",
+                    "multicolored_background",
+                    "newspaper",
+                    "paneled_background",
+                    "paper_background",
+                    "patterned_background",
+                    "paw_print",
+                    "paw_print_background",
+                    "photo_background",
+                    "plaid_background",
+                    "playing_card",
+                    "poke_ball",
+                    "polka_dot_background",
+                    "projected_inset",
+                    "rabbit",
+                    "rabbit_background",
+                    "rainbow_background",
+                    "rose",
+                    "rose_background",
+                    "screenshot_background",
+                    "sketch_background",
+                    "snowflake_background",
+                    "snowflakes",
+                    "sofmap_background",
+                    "sparkle",
+                    "sparkle_background",
+                    "spider_web",
+                    "spider_web_background",
+                    "spiral_background",
+                    "splatter_background",
+                    "star_(sky)",
+                    "star_(symbol)",
+                    "star_symbol_background",
+                    "starry_sky_background",
+                    "step_and_repeat",
+                    "strawberry",
+                    "strawberry_background",
+                    "striped_background",
+                    "sunburst_background",
+                    "text_background",
+                    "text_focus",
+                    "three-toned_background",
+                    "transparent_background",
+                    "triangle_background",
+                    "two-tone_background",
+                    "watercolor_background",
+                    "weapon",
+                    "weapon_background",
+                    "zoom_layer"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "simple_background"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "omit",
+              "label": "Leave background unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "3d_background",
+                    "abstract_background",
+                    "animal",
+                    "animal_background",
+                    "aqua_background",
+                    "argyle_background",
+                    "backlighting",
+                    "black_background",
+                    "blending",
+                    "blue_background",
+                    "blurry_background",
+                    "border",
+                    "bow",
+                    "brown_background",
+                    "bubble",
+                    "bubble_background",
+                    "butterfly",
+                    "butterfly_background",
+                    "card_background",
+                    "checkered_background",
+                    "cherry",
+                    "cherry_background",
+                    "chibi_inset",
+                    "cloud",
+                    "cloud_background",
+                    "collage_background",
+                    "cross_background",
+                    "dark_background",
+                    "dithered_background",
+                    "dotted_background",
+                    "drama_layer",
+                    "fiery_background",
+                    "fire",
+                    "flag",
+                    "flag_background",
+                    "floral_background",
+                    "flower",
+                    "food",
+                    "food-themed_background",
+                    "fruit",
+                    "fruit_background",
+                    "game_screenshot_background",
+                    "gingham_background",
+                    "gradient_background",
+                    "green_background",
+                    "grey_background",
+                    "greyscale_with_colored_background",
+                    "grid_background",
+                    "halftone_background",
+                    "heart",
+                    "heart_background",
+                    "heaven_condition",
+                    "honeycomb_background",
+                    "horizon",
+                    "imageboard_colors",
+                    "lace_background",
+                    "leaf",
+                    "leaf_background",
+                    "lightning",
+                    "lightning_background",
+                    "monochrome_background",
+                    "mosaic_background",
+                    "multicolored_background",
+                    "newspaper",
+                    "orange_background",
+                    "paneled_background",
+                    "paper_background",
+                    "patterned_background",
+                    "paw_print",
+                    "paw_print_background",
+                    "photo_background",
+                    "pink_background",
+                    "plaid_background",
+                    "playing_card",
+                    "poke_ball",
+                    "polka_dot_background",
+                    "projected_inset",
+                    "purple_background",
+                    "rabbit",
+                    "rabbit_background",
+                    "rainbow_background",
+                    "red_background",
+                    "rose",
+                    "rose_background",
+                    "screenshot_background",
+                    "simple_background",
+                    "sketch_background",
+                    "snowflake_background",
+                    "snowflakes",
+                    "sofmap_background",
+                    "sparkle",
+                    "sparkle_background",
+                    "spider_web",
+                    "spider_web_background",
+                    "spiral_background",
+                    "splatter_background",
+                    "star_(sky)",
+                    "star_(symbol)",
+                    "star_symbol_background",
+                    "starry_sky_background",
+                    "step_and_repeat",
+                    "strawberry",
+                    "strawberry_background",
+                    "striped_background",
+                    "sunburst_background",
+                    "text_background",
+                    "text_focus",
+                    "three-toned_background",
+                    "transparent_background",
+                    "triangle_background",
+                    "two-tone_background",
+                    "watercolor_background",
+                    "weapon",
+                    "weapon_background",
+                    "white_background",
+                    "yellow_background",
+                    "zoom_layer"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": 1,
+      "id": "stock-clothing-layers",
+      "name": "Clothing layers",
+      "family": "clothing-layers",
+      "rules": [],
+      "choices": [
+        {
+          "id": "top",
+          "label": "Add upper layer",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "shirt",
+                    "t-shirt",
+                    "blouse",
+                    "hoodie",
+                    "sweater",
+                    "jacket",
+                    "coat",
+                    "cardigan"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "shirt",
+              "label": "Add shirt",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "shirt"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "t-shirt",
+              "label": "Add t-shirt",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "t-shirt"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "blouse",
+              "label": "Add blouse",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "blouse"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "hoodie",
+              "label": "Add hoodie",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "hoodie"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "sweater",
+              "label": "Add sweater",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "sweater"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "jacket",
+              "label": "Add jacket",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "jacket"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "coat",
+              "label": "Add coat",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "coat"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "cardigan",
+              "label": "Add cardigan",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "cardigan"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "bottom",
+          "label": "Add lower layer",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "skirt",
+                    "pleated_skirt",
+                    "pants",
+                    "jeans",
+                    "shorts",
+                    "leggings",
+                    "track_pants"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "skirt",
+              "label": "Add skirt",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "skirt"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "pleated_skirt",
+              "label": "Add pleated skirt",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "pleated_skirt"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "pants",
+              "label": "Add pants",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "pants"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "jeans",
+              "label": "Add jeans",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "jeans"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "shorts",
+              "label": "Add shorts",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "shorts"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "leggings",
+              "label": "Add leggings",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "leggings"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "track_pants",
+              "label": "Add track pants",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "track_pants"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "layering",
+          "label": "Layer combinations",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "skirt-leggings",
+              "label": "Skirt over leggings",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "skirt",
+                    "leggings"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "skirt-pants",
+              "label": "Skirt over pants",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "skirt",
+                    "pants"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "skirt-track",
+              "label": "Skirt over track pants",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "skirt",
+                    "track_pants"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "dress-cardigan",
+              "label": "Dress with cardigan",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "dress",
+                    "cardigan"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": 1,
+      "id": "stock-clothing-pattern",
+      "name": "Clothing pattern",
+      "family": "clothing-pattern",
+      "rules": [],
+      "choices": [
+        {
+          "id": "pattern",
+          "label": "Add clothing pattern",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "striped_clothes",
+                    "polka_dot",
+                    "checkered_clothes",
+                    "floral_print",
+                    "animal_print"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "striped_clothes",
+              "label": "Add striped clothes",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "striped_clothes"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "polka_dot",
+              "label": "Add polka dot",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "polka_dot"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "checkered_clothes",
+              "label": "Add checkered clothes",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "checkered_clothes"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "floral_print",
+              "label": "Add floral print",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "floral_print"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "animal_print",
+              "label": "Add animal print",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "animal_print"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "material",
+          "label": "Add clothing material",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "denim",
+                    "leather",
+                    "latex",
+                    "lace",
+                    "silk"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "denim",
+              "label": "Add denim",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "denim"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "leather",
+              "label": "Add leather",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "leather"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "latex",
+              "label": "Add latex",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "latex"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "lace",
+              "label": "Add lace",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "lace"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "silk",
+              "label": "Add silk",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "silk"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": 1,
+      "id": "stock-accessories",
+      "name": "Accessories",
+      "family": "accessories",
+      "rules": [],
+      "choices": [
+        {
+          "id": "head",
+          "label": "Add head accessory",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "hat",
+                    "hairband",
+                    "hair_ribbon",
+                    "hair_bow",
+                    "hairclip",
+                    "headband"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "hat",
+              "label": "Add hat",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "hat"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "hairband",
+              "label": "Add hairband",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "hairband"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "hair_ribbon",
+              "label": "Add hair ribbon",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "hair_ribbon"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "hair_bow",
+              "label": "Add hair bow",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "hair_bow"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "hairclip",
+              "label": "Add hairclip",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "hairclip"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "headband",
+              "label": "Add headband",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "headband"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "jewelry",
+          "label": "Add jewelry",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "earrings",
+                    "necklace",
+                    "bracelet",
+                    "ring",
+                    "choker"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "earrings",
+              "label": "Add earrings",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "earrings"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "necklace",
+              "label": "Add necklace",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "necklace"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "bracelet",
+              "label": "Add bracelet",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "bracelet"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "ring",
+              "label": "Add ring",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "ring"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "choker",
+              "label": "Add choker",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "choker"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "clear",
+          "label": "Accessory cleanup",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "hair",
+              "label": "Omit hair accessories",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "hairband",
+                    "hair_ribbon",
+                    "hair_bow",
+                    "hairclip",
+                    "hair_ornament",
+                    "hair_flower",
+                    "scrunchie"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "eyewear",
+              "label": "Omit eyewear",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "3d_glasses",
+                    "adjusting_eyewear",
+                    "alternate_eyewear",
+                    "aqua-framed_eyewear",
+                    "aqua-tinted_eyewear",
+                    "aviator_glasses",
+                    "aviator_goggles",
+                    "aviator_sunglasses",
+                    "bespectacled",
+                    "black-framed_eyewear",
+                    "blue-framed_eyewear",
+                    "blue-tinted_eyewear",
+                    "broken_eyewear",
+                    "brown-framed_eyewear",
+                    "brown-tinted_eyewear",
+                    "cat_eye-framed_eyewear",
+                    "cleaning_eyewear",
+                    "coke-bottle_glasses",
+                    "contact_lens",
+                    "crooked_eyewear",
+                    "cum_on_eyewear",
+                    "diving_mask",
+                    "eyewear_around_neck",
+                    "eyewear_hang",
+                    "eyewear_in_mouth",
+                    "eyewear_on_head",
+                    "eyewear_on_headwear",
+                    "eyewear_strap",
+                    "eyewear_switch",
+                    "eyewear_view",
+                    "finger_on_eyewear",
+                    "fogged_glasses",
+                    "glasses",
+                    "glasses_case",
+                    "goggles",
+                    "gradient-tinted_eyewear",
+                    "green-framed_eyewear",
+                    "green-tinted_eyewear",
+                    "grey-framed_eyewear",
+                    "grey-tinted_eyewear",
+                    "groucho_glasses",
+                    "hand_on_eyewear",
+                    "heart-shaped_eyewear",
+                    "holding_removed_eyewear",
+                    "kamina_shades",
+                    "looking_for_glasses",
+                    "looking_over_eyewear",
+                    "monocle",
+                    "multicolor-tinted_eyewear",
+                    "no_eyewear",
+                    "nose_pads",
+                    "novelty_glasses",
+                    "opaque_glasses",
+                    "opera_glasses",
+                    "orange-framed_eyewear",
+                    "orange-tinted_eyewear",
+                    "over-rim_eyewear",
+                    "pince-nez",
+                    "pink-framed_eyewear",
+                    "pink-tinted_eyewear",
+                    "purple-framed_eyewear",
+                    "purple-tinted_eyewear",
+                    "rainbow-tinted_eyewear",
+                    "rectangular_eyewear",
+                    "red-framed_eyewear",
+                    "red-tinted_eyewear",
+                    "removing_eyewear",
+                    "rimless_eyewear",
+                    "round_eyewear",
+                    "safety_glasses",
+                    "scouter",
+                    "semi-circular_eyewear",
+                    "semi-rimless_eyewear",
+                    "shutter_shades",
+                    "simon_shades",
+                    "ski_goggles",
+                    "star-shaped_eyewear",
+                    "sunglasses",
+                    "teardrop-framed_glasses",
+                    "tortoiseshell-framed_eyewear",
+                    "triangular_eyewear",
+                    "two-tone_eyewear",
+                    "under-rim_eyewear",
+                    "unworn_eyewear",
+                    "white-framed_eyewear",
+                    "x-ray_glasses",
+                    "yellow-framed_eyewear",
+                    "yellow-tinted_eyewear"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": 1,
+      "id": "stock-footwear",
+      "name": "Footwear",
+      "family": "footwear",
+      "rules": [],
+      "choices": [
+        {
+          "id": "type",
+          "label": "Add footwear",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "boots",
+                    "high_heels",
+                    "sneakers",
+                    "sandals",
+                    "loafers",
+                    "barefoot"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "boots",
+              "label": "Add boots",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "boots"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "high_heels",
+              "label": "Add high heels",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "high_heels"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "sneakers",
+              "label": "Add sneakers",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "sneakers"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "sandals",
+              "label": "Add sandals",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "sandals"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "loafers",
+              "label": "Add loafers",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "loafers"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "barefoot",
+              "label": "Add barefoot",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "barefoot"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "legwear",
+          "label": "Add legwear",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "socks",
+                    "thighhighs",
+                    "pantyhose",
+                    "leggings",
+                    "kneehighs",
+                    "fishnets"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "socks",
+              "label": "Add socks",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "socks"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "thighhighs",
+              "label": "Add thighhighs",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "thighhighs"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "pantyhose",
+              "label": "Add pantyhose",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "pantyhose"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "leggings",
+              "label": "Add leggings",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "leggings"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "kneehighs",
+              "label": "Add kneehighs",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "kneehighs"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "fishnets",
+              "label": "Add fishnets",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "fishnets"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": 1,
+      "id": "stock-chest",
+      "name": "Chest attributes",
+      "family": "chest",
+      "rules": [],
+      "choices": [
+        {
+          "id": "size",
+          "label": "Chest size",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "flat_chest",
+                    "small_breasts",
+                    "medium_breasts",
+                    "large_breasts",
+                    "huge_breasts",
+                    "gigantic_breasts"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "flat_chest",
+              "label": "Use flat chest",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "flat_chest",
+                    "small_breasts",
+                    "medium_breasts",
+                    "large_breasts",
+                    "huge_breasts",
+                    "gigantic_breasts"
+                  ],
+                  "value": "flat_chest"
+                }
+              ]
+            },
+            {
+              "id": "small_breasts",
+              "label": "Use small breasts",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "flat_chest",
+                    "small_breasts",
+                    "medium_breasts",
+                    "large_breasts",
+                    "huge_breasts",
+                    "gigantic_breasts"
+                  ],
+                  "value": "small_breasts"
+                }
+              ]
+            },
+            {
+              "id": "medium_breasts",
+              "label": "Use medium breasts",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "flat_chest",
+                    "small_breasts",
+                    "medium_breasts",
+                    "large_breasts",
+                    "huge_breasts",
+                    "gigantic_breasts"
+                  ],
+                  "value": "medium_breasts"
+                }
+              ]
+            },
+            {
+              "id": "large_breasts",
+              "label": "Use large breasts",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "flat_chest",
+                    "small_breasts",
+                    "medium_breasts",
+                    "large_breasts",
+                    "huge_breasts",
+                    "gigantic_breasts"
+                  ],
+                  "value": "large_breasts"
+                }
+              ]
+            },
+            {
+              "id": "huge_breasts",
+              "label": "Use huge breasts",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "flat_chest",
+                    "small_breasts",
+                    "medium_breasts",
+                    "large_breasts",
+                    "huge_breasts",
+                    "gigantic_breasts"
+                  ],
+                  "value": "huge_breasts"
+                }
+              ]
+            },
+            {
+              "id": "gigantic_breasts",
+              "label": "Use gigantic breasts",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "flat_chest",
+                    "small_breasts",
+                    "medium_breasts",
+                    "large_breasts",
+                    "huge_breasts",
+                    "gigantic_breasts"
+                  ],
+                  "value": "gigantic_breasts"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": 1,
+      "id": "stock-nudity",
+      "name": "Nudity tags",
+      "family": "nudity",
+      "rules": [],
+      "choices": [
+        {
+          "id": "state",
+          "label": "Nudity description",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "nude",
+                    "topless",
+                    "bottomless",
+                    "completely_nude"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "nude",
+              "label": "Add nude",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "nude"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "topless",
+              "label": "Add topless",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "topless"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "bottomless",
+              "label": "Add bottomless",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "bottomless"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "completely_nude",
+              "label": "Add completely nude",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "completely_nude"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cleanup",
+          "label": "Prompt cleanup",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit nudity and exposed anatomy tags",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "nude",
+                    "topless",
+                    "bottomless",
+                    "completely_nude",
+                    "nipples",
+                    "penis",
+                    "testicles",
+                    "pussy",
+                    "anus",
+                    "erection"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": 1,
+      "id": "stock-adult-acts",
+      "name": "Adult act tags",
+      "family": "adult-acts",
+      "rules": [],
+      "choices": [
+        {
+          "id": "cleanup",
+          "label": "Prompt act tags",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave sexual acts unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "69",
+                    "adult_baby",
+                    "after_anal",
+                    "after_fellatio",
+                    "after_fingering",
+                    "after_footjob",
+                    "after_insertion",
+                    "after_masturbation",
+                    "after_paizuri",
+                    "after_rape",
+                    "after_sex",
+                    "after_vaginal",
+                    "afterglow",
+                    "ahegao",
+                    "amputee",
+                    "anal",
+                    "anal_fingering",
+                    "anal_fisting",
+                    "anal_object_insertion",
+                    "anatomy",
+                    "anilingus",
+                    "animal_insertion",
+                    "armpit_sex",
+                    "asphyxiation",
+                    "assertive_female",
+                    "assisted_rape",
+                    "autocunnilingus",
+                    "autofacial",
+                    "autofellatio",
+                    "autopaizuri",
+                    "ball_busting",
+                    "bara",
+                    "bdsm",
+                    "bestiality",
+                    "big_belly",
+                    "bisexual_female",
+                    "bisexual_male",
+                    "body_writing",
+                    "bondage",
+                    "bound_together",
+                    "breast_bondage",
+                    "breast_expansion",
+                    "breast_pump",
+                    "breast_smother",
+                    "breast_sucking",
+                    "breastfeeding",
+                    "bukkake",
+                    "bulges_touching",
+                    "bust_cup",
+                    "buttjob",
+                    "caressing_testicles",
+                    "caught",
+                    "cervical_penetration",
+                    "cheating_(relationship)",
+                    "chikan",
+                    "clitoris_torture",
+                    "cloth_glansjob",
+                    "clothed_after_sex",
+                    "clothed_female_nude_male",
+                    "clothed_sex",
+                    "compensated_molestation",
+                    "condom",
+                    "condom_left_inside",
+                    "conjoined",
+                    "consensual_tentacles",
+                    "cooperative_breast_smother",
+                    "cooperative_fellatio",
+                    "cooperative_footjob",
+                    "cooperative_handjob",
+                    "cooperative_paizuri",
+                    "covered_penetration",
+                    "cross-section",
+                    "crossdressing",
+                    "crotch_grab",
+                    "crotch_rub",
+                    "cuddling_handjob",
+                    "cum",
+                    "cum_bath",
+                    "cum_in_ass",
+                    "cum_in_clothes",
+                    "cum_in_cup",
+                    "cum_in_mouth",
+                    "cum_in_navel",
+                    "cum_in_pussy",
+                    "cum_in_throat",
+                    "cum_inflation",
+                    "cum_on_armpits",
+                    "cum_on_ass",
+                    "cum_on_back",
+                    "cum_on_body",
+                    "cum_on_breasts",
+                    "cum_on_chest",
+                    "cum_on_clothes",
+                    "cum_on_eyewear",
+                    "cum_on_feet",
+                    "cum_on_fingers",
+                    "cum_on_food",
+                    "cum_on_hair",
+                    "cum_on_pectorals",
+                    "cum_on_pussy",
+                    "cum_on_stomach",
+                    "cum_on_tongue",
+                    "cum_pool",
+                    "cum_swap",
+                    "cumdrip",
+                    "cumdump",
+                    "cunnilingus",
+                    "cuntboy",
+                    "cuntboy_with_male",
+                    "curvy",
+                    "deep_penetration",
+                    "deepthroat",
+                    "defloration",
+                    "diaper",
+                    "dirty_talk",
+                    "dominator_(bdsm)",
+                    "dominatrix",
+                    "double_amputee",
+                    "double_anal",
+                    "double_footjob",
+                    "double_handjob",
+                    "double_penetration",
+                    "double_vaginal",
+                    "drinking_pee",
+                    "ear_sex",
+                    "ejaculating_while_penetrated",
+                    "ejaculation",
+                    "enema",
+                    "exhibitionism",
+                    "extra_arms",
+                    "extra_breasts",
+                    "extra_penises",
+                    "facial",
+                    "fat",
+                    "feet",
+                    "felching",
+                    "fellatio",
+                    "female_ejaculation",
+                    "female_footjob",
+                    "female_masturbation",
+                    "femdom",
+                    "fff_threesome",
+                    "ffm_threesome",
+                    "fingering",
+                    "fingering_through_clothes",
+                    "fingering_through_panties",
+                    "fisting",
+                    "food_insertion",
+                    "foot_worship",
+                    "footjob",
+                    "footjob_from_behind",
+                    "footjob_under_table",
+                    "forniphilia",
+                    "frottage",
+                    "fucked_silly",
+                    "full-package_futanari",
+                    "futa_on_male",
+                    "futa_with_female",
+                    "futa_with_futa",
+                    "futa_with_male",
+                    "futa_with_newhalf",
+                    "futa_without_pussy",
+                    "futanari",
+                    "futanari_masturbation",
+                    "futasub",
+                    "gangbang",
+                    "giant",
+                    "giantess",
+                    "giving_birth",
+                    "glansjob",
+                    "glory_hole",
+                    "glory_wall",
+                    "gokkun",
+                    "golden_shower",
+                    "grabbing_another's_ass",
+                    "grabbing_another's_breast",
+                    "grabbing_own_breast",
+                    "groping",
+                    "group_sex",
+                    "guided_breast_grab",
+                    "guided_crotch_grab",
+                    "guided_pectoral_grab",
+                    "guided_penetration",
+                    "guro",
+                    "hairjob",
+                    "handjob",
+                    "handsfree_paizuri",
+                    "happy_sex",
+                    "have_to_pee",
+                    "hug_and_suck",
+                    "human_dog",
+                    "human_furniture",
+                    "human_toilet",
+                    "humiliation",
+                    "imminent_anal",
+                    "imminent_penetration",
+                    "imminent_rape",
+                    "imminent_vaginal",
+                    "implied_cunnilingus",
+                    "implied_fellatio",
+                    "implied_fingering",
+                    "implied_footjob",
+                    "implied_futanari",
+                    "implied_masturbation",
+                    "implied_sex",
+                    "implied_yaoi",
+                    "implied_yuri",
+                    "impregnation",
+                    "incest",
+                    "inflation",
+                    "inseki",
+                    "internal_cumshot",
+                    "irrumatio",
+                    "josou_seme",
+                    "kankaku_shadan",
+                    "kneepit_sex",
+                    "knotting",
+                    "lactation",
+                    "lactation_through_clothes",
+                    "large_insertion",
+                    "leash_pull",
+                    "legjob",
+                    "licking_armpit",
+                    "licking_foot",
+                    "licking_testicle",
+                    "loli",
+                    "love_train",
+                    "male_futanari",
+                    "male_masturbation",
+                    "male_on_futa",
+                    "male_penetrated",
+                    "masochism",
+                    "masturbation",
+                    "masturbation_through_clothes",
+                    "mating_(animal)",
+                    "mature_female",
+                    "mature_male",
+                    "mecha_on_girl",
+                    "mechanical_tentacles",
+                    "milking_machine",
+                    "miniboy",
+                    "minigirl",
+                    "mmf_threesome",
+                    "mmm_threesome",
+                    "molestation",
+                    "multiple_anal",
+                    "multiple_insertions",
+                    "multiple_penis_fellatio",
+                    "muscular",
+                    "muscular_female",
+                    "muscular_male",
+                    "muscular_other",
+                    "mutual_masturbation",
+                    "naizuri",
+                    "nantaimori",
+                    "naughty_face",
+                    "necrophilia",
+                    "neglect_play",
+                    "netorare",
+                    "newhalf_with_female",
+                    "newhalf_with_male",
+                    "newhalf_with_newhalf",
+                    "nipple_clamps",
+                    "nipple_penetration",
+                    "nipple_pull",
+                    "nipple_torture",
+                    "nipple_tweak",
+                    "no_testicles",
+                    "nosejob",
+                    "nursing_handjob",
+                    "nyotaimori",
+                    "obese",
+                    "object_insertion",
+                    "oral",
+                    "oral_sandwich",
+                    "orgy",
+                    "paizuri",
+                    "paizuri_on_lap",
+                    "paizuri_over_clothes",
+                    "paizuri_under_clothes",
+                    "pecjob",
+                    "pectoral_grab",
+                    "pectorals",
+                    "peeing",
+                    "peeing_on_viewer",
+                    "peeing_self",
+                    "peeking",
+                    "pegging",
+                    "penis_tentacle",
+                    "penises_touching",
+                    "perpendicular_paizuri",
+                    "pet_play",
+                    "pillow_humping",
+                    "plump",
+                    "pony_play",
+                    "power_bottom",
+                    "predicament_bondage",
+                    "pregnant",
+                    "prostate_milking",
+                    "prostitution",
+                    "public_bondage",
+                    "public_indecency",
+                    "public_nudity",
+                    "public_use",
+                    "public_vibrator",
+                    "pull_out",
+                    "pussy_juice",
+                    "pussy_tentacle",
+                    "quadruple_amputee",
+                    "rape",
+                    "reach-around",
+                    "reverse_footjob",
+                    "reverse_netorare",
+                    "reverse_nursing_handjob",
+                    "reverse_spitroast",
+                    "reverse_trap",
+                    "rope_walking",
+                    "rough_sex",
+                    "rusty_trombone",
+                    "sadism",
+                    "scat",
+                    "self_bondage",
+                    "self_fisting",
+                    "selfcest",
+                    "sex",
+                    "sex_from_behind",
+                    "shibari",
+                    "shibari_over_clothes",
+                    "shibari_under_clothes",
+                    "shota",
+                    "simulated_footjob",
+                    "sitting_on_face",
+                    "skinny",
+                    "skull_fucking",
+                    "slave",
+                    "sleep_molestation",
+                    "smelling",
+                    "smelling_clothes",
+                    "smelling_feet",
+                    "smelling_pantyhose",
+                    "smelling_underwear",
+                    "smother",
+                    "sounding",
+                    "spanked",
+                    "spitroast",
+                    "spreader_bar",
+                    "stealth_bondage",
+                    "stealth_masturbation",
+                    "stealth_sex",
+                    "stomach_bulge",
+                    "straddling_paizuri",
+                    "strangling",
+                    "suspension",
+                    "table_humping",
+                    "tail",
+                    "tail_insertion",
+                    "tail_masturbation",
+                    "tailjob",
+                    "take_your_pick",
+                    "tally",
+                    "teamwork_(sexual)",
+                    "teddy_bear_sex",
+                    "tentacle_clothes",
+                    "tentacle_pit",
+                    "tentacle_sex",
+                    "tentacles",
+                    "tentacles_on_male",
+                    "tentacles_under_clothes",
+                    "testicle_sucking",
+                    "testicles_touching",
+                    "thigh_sex",
+                    "threesome",
+                    "tickle_torture",
+                    "toddlercon",
+                    "torogao",
+                    "torso_grab",
+                    "torture",
+                    "tribadism",
+                    "triple_amputee",
+                    "triple_anal",
+                    "triple_penetration",
+                    "triple_vaginal",
+                    "twincest",
+                    "two-footed_footjob",
+                    "two-handed_handjob",
+                    "unbirthing",
+                    "underwater_sex",
+                    "upright_69",
+                    "urethral_insertion",
+                    "used_condom",
+                    "used_condom_on_penis",
+                    "vaginal",
+                    "vaginal_object_insertion",
+                    "vore",
+                    "voyeurism",
+                    "wakamezake",
+                    "walk-in",
+                    "wax_play",
+                    "x-ray",
+                    "yaoi",
+                    "yuri",
+                    "zenra",
+                    "implied_fellatio",
+                    "phallic_symbol",
+                    "sexually_suggestive",
+                    "simulated_bukkake",
+                    "simulated_cunnilingus",
+                    "simulated_facial",
+                    "simulated_fellatio",
+                    "simulated_footjob",
+                    "simulated_handjob",
+                    "simulated_paizuri",
+                    "yonic_symbol"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "act",
+          "label": "Add act",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "sex",
+                    "masturbation",
+                    "fellatio",
+                    "cunnilingus",
+                    "vaginal",
+                    "anal",
+                    "handjob",
+                    "paizuri"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "sex",
+              "label": "Add sex",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "sex"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "masturbation",
+              "label": "Add masturbation",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "masturbation"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "fellatio",
+              "label": "Add fellatio",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "fellatio"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "cunnilingus",
+              "label": "Add cunnilingus",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "cunnilingus"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "vaginal",
+              "label": "Add vaginal",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "vaginal"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "anal",
+              "label": "Add anal",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "anal"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "handjob",
+              "label": "Add handjob",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "handjob"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "paizuri",
+              "label": "Add paizuri",
+              "rules": [
+                {
+                  "op": "require",
+                  "tags": [
+                    "paizuri"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": 1,
+      "id": "stock-batch-protections",
+      "name": "Common batch protections",
+      "family": "batch-protections",
+      "rules": [],
+      "choices": [
+        {
+          "id": "protect",
+          "label": "Protect from batch conversion",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "composition",
+              "label": "Composition and counts",
+              "rules": [
+                {
+                  "op": "protect",
+                  "tags": [
+                    "solo",
+                    "1girl",
+                    "1boy",
+                    "2girls",
+                    "2boys",
+                    "multiple_girls",
+                    "multiple_boys",
+                    "full_body",
+                    "upper_body",
+                    "portrait"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "identity-neutral",
+              "label": "Anatomy and appearance",
+              "rules": [
+                {
+                  "op": "protect",
+                  "tags": [
+                    "blonde_hair",
+                    "brown_hair",
+                    "black_hair",
+                    "blue_eyes",
+                    "green_eyes",
+                    "brown_eyes",
+                    "dark_skin",
+                    "pale_skin",
+                    "freckles",
+                    "mole"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "globals": [],

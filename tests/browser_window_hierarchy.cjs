@@ -20,7 +20,7 @@ const assert=require('node:assert/strict');
   }
   await page.locator('[data-panel-key="image-metadata"]').getByRole('button',{name:'Close',exact:true}).first().click();
   for(let i=0;i<2;i++) {
-    await viewer.focus();await viewer.getByRole('button',{name:'Use for prefix…',exact:true}).click();await above('source-prefix');
+    await viewer.focus();await viewer.getByRole('button',{name:'Prefix associations…',exact:true}).click();await above('source-prefix');
   }
   await page.locator('[data-panel-key="source-prefix"]').getByRole('button',{name:'Close',exact:true}).first().click();
   for(let i=0;i<2;i++) {

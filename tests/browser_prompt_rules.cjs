@@ -9,7 +9,7 @@ try{
  const manager=page.locator('[data-panel-key="prompt-rules"]');await manager.waitFor();
  await manager.getByLabel('Add ruleset',{exact:true}).selectOption('builtin-hair');
  const hair=manager.getByRole('group',{name:'Ruleset box Hair',exact:true});
- const length=hair.locator('select').first();await length.selectOption('short_hair');
+ const length=hair.getByLabel('Hair length',{exact:true});await length.selectOption('short_hair');
  await manager.getByRole('button',{name:'Import legacy blacklist as Protect rules',exact:true}).click();
  await manager.getByRole('button',{name:'Save rules library',exact:true}).click();
  await page.waitForFunction(async()=>{const data=await(await fetch('/Gallery/rulesets')).json();return data.library.globals.length===2;});await observer.waitForFunction(()=>window.rulesBroadcastSeen>0);await observer.close();
@@ -36,7 +36,7 @@ try{
  // Queue serialization waits for the just-started prefix load.
  program=await page.evaluate(async()=>JSON.parse(await window.qaRules.widgets.find(w=>w.name==='rules_state').serializeValue()));assert.equal(program.filter(b=>b.origin==='prefix').length,1);
  await editor.getByRole('button',{name:'Override on encoder',exact:true}).click();
- const override=editor.getByRole('group',{name:'Ruleset box Hair',exact:true}).last();await override.locator('select').first().selectOption('short_hair');
+ const override=editor.getByRole('group',{name:'Ruleset box Hair',exact:true}).last();await override.getByLabel('Hair length',{exact:true}).selectOption('short_hair');
  await editor.getByText('Required and excluded:',{exact:false}).waitFor({state:'detached'});
  program=await page.evaluate(async()=>JSON.parse(await window.qaRules.widgets.find(w=>w.name==='rules_state').serializeValue()));assert.equal(program.filter(b=>b.origin==='encoder').length,1);
  assert.equal(program.find(b=>b.origin==='encoder').preferences.length,'short_hair');

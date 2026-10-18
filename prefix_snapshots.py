@@ -47,7 +47,14 @@ def capture_snapshot(library,data,baseline_boxes=None):
     hair=clean_policy(hair);hair['attributes']=sorted(hair['attributes']);hair={} if hair['mode']=='specific' and not hair.get('singleColour') else hair
     signature={'prefix_id':prefix['id'],'positive':terms(positive),'negative':terms(negative),'rules':program(boxes),'hair':hair}
     base={'prefix_id':prefix['id'],'positive':terms(prefix_terms(library,prefix)),'negative':terms(prefix.get('negative_terms',[])),'rules':program(baseline_boxes or []),'hair':{}}
-    if signature==base:return None
+    if signature==base:
+        keys=data.get('image_keys',[]);references=data.get('image_refs',{})
+        if not isinstance(keys,list) or len(keys)>256 or any(not isinstance(key,str) or len(key)>4096 for key in keys) or not isinstance(references,dict):raise ValueError('Invalid snapshot image membership.')
+        for key in keys:
+            reference=references.get(key,{})
+            if not isinstance(reference,dict) or any(not isinstance(value,str) or len(value)>4096 for value in reference.values()):raise ValueError('Invalid associated image reference.')
+            library.setdefault('associations',{})[key]={'prefix_id':prefix['id'],'terms':prefix_terms(library,prefix),'negative_terms':prefix.get('negative_terms',[]),**({'image':reference} if reference else {})}
+        return None
     identifier=hashlib.sha256(json.dumps(signature,sort_keys=True,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
     snapshots=library.setdefault('snapshots',{})
     if identifier not in snapshots:snapshots[identifier]={'id':identifier,'prefix_id':prefix['id'],'name':str(data.get('name') or '')[:160],'terms':positive,'negative_terms':negative,'rules':boxes,'hair_policy':hair,'members':{},'created_at':time.time()}
