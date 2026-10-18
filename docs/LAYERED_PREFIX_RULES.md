@@ -20,7 +20,7 @@ The old implicit mutually-exclusive-tag editor/encoder rewrite is retired. **Imp
 
 ## Counts and hair experiments
 
-Group headers count leaf tags inside alternatives and grouped chips. With filtering/rules active they show retained/total; collapsed omitted tags are struck through. Counts describe reachable template tags, not the number sampled in one generation.
+Group headers count leaf tags inside alternatives and grouped chips. With filtering/rules active they show retained/total; omitted tags are struck through in the collapsible Prompt preview. The preview starts closed, preserves nested AND/OR/OPTIONAL relationships and weights, and scrolls within a bounded area when expanded. Counts describe reachable template tags, not the number sampled in one generation.
 
 Minimal hair direction has **AND** (keep every checked attribute) and **EITHER** (sample one checked attribute per queued prompt). EITHER previews show possible tags; all images in a single generated batch share the chosen prompt. The effective sampled hair policy is recorded in image metadata.
 

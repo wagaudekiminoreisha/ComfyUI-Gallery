@@ -1,4 +1,4 @@
 import {type ReactNode} from 'react';
-export const LOGIC_COLOURS:Record<string,string>={AND:'#49aa19',OR:'#4096ff',EITHER:'#4096ff','PICK ONE':'#4096ff',EXCLUDE:'#ff7875',ADD:'#49aa19','IN BOTH':'#b37feb',KEEP:'#a6a6a6',PROTECT:'#d89614','AT MOST ONE':'#4096ff',IF:'#b37feb',NOT:'#ff7875'};
+export const LOGIC_COLOURS:Record<string,string>={OPTIONAL:'#d89614',AND:'#49aa19',OR:'#4096ff',EITHER:'#4096ff','PICK ONE':'#4096ff',EXCLUDE:'#ff7875',ADD:'#49aa19','IN BOTH':'#b37feb',KEEP:'#a6a6a6',PROTECT:'#d89614','AT MOST ONE':'#4096ff',IF:'#b37feb',NOT:'#ff7875'};
 export function LogicBadge({name,children}:{name:string;children?:ReactNode}){const color=LOGIC_COLOURS[name]||'#a6a6a6';return <span className="cg-logic-badge" style={{borderColor:color,color,background:color+'14'}}>{children||name}</span>;}
 export function RuleTagChips({tags,removed=false}:{tags:string[];removed?:boolean}){return <span className="cg-rule-tag-chips">{tags.length?tags.map((tag,index)=><span className="cg-rule-tag" key={index} style={{textDecoration:removed?'line-through':undefined}}>{tag.replace(/_/g,' ')}</span>):<span className="cg-rule-empty">∅</span>}</span>;}

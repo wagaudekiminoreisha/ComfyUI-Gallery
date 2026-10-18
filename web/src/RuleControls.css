@@ -45,3 +45,9 @@
 
 .cg-snapshot-rail {border-left:4px solid #9270c9;padding:5px 8px;margin:0 0 8px;display:flex;gap:6px;flex-wrap:wrap;}
 .cg-snapshot-rail.expanded {background:#9270c914;}
+
+.cg-prompt-preview {margin:4px 6px;min-width:0;max-width:100%;}
+.cg-prompt-preview>summary {cursor:pointer;font-size:12px;user-select:none;}
+.cg-prompt-preview-body {max-height:220px;overflow:auto;padding:6px 2px;}
+.cg-prompt-expression {display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;max-width:100%;}
+.cg-prompt-branch {display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;border:1px solid #8886;border-radius:6px;padding:3px 5px;max-width:100%;}
