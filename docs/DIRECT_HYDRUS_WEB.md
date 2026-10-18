@@ -61,8 +61,8 @@ build, restart its server and hard-refresh the browser/PWA to load the new files
 This direct connection also works from other static deployments when their browser
 can reach ComfyUI.
 
-The current ComfyUI entry remains an output-folder browser. Hydrus search/export/tag
-controls remain deferred. The old Node import-folder scheduler and its saved rules
+The ComfyUI entry offers output folders plus the hybrid browser described below.
+Hydrus export and tag-editing controls remain deferred. The old Node import-folder scheduler and its saved rules
 are retained in source/data for compatibility, but normal app launch no longer
 starts that scheduler and its bridge-only configuration is removed from the UI.
 Gallery's own Hydrus features remain available in Gallery.
@@ -80,3 +80,15 @@ visible error in Settings. A Gallery installation before commit `d82aa5a` has no
 direct endpoint: its ordinary Gallery can work while Hydrus Web cannot connect.
 Update the actual `ComfyUI/custom_nodes/ComfyUI-Gallery` checkout and restart ComfyUI;
 updating the development checkout alone does not update that installation.
+
+## Hydrus Web hybrid browser
+
+Hydrus Web now uses this same authenticated connection for recursive output metadata,
+the current user's prefix library and revision-checked direct prefix pairing edits.
+The new `/catalogue`, `/library` and `/association` endpoints retain the origin/session
+and installation checks. Catalogue pages use a session-bound ten-minute path snapshot,
+exclude virtual and physical archives, and return SHA-256 identities and compact
+metadata. The shallow `/output` and scoped media-ticket endpoints remain unchanged.
+Hydrus Web obtains Hydrus records through its own saved API connection, merges copies
+by hash, and offers prefix, snapshot and source-lineage scopes. No companion server
+is needed. Restart ComfyUI after installing this Python update.

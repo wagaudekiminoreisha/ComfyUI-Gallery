@@ -141,7 +141,7 @@ from gallery_qa.gallery_app import register_gallery_app_routes
 register_source_routes(routes, lambda: MEDIA, lambda: INPUT)
 register_gallery_app_routes(routes)
 from gallery_qa.direct_connection import register_direct_connection
-register_direct_connection(app, routes, lambda: MEDIA, '11111111-1111-4111-8111-111111111111', lambda: bridge.settings.load())
+register_direct_connection(app, routes, lambda: MEDIA, '11111111-1111-4111-8111-111111111111', lambda: bridge.settings.load(), lambda request: MEMORY / 'prompt-library.json')
 app.add_routes(routes)
 
 async def homepage(request):

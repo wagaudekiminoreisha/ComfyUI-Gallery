@@ -76,7 +76,8 @@ gallery_instance_id = register_instance_identity(PromptServer.instance.app, Prom
 from .direct_connection import register_direct_connection
 register_direct_connection(PromptServer.instance.app, PromptServer.instance.routes,
                            folder_paths.get_output_directory, gallery_instance_id,
-                           lambda: hydrus_bridge.settings.load())
+                           lambda: hydrus_bridge.settings.load(),
+                           lambda request: PromptServer.instance.user_manager.get_request_user_filepath(request, "prompt-library.json"))
 
 from .rules_library import register_rules_routes
 register_rules_routes(PromptServer.instance.routes, lambda request: PromptServer.instance.user_manager.get_request_user_filepath(request, 'gallery-rulesets.json'))

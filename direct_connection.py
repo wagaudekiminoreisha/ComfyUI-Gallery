@@ -12,8 +12,8 @@ from .thumbnails import ThumbnailService
 PREFIX = '/Gallery/hydrus-web'
 
 
-def register_direct_connection(app, routes, get_root, identity, get_settings):
-    challenges, sessions, tickets = {}, {}, {}
+def register_direct_connection(app, routes, get_root, identity, get_settings, get_library_path=None):
+    challenges, sessions, tickets, catalogues = {}, {}, {}, {}
     thumbnails = ThumbnailService(get_root)
 
     def key(): return get_settings().get('access_key', '')
@@ -93,6 +93,56 @@ def register_direct_connection(app, routes, get_root, identity, get_settings):
             sessions[token] = {'origin': origin, 'expires': time.monotonic() + 3600, 'key': fingerprint()}
             return web.json_response({'instanceId': identity, 'session': token, 'proof': signature('server', challenge, origin, token)})
         session = authorized(request, origin)
+        if tail == '/library' and request.method == 'GET':
+            from .prefix_library import read
+            library, revision = await asyncio.to_thread(read, get_library_path(request)) if get_library_path else ({'version': 2, 'tags': [], 'prefixes': []}, '')
+            return web.json_response({'library': library, 'revision': revision})
+        if tail == '/association' and request.method == 'POST':
+            import re
+            from .prefix_library import update
+            from .direct_catalogue import cached_hash
+            if not get_library_path: raise ValueError('Update Gallery to support prefix associations.')
+            body = await request.json()
+            if not isinstance(body, dict) or body.get('action') not in ('associate', 'dissociate'): raise ValueError('Invalid association operation.')
+            items = body.get('items')
+            if not isinstance(items, list) or not 1 <= len(items) <= 128: raise ValueError('Choose 1–128 images.')
+            references = {}
+            for item in items:
+                if not isinstance(item, dict): raise ValueError('Invalid image.')
+                if item.get('source') == 'comfy':
+                    path = output_path(get_root(), item.get('id'))
+                    if not path.is_file() or path.suffix.lower() not in MEDIA_EXTENSIONS: raise ValueError('Output media is unavailable.')
+                    stat = path.stat()
+                    digest = await asyncio.to_thread(cached_hash, str(path), stat.st_size, stat.st_mtime_ns)
+                    url = '/static_gallery/' + quote(item['id'], safe='/')
+                    ref = {'hash': digest, 'name': path.name, 'root': './', 'local_url': url}
+                    references['local:./:'+url] = ref
+                elif item.get('source') == 'hydrus' and isinstance(item.get('hash'), str) and re.fullmatch('[a-f0-9]{64}', item['hash']):
+                    digest = item['hash']; ref = {'hash': digest}
+                else: raise ValueError('Invalid image identity.')
+                references['sha256:'+digest] = ref
+            result = await asyncio.to_thread(update, get_library_path(request), {'action': body['action'], 'revision': body.get('revision'), 'prefix_id': body.get('prefix_id'), 'image_keys': list(references), 'image_refs': references})
+            return web.json_response(result)
+        if tail == '/catalogue' and request.method == 'POST':
+            from .direct_catalogue import catalogue, listing, archive_exclusions
+            body = await request.json()
+            if not isinstance(body, dict): raise ValueError('Expected catalogue request.')
+            prune(catalogues)
+            catalogue_id = body.get('catalogueId')
+            if catalogue_id:
+                record = catalogues.get(catalogue_id)
+                if not record or record['session'] != session: return web.json_response({'error': 'Output search expired. Search again.'}, status=409)
+            else:
+                excluded = []
+                if get_library_path:
+                    excluded = await asyncio.to_thread(archive_exclusions, get_library_path(request), get_root())
+                rows = await asyncio.to_thread(listing, get_root(), body.get('order', 'date'), excluded)
+                if len(catalogues) >= 32: catalogues.pop(next(iter(catalogues)))
+                catalogue_id = secrets.token_urlsafe(24)
+                record = {'session': session, 'rows': rows, 'expires': time.monotonic()+600}
+                catalogues[catalogue_id] = record
+            result = await asyncio.to_thread(catalogue, get_root(), body.get('offset', 0), body.get('limit', 100), rows=record['rows'])
+            return web.json_response({**result, 'catalogueId': catalogue_id})
         if tail == '/output' and request.method == 'POST':
             body = await request.json()
             if not isinstance(body, dict): raise ValueError('Expected output folder request.')
@@ -119,6 +169,7 @@ def register_direct_connection(app, routes, get_root, identity, get_settings):
             return await handler(request)
         try: response = await dispatch(request)
         except web.HTTPException as error: response = web.json_response({'error': error.text or error.reason}, status=error.status)
+        except FileExistsError as error: response = web.json_response({'error': str(error)}, status=409)
         except (ValueError, TypeError, OSError): response = web.json_response({'error': 'Invalid request or output path unavailable.'}, status=400)
         origin = request.headers.get('Origin')
         if origin:
