@@ -91,7 +91,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
         const notes = [notice,
             ...(mode === 'together' ? neverTogether(state, conflicts).map(ids => 'Never together: ' + names(ids)) : []),
             ...(mode !== 'off' ? alwaysTogether(state, conflicts).map(([a, b]) => `${a} and ${b} are both always used (make one optional)`) : [])].filter(Boolean);
-        root.render(<PromptBoxEditor state={state} source={source} preview={filterHairPrompt(composeWithSource(compiledNow(), source.text), cleanHairPolicy(state.hairPolicy))} suggest={suggest} onChange={commit} lastEncodedPrompt={node.__galleryEffectivePrompt} notice={notes.join(' · ')} />);
+        root.render(<PromptBoxEditor state={state} source={source} unfilteredPreview={composeWithSource(compiledNow(), source.text)} preview={filterHairPrompt(composeWithSource(compiledNow(), source.text), cleanHairPolicy(state.hairPolicy))} suggest={suggest} onChange={commit} lastEncodedPrompt={node.__galleryEffectivePrompt} notice={notes.join(' · ')} />);
     };
     const exclusiveChanged = () => { sync(); render(); };
     window.addEventListener(EXCLUSIVE_MODE_EVENT, exclusiveChanged);

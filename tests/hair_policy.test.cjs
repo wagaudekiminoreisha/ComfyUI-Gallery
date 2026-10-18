@@ -21,3 +21,11 @@ test('hair warnings respect branches, colour families, and intentional mixed col
  assert(hairWarnings('fiery_hair').some(s=>s.startsWith('Hair material')));
  assert(hairWarnings('highlights').some(s=>s.startsWith('Ambiguous')));
 });
+
+test('hair summary counts recognised template terms rather than deleting saved chips',()=>{
+ const {hairFilterSummary}=load('HairPolicy');
+ const summary=hairFilterSummary('long hair, {blonde hair|brown hair}, sidelocks, hair bow, beard',{mode:'minimal',attributes:['length']});
+ assert.deepEqual(summary.retained,['long_hair']);
+ assert.deepEqual(summary.omitted,['blonde_hair','brown_hair','sidelocks']);
+ assert.equal(summary.incomplete,false);
+});

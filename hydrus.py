@@ -33,6 +33,7 @@ DEFAULTS = {
     "tag_service_key": "",
     "default_tags": [],
     "send_metadata": False,
+    "hydrus_web_enabled": True,
     "positive_prompt_tags": False,
     "danbooru_prompt_tags": False,
     "negative_prompt_tags": False,
@@ -120,7 +121,7 @@ class HydrusSettings:
                 raise HydrusError(key + " must contain hexadecimal characters.")
         if not result["profile"]:
             raise HydrusError("Profile cannot be empty.")
-        for key in ("send_metadata", "positive_prompt_tags", "negative_prompt_tags", "prefix_positive_prompt_tags", "danbooru_prompt_tags"):
+        for key in ("hydrus_web_enabled", "send_metadata", "positive_prompt_tags", "negative_prompt_tags", "prefix_positive_prompt_tags", "danbooru_prompt_tags"):
             if type(result[key]) is not bool:
                 raise HydrusError(key + " must be true or false.")
         if type(result["timeout_seconds"]) not in (int, float) or not 5 <= result["timeout_seconds"] <= 300:

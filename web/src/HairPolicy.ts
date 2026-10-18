@@ -49,3 +49,15 @@ export function hairWarnings(text: string, policy = DEFAULT_HAIR_POLICY): string
     if (items.some(item => hairAttribute(item.tag) === 'material')) warnings.push('Hair material/effect tag: fiery hair, glowing hair and non-hair materials deliberately request effects or unusual surfaces. Omit them unless intended; this is not a checkpoint-specific diagnosis.');
     return warnings;
 }
+
+/** Counts potential recognised terms in the template, not sampled tags or saved chips. */
+export function hairFilterSummary(text: string, value: unknown) {
+    const policy = cleanHairPolicy(value), parsed = promptRuleOccurrences(text);
+    const omitted = new Set<string>(), retained = new Set<string>();
+    for (const occurrence of parsed.occurrences) {
+        const attribute = hairAttribute(occurrence.tag);
+        if (!attribute) continue;
+        (policy.mode === 'natural' || policy.mode === 'minimal' && !policy.attributes.includes(attribute) ? omitted : retained).add(canonical(occurrence.tag));
+    }
+    return { omitted: [...omitted], retained: [...retained], incomplete: parsed.incomplete };
+}

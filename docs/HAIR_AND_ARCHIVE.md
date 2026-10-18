@@ -12,6 +12,12 @@ Expand **Hair prompting** in Gallery Prompt Encode:
 - **Minimal direction** retains only the checked hair attributes; length is the
   initial selection. Uncheck all to omit all recognized hair attributes.
 
+The Hair filtering summary shows recognised potential terms omitted/retained in
+the compiled template. Box tag counts still describe saved chips, including tags
+that filtering leaves out. Accessories, facial/body hair and unknown terms remain.
+Keeping length permits supplied length tags; it does not automatically choose one
+mutually exclusive length. Optional choices are still sampled when queued.
+
 The original boxes/chips and connected source remain intact, so changing back to
 Specific restores their effect. Policy is saved in the workflow and sent through
 the encoder's optional `hair_policy` widget. Filtering runs on the Python backend

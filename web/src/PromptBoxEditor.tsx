@@ -559,7 +559,7 @@ function PromptTrash({ owner }: { owner: string }) {
     </div>,document.body);
 }
 
-export function PromptBoxEditor({ state, source, preview, suggest, onChange, notice, lastEncodedPrompt }: { state: BoxState; source: SourceInfo; preview: string; suggest: (query: string) => Promise<Suggestion[]>; onChange: (state: BoxState) => void; notice?: string; lastEncodedPrompt?: string }) {
+export function PromptBoxEditor({ state, source, preview, suggest, onChange, notice, lastEncodedPrompt, unfilteredPreview }: { state: BoxState; source: SourceInfo; preview: string; suggest: (query: string) => Promise<Suggestion[]>; onChange: (state: BoxState) => void; notice?: string; lastEncodedPrompt?: string; unfilteredPreview?: string }) {
     const owner = useId();
     return <div data-prompt-editor={owner} style={S.root} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
         <PromptTrash owner={owner} />
@@ -570,7 +570,7 @@ export function PromptBoxEditor({ state, source, preview, suggest, onChange, not
             onGroup={(mode, tags) => { const made = groupChips(mode, tags); if (made.length) onChange(addBoxWithChip(state, made)); }}
             onPrefix={(item, head) => onChange(addBox(head ? addBox(state, undefined, head) : state, item.label, (item.terms || []).join(', ')))} /></div>
         {notice && <div role="status" style={{ opacity: .8, color: '#d89614' }}>{notice}</div>}
-        <HairControls value={state.hairPolicy} onChange={hairPolicy => onChange({ ...state, hairPolicy })} />
+        <HairControls template={unfilteredPreview ?? preview} value={state.hairPolicy} onChange={hairPolicy => onChange({ ...state, hairPolicy })} />
         <HairReview text={preview} policy={state.hairPolicy} />
         <ClothingReview text={preview} />
         <GlobalTagReview text={preview} />

@@ -70,6 +70,20 @@ class DirectConnectionTests(unittest.IsolatedAsyncioTestCase):
         response = await self.client.get('/prompt', headers=headers)
         self.assertEqual(response.status, 403, 'unrelated ComfyUI routes retain the normal guard')
 
+    async def test_toggle_disables_access_and_revokes_sessions(self):
+        headers = await self.handshake()
+        self.settings['hydrus_web_enabled'] = False
+        response = await self.client.get(PREFIX + '/health', headers={'Origin': ORIGIN})
+        health = await response.json()
+        self.assertFalse(health['enabled'])
+        self.assertNotIn('challenge', health)
+        response = await self.client.post(PREFIX + '/output', headers=headers, json={})
+        self.assertEqual(response.status, 403)
+        self.settings['hydrus_web_enabled'] = True
+        response = await self.client.post(PREFIX + '/output', headers=headers, json={})
+        self.assertEqual(response.status, 401)
+        await self.handshake()
+
     async def test_wrong_key_and_challenge_replay_are_rejected(self):
         headers = {'Origin': ORIGIN}
         health = await (await self.client.get(PREFIX + '/health', headers=headers)).json()

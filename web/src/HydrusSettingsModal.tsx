@@ -22,7 +22,7 @@ export function HydrusSettingsModal() {
         setLoadingServices(false);
         if (!settingsOpen) return;
         form.setFieldsValue({ url: 'http://127.0.0.1:45869', profile: 'main', timeout_seconds: 30,
-            tag_service_key: '', default_tags: [], send_metadata: false, prefix_positive_prompt_tags: true, ...settings, access_key: '', clear_access_key: false });
+            hydrus_web_enabled: true, tag_service_key: '', default_tags: [], send_metadata: false, prefix_positive_prompt_tags: true, ...settings, access_key: '', clear_access_key: false });
         setError('');
         setTest(undefined);
         setServices([]);
@@ -93,6 +93,11 @@ export function HydrusSettingsModal() {
                 form.setFieldValue('tag_service_key', '');
             }
         }}>
+            <Form.Item name="hydrus_web_enabled" label="Allow Hydrus Web to connect" valuePropName="checked"
+                extra="Save connection applies this toggle. The connection runs inside ComfyUI; no separate program or port is needed. Disabling blocks Hydrus Web output browsing.">
+                <Switch aria-label="Allow Hydrus Web to connect" />
+            </Form.Item>
+            <Typography.Paragraph>ComfyUI address for Hydrus Web: <Typography.Text copyable>{location.origin}</Typography.Text></Typography.Paragraph>
             <Form.Item name="url" label="Client API URL" rules={[{ required: true, message: 'Enter the Hydrus Client API URL.' },
                 { pattern: /^https?:\/\//i, message: 'Use an http:// or https:// URL.' }]}>
                 <Input placeholder="http://127.0.0.1:45869" autoComplete="off" />

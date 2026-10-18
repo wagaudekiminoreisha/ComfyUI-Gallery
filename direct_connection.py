@@ -17,6 +17,7 @@ def register_direct_connection(app, routes, get_root, identity, get_settings):
     thumbnails = ThumbnailService(get_root)
 
     def key(): return get_settings().get('access_key', '')
+    def enabled(): return get_settings().get('hydrus_web_enabled', True) is True
     def fingerprint(): return hashlib.sha256(key().encode()).hexdigest()
     def prune(mapping):
         for token, record in list(mapping.items()):
@@ -46,6 +47,12 @@ def register_direct_connection(app, routes, get_root, identity, get_settings):
         if request.method == 'OPTIONS':
             origin_of(request)
             return web.Response(status=204)
+        if not enabled():
+            challenges.clear(); sessions.clear(); tickets.clear()
+            if tail == '/health' and request.method == 'GET':
+                origin_of(request)
+                return web.json_response({'ok': True, 'version': 1, 'instanceId': identity, 'enabled': False, 'configured': bool(key())})
+            return web.json_response({'error': 'Hydrus Web connection is disabled in Gallery. Enable it in Gallery connection settings and save.'}, status=403)
         # Media elements cannot attach a bearer header. Tickets authorize just one
         # output path and representation, expire quickly and die with their session.
         if tail == '/media' and request.method in ('GET', 'HEAD'):
@@ -69,7 +76,7 @@ def register_direct_connection(app, routes, get_root, identity, get_settings):
             if len(challenges) >= 256: challenges.pop(next(iter(challenges)))
             challenge = secrets.token_hex(32)
             challenges[challenge] = {'origin': origin, 'expires': time.monotonic() + 30}
-            return web.json_response({'ok': True, 'version': 1, 'instanceId': identity, 'challenge': challenge, 'configured': bool(key())})
+            return web.json_response({'ok': True, 'version': 1, 'instanceId': identity, 'challenge': challenge, 'configured': bool(key()), 'enabled': True})
         if tail == '/handshake' and request.method == 'POST':
             if not key(): return web.json_response({'error': 'Save the Hydrus connection in Gallery first.'}, status=409)
             body = await request.json()
