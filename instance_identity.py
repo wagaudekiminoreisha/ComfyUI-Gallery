@@ -50,3 +50,4 @@ def register_instance_identity(app, routes, directory, describe, get_hydrus_sett
         return await handler(request)
 
     app.middlewares.append(guard)
+    return identity

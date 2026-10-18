@@ -1,5 +1,6 @@
 """Local-only QA: real gallery bridge + simulated Hydrus; never contacts user's client."""
 import asyncio
+import os
 import hashlib
 import importlib.util
 import json
@@ -31,6 +32,11 @@ for i, color in enumerate(['#294b65', '#bd8559', '#518978', '#796baa']):
         info = PngImagePlugin.PngInfo()
         info.add_text('prompt', json.dumps({'1': {'class_type': 'KSampler', 'inputs': {'seed': 42}}}))
         im.save(p, pnginfo=info)
+
+if os.environ.get('GALLERY_DIRECT_QA') == '1':
+    paging = MEDIA / 'direct-paging'
+    paging.mkdir()
+    for index in range(120): (paging / f'page-{index:03}.png').write_bytes((MEDIA / 'study-1.png').read_bytes())
 
 package = types.ModuleType('gallery_qa')
 package.__path__ = [str(REPO)]
@@ -130,6 +136,8 @@ from gallery_qa.image_source_api import register_source_routes
 from gallery_qa.gallery_app import register_gallery_app_routes
 register_source_routes(routes, lambda: MEDIA, lambda: INPUT)
 register_gallery_app_routes(routes)
+from gallery_qa.direct_connection import register_direct_connection
+register_direct_connection(app, routes, lambda: MEDIA, '11111111-1111-4111-8111-111111111111', lambda: bridge.settings.load())
 app.add_routes(routes)
 
 async def homepage(request):

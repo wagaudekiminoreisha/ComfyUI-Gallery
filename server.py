@@ -66,11 +66,16 @@ def get_gallery_static_root():
 
 
 from .instance_identity import register_instance_identity
-register_instance_identity(PromptServer.instance.app, PromptServer.instance.routes,
+gallery_instance_id = register_instance_identity(PromptServer.instance.app, PromptServer.instance.routes,
                            folder_paths.get_user_directory(),
                            lambda: {"mediaRootMatches": os.path.realpath(get_gallery_static_root()) == os.path.realpath(
                                os.path.join(folder_paths.get_output_directory(), load_settings().get("relativePath") or "./")),
                                     "monitorRunning": bool(monitor and monitor.thread and monitor.thread.is_alive())},
+                           lambda: hydrus_bridge.settings.load())
+
+from .direct_connection import register_direct_connection
+register_direct_connection(PromptServer.instance.app, PromptServer.instance.routes,
+                           folder_paths.get_output_directory, gallery_instance_id,
                            lambda: hydrus_bridge.settings.load())
 
 from .prefix_library import register_prefix_routes
