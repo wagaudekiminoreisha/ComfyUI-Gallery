@@ -89,6 +89,10 @@ hydrus_bridge = register_hydrus_routes(PromptServer.instance.routes, get_gallery
 PromptServer.instance.app.on_startup.append(hydrus_bridge.sync.startup)
 PromptServer.instance.app.on_cleanup.append(hydrus_bridge.sync.cleanup)
 register_thumbnail_routes(PromptServer.instance.routes, get_gallery_static_root)
+from .output_browser import register_output_routes
+register_output_routes(PromptServer.instance.routes, folder_paths.get_output_directory)
+register_thumbnail_routes(PromptServer.instance.routes, folder_paths.get_output_directory,
+                          route_path='/Gallery/output-thumbnail')
 register_source_routes(PromptServer.instance.routes, get_gallery_static_root,
                        folder_paths.get_input_directory)
 
