@@ -1,0 +1,427 @@
+{
+  "version": 1,
+  "definitions": [
+    {
+      "version": 1,
+      "id": "builtin-hair",
+      "name": "Hair",
+      "family": "hair",
+      "rules": [],
+      "choices": [
+        {
+          "id": "length",
+          "label": "Hair length",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "absurdly_long_hair",
+                    "long_hair",
+                    "medium_hair",
+                    "short_hair",
+                    "very_long_hair",
+                    "very_short_hair"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "short_hair",
+              "label": "short hair",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "absurdly_long_hair",
+                    "long_hair",
+                    "medium_hair",
+                    "short_hair",
+                    "very_long_hair",
+                    "very_short_hair"
+                  ],
+                  "value": "short_hair"
+                }
+              ]
+            },
+            {
+              "id": "medium_hair",
+              "label": "medium hair",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "absurdly_long_hair",
+                    "long_hair",
+                    "medium_hair",
+                    "short_hair",
+                    "very_long_hair",
+                    "very_short_hair"
+                  ],
+                  "value": "medium_hair"
+                }
+              ]
+            },
+            {
+              "id": "long_hair",
+              "label": "long hair",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "absurdly_long_hair",
+                    "long_hair",
+                    "medium_hair",
+                    "short_hair",
+                    "very_long_hair",
+                    "very_short_hair"
+                  ],
+                  "value": "long_hair"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "colour",
+          "label": "Hair colour",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "aqua_hair",
+                    "black_hair",
+                    "blonde_hair",
+                    "blue_hair",
+                    "brown_hair",
+                    "dark_blue_hair",
+                    "dark_green_hair",
+                    "green_hair",
+                    "grey_hair",
+                    "light_blue_hair",
+                    "light_brown_hair",
+                    "light_green_hair",
+                    "light_purple_hair",
+                    "orange_hair",
+                    "pink_hair",
+                    "purple_hair",
+                    "red_hair",
+                    "silver_hair",
+                    "white_hair"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "blonde_hair",
+              "label": "blonde hair",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_hair",
+                    "black_hair",
+                    "blonde_hair",
+                    "blue_hair",
+                    "brown_hair",
+                    "dark_blue_hair",
+                    "dark_green_hair",
+                    "green_hair",
+                    "grey_hair",
+                    "light_blue_hair",
+                    "light_brown_hair",
+                    "light_green_hair",
+                    "light_purple_hair",
+                    "orange_hair",
+                    "pink_hair",
+                    "purple_hair",
+                    "red_hair",
+                    "silver_hair",
+                    "white_hair"
+                  ],
+                  "value": "blonde_hair"
+                }
+              ]
+            },
+            {
+              "id": "brown_hair",
+              "label": "brown hair",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_hair",
+                    "black_hair",
+                    "blonde_hair",
+                    "blue_hair",
+                    "brown_hair",
+                    "dark_blue_hair",
+                    "dark_green_hair",
+                    "green_hair",
+                    "grey_hair",
+                    "light_blue_hair",
+                    "light_brown_hair",
+                    "light_green_hair",
+                    "light_purple_hair",
+                    "orange_hair",
+                    "pink_hair",
+                    "purple_hair",
+                    "red_hair",
+                    "silver_hair",
+                    "white_hair"
+                  ],
+                  "value": "brown_hair"
+                }
+              ]
+            },
+            {
+              "id": "black_hair",
+              "label": "black hair",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_hair",
+                    "black_hair",
+                    "blonde_hair",
+                    "blue_hair",
+                    "brown_hair",
+                    "dark_blue_hair",
+                    "dark_green_hair",
+                    "green_hair",
+                    "grey_hair",
+                    "light_blue_hair",
+                    "light_brown_hair",
+                    "light_green_hair",
+                    "light_purple_hair",
+                    "orange_hair",
+                    "pink_hair",
+                    "purple_hair",
+                    "red_hair",
+                    "silver_hair",
+                    "white_hair"
+                  ],
+                  "value": "black_hair"
+                }
+              ]
+            },
+            {
+              "id": "white_hair",
+              "label": "white hair",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "aqua_hair",
+                    "black_hair",
+                    "blonde_hair",
+                    "blue_hair",
+                    "brown_hair",
+                    "dark_blue_hair",
+                    "dark_green_hair",
+                    "green_hair",
+                    "grey_hair",
+                    "light_blue_hair",
+                    "light_brown_hair",
+                    "light_green_hair",
+                    "light_purple_hair",
+                    "orange_hair",
+                    "pink_hair",
+                    "purple_hair",
+                    "red_hair",
+                    "silver_hair",
+                    "white_hair"
+                  ],
+                  "value": "white_hair"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "effects",
+          "label": "Hair materials / effects",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit unusual hair materials",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "cloud_hair",
+                    "crystal_hair",
+                    "energy_hair",
+                    "feather_hair",
+                    "fiery_hair",
+                    "food-themed_hair",
+                    "glowing_hair",
+                    "intestine_hair",
+                    "liquid_hair",
+                    "living_hair",
+                    "mechanical_hair",
+                    "plant_hair",
+                    "ribbon_hair",
+                    "slime_hair",
+                    "snake_hair",
+                    "starry_hair",
+                    "tentacle_hair"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": 1,
+      "id": "builtin-pose",
+      "name": "Pose",
+      "family": "pose",
+      "rules": [],
+      "choices": [
+        {
+          "id": "posture",
+          "label": "Primary posture",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Leave unspecified",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "standing",
+                    "sitting",
+                    "lying",
+                    "kneeling",
+                    "crouching"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "standing",
+              "label": "standing",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "standing",
+                    "sitting",
+                    "lying",
+                    "kneeling",
+                    "crouching"
+                  ],
+                  "value": "standing"
+                }
+              ]
+            },
+            {
+              "id": "sitting",
+              "label": "sitting",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "standing",
+                    "sitting",
+                    "lying",
+                    "kneeling",
+                    "crouching"
+                  ],
+                  "value": "sitting"
+                }
+              ]
+            },
+            {
+              "id": "lying",
+              "label": "lying",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "standing",
+                    "sitting",
+                    "lying",
+                    "kneeling",
+                    "crouching"
+                  ],
+                  "value": "lying"
+                }
+              ]
+            },
+            {
+              "id": "kneeling",
+              "label": "kneeling",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "standing",
+                    "sitting",
+                    "lying",
+                    "kneeling",
+                    "crouching"
+                  ],
+                  "value": "kneeling"
+                }
+              ]
+            },
+            {
+              "id": "crouching",
+              "label": "crouching",
+              "rules": [
+                {
+                  "op": "select",
+                  "tags": [
+                    "standing",
+                    "sitting",
+                    "lying",
+                    "kneeling",
+                    "crouching"
+                  ],
+                  "value": "crouching"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "globals": [],
+  "prefixes": {}
+}

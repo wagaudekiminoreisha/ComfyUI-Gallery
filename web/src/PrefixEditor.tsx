@@ -1,3 +1,4 @@
+import {openRules} from './RulesLibrary';
 import { DeletePrefixButton } from './DeletePrefixButton';
 import type { PrefixDraft } from './UnsavedPrefix';
 import { useState, type Dispatch, type SetStateAction } from 'react';
@@ -37,6 +38,7 @@ export function PrefixEditor({ onLoad, shared, seed, active, name, setName, posi
     const add = (side: 'positive' | 'negative' | 'hydrus') => (side === 'negative' ? setNegative : setPositive)(old => Array.from(new Set([...old, ...(seed[side] || [])])));
     return <div className="cg-prefix-editor" style={{ border: '1px solid #8884', borderRadius: 8, padding: 10 }}>
         <Typography.Text strong>Prefix editor</Typography.Text>
+        <Button disabled={!existing} onClick={()=>openRules(existing?.id)}>Prefix rules…</Button>
         {!!seed.imageKeys?.length && <Typography.Paragraph style={{ margin: '4px 0 0' }}>Saving pairs this prefix with the selected image(s). Its terms will be enabled when you append them to a workflow.</Typography.Paragraph>}
         <Space wrap style={{ marginTop: 8, width: '100%' }}>
             <Select aria-label="Prefix polarity filter" value={polarity} onChange={setPolarity} options={POLARITY_OPTIONS} style={{ width: 190 }} />

@@ -1,18 +1,22 @@
+import {RuleProtection,useGlobalProtections} from './RuleProtection';
+import {RuleBoxes} from './RuleBoxes';
+import {openRules} from './RulesLibrary';
+import type {RuleBox,Ruleset} from './RuleEngine';
 import { HairControls, HairReview } from './HairControls';
-import { BatchBlacklistEditor, useBatchTagBlacklist } from './BatchBlacklistEditor';
+import { useBatchTagBlacklist } from './BatchBlacklistEditor';
 import { ClothingReview } from './ClothingReview';
 import { GlobalTagReview } from './GlobalTagReview';
 import { convertBoxContents, applyBatchTags, batchTagItems, batchTagName, removeTagsFromChip, availableBatchTags, eligibleBatchIds } from './BatchTagBlacklist';
-import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from 'react';
+import { useContext, useMemo, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { theme } from 'antd';
 import { dropPromptChip, PROMPT_CHIP_TYPE } from './PromptDrag';
 import { clearPromptDrag, promptDragTrash, PROMPT_DRAG_EVENT, startPromptPointerDrag } from './PromptPointerDrag';
 import { addBox, addBoxWithChip, addChips, addModeOf, ADD_MODES, chipItems, convertChip, withItems, balanced, chipTerms, closesChip, compileChip, editChips, expandKeywords, closeBraces, groupChips, groupingKind, groupingName, GROUPING_LABELS, formatBoxTerms, moveBox, moveBoxTo, moveItem, parsePrompt, parseTyped, pendingKeyword, removeBox, sourceKey, splitChip, splitTop, typingToken, updateBox, type AddMode, type BoxState, type Chip, type GroupBox, type GroupingKind, type OrChip, type SourceBox } from './PromptBoxes';
 
-export type Suggestion = { label: string; kind: 'tag' | 'prefix'; terms?: string[] };
+export type Suggestion = { label: string; kind: 'tag' | 'prefix'; terms?: string[]; prefixId?: string };
 /** What the node's `source_text` input currently provides. `text` is known for Gallery Image Source and after a run. */
-export type SourceInfo = { connected: boolean; text?: string; note?: string; prefixes?: { id: string; name: string }[]; append?: (prefixId: string, text: string) => Promise<void> };
+export type SourceInfo = { connected: boolean; negative?: boolean; text?: string; note?: string; prefixes?: { id: string; name: string }[]; append?: (prefixId: string, text: string) => Promise<void> };
 
 /** What is being dragged right now (dataTransfer contents are not readable while dragging over a target). */
 let dragging: { kind: 'chip'; id: string; chip: Chip } | { kind: 'box'; id: string } | undefined;
@@ -339,7 +343,8 @@ function GroupView({ box, index, count, state, onChange, suggest, bare, placehol
     const [picked, setPicked] = useState<string[]>([]);
     const [selecting, setSelecting] = useState(false);
     const selectionAnchor = useRef<string | undefined>(undefined);
-    const blacklist = useBatchTagBlacklist();
+    const legacyBlacklist = useBatchTagBlacklist(), ruleProtection=useContext(RuleProtection);
+    const blacklist = useMemo(()=>[...new Set([...legacyBlacklist,...ruleProtection])],[legacyBlacklist,ruleProtection]);
     const eligible = eligibleBatchIds(box.chips, blacklist);
     const pickedIds = picked.filter(id => eligible.includes(id));
     useEffect(() => { setPicked(old => old.filter(id => eligible.includes(id))); }, [blacklist, box.chips]);
@@ -434,7 +439,7 @@ function GroupView({ box, index, count, state, onChange, suggest, bare, placehol
             <Btn label="Select all chips" disabled={!eligible.length} onClick={() => { setPicked(eligible); setSelected(undefined); setActiveChipId(undefined); }}>Select all</Btn>
         </div>
         <Btn label={box.chipsCollapsed ? 'Expand tag groups' : 'Collapse tag groups'} onClick={() => patch({ chipsCollapsed: !box.chipsCollapsed })}>{box.chipsCollapsed ? '▸' : '▾'} Tag groups ({box.chips.length})</Btn>
-        <BatchBlacklistEditor chips={box.chips} />
+        <small>Batch protections: {blacklist.length} · <button type="button" onClick={()=>openRules()}>Rules &amp; protections</button></small>
         {eligible.length < box.chips.length && <small style={S.muted}>{box.chips.length - eligible.length} chip(s) excluded from batch selection</small>}
         {!!pickedIds.length && <MergeBar count={selectedCount} onClear={clearSelection}
             onEnabled={enabled => { const next = applyBatchTags(state, box.id, pickedIds, blacklist, enabled ? 'enable' : 'disable'); const ids = new Set(box.chips.map(chip => chip.id)); setPicked(next.boxes.flatMap(item => item.kind === 'group' && item.id === box.id ? item.chips.filter(chip => (!ids.has(chip.id) || pickedIds.includes(chip.id)) && eligibleBatchIds([chip], blacklist).includes(chip.id)).map(chip => chip.id) : [])); onChange(next); }} onRemove={removePicked} />}
@@ -559,24 +564,31 @@ function PromptTrash({ owner }: { owner: string }) {
     </div>,document.body);
 }
 
-export function PromptBoxEditor({ state, source, preview, suggest, onChange, notice, lastEncodedPrompt, unfilteredPreview }: { state: BoxState; source: SourceInfo; preview: string; suggest: (query: string) => Promise<Suggestion[]>; onChange: (state: BoxState) => void; notice?: string; lastEncodedPrompt?: string; unfilteredPreview?: string }) {
+export function PromptBoxEditor({ state, source, preview, suggest, onChange, notice, lastEncodedPrompt, unfilteredPreview, ruleDefinitions = [], inheritedRules = [], ruleErrors = [], ruleProtected = [], onReloadRules, rulesNotice }: { state: BoxState; source: SourceInfo; preview: string; suggest: (query: string) => Promise<Suggestion[]>; onChange: (state: BoxState) => void; notice?: string; lastEncodedPrompt?: string; unfilteredPreview?: string; ruleDefinitions?: Ruleset[]; inheritedRules?: RuleBox[]; ruleErrors?: string[]; ruleProtected?: string[]; onReloadRules?: ()=>void; rulesNotice?: string }) {
     const owner = useId();
-    return <div data-prompt-editor={owner} style={S.root} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
+    return <RuleProtection.Provider value={ruleProtected}><div data-prompt-editor={owner} style={S.root} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
         <PromptTrash owner={owner} />
         {state.boxes.map((box, index) => box.kind === 'source'
             ? <SourceView key={box.id} box={box} index={index} count={state.boxes.length} state={state} onChange={onChange} source={source} suggest={suggest} />
             : <GroupView key={box.id} box={box} index={index} count={state.boxes.length} state={state} onChange={onChange} suggest={suggest} />)}
         <div style={{display:'flex'}}><AddInput placeholder="New box: type tags and press Enter" suggest={suggest} onText={text => onChange(addBoxWithChip(state, parseTyped(text)))}
             onGroup={(mode, tags) => { const made = groupChips(mode, tags); if (made.length) onChange(addBoxWithChip(state, made)); }}
-            onPrefix={(item, head) => onChange(addBox(head ? addBox(state, undefined, head) : state, item.label, (item.terms || []).join(', ')))} /></div>
+            onPrefix={(item, head) => { const next=addBox(head ? addBox(state, undefined, head) : state,item.label,(item.terms||[]).join(', ')); onChange({...next,boxes:next.boxes.map(box=>box.kind==='group'&&box.name===item.label?{...box,prefixId:item.prefixId}:box)}); }} /></div>
         {notice && <div role="status" style={{ opacity: .8, color: '#d89614' }}>{notice}</div>}
+        <details aria-label="Encoder rules" open><summary>Rulesets</summary>
+            <RuleBoxes definitions={ruleDefinitions} value={state.rulesets||[]} inherited={inheritedRules} promote onChange={rulesets=>onChange({...state,rulesets})}/>
+            <button type="button" onClick={()=>openRules()}>Manage rulesets</button> <button type="button" onClick={onReloadRules}>Reload global defaults</button>
+            {rulesNotice&&<p role="status">{rulesNotice}</p>}
+            {ruleErrors.map(error=><div role="alert" key={error}>{error} Encoding will stop until the rules agree.</div>)}
+            <small>Encoder overrides prefix rules, then global defaults, for the same family and scope. Rules run after optional choices. Scope does not create regional conditioning.</small>
+        </details>
         <HairControls template={unfilteredPreview ?? preview} value={state.hairPolicy} onChange={hairPolicy => onChange({ ...state, hairPolicy })} />
         <HairReview text={preview} policy={state.hairPolicy} />
         <ClothingReview text={preview} />
         <GlobalTagReview text={preview} />
         <CopyablePrompt title="Prompt sent to the encoder" value={preview} />
         {lastEncodedPrompt !== undefined && <><CopyablePrompt title="Last encoded prompt (after optional choices)" value={lastEncodedPrompt} /><HairReview resolved text={lastEncodedPrompt} policy={state.hairPolicy} /></>}
-    </div>;
+    </div></RuleProtection.Provider>;
 }
 
 /** Image prompt chips use the same shapes and drag behavior, with the gallery theme. */
@@ -606,6 +618,7 @@ const termsOf = (state: BoxState): string[] => state.boxes.flatMap(box => box.ki
  */
 export function TermsEditor({ value, onChange, suggest, placeholder, clothingReview = false }: { value: string[]; onChange: (terms: string[]) => void; suggest: (query: string) => Promise<Suggestion[]>; placeholder?: string; clothingReview?: boolean }) {
     const owner = useId();
+    const globalProtection = useGlobalProtections(value.join(', '));
     const [state, setState] = useState<BoxState>(() => termsBox(value));
     // Follow changes made outside (loading another prefix, "add all"), but keep chip identity while editing here.
     useEffect(() => { if (JSON.stringify(termsOf(state)) !== JSON.stringify(value)) setState(termsBox(value)); }, [JSON.stringify(value)]);
@@ -615,12 +628,12 @@ export function TermsEditor({ value, onChange, suggest, placeholder, clothingRev
     const { token } = theme.useToken();
     const look = { '--comfy-input-bg': token.colorBgContainer, '--comfy-menu-bg': token.colorFillTertiary, '--comfy-menu-hover-bg': token.controlItemBgHover, '--input-text': token.colorText, '--border-color': token.colorBorder,
         '--cg-primary': token.colorPrimary, '--cg-primary-ring': token.controlOutline, '--cg-radius': token.borderRadius + 'px', font: `${token.fontSize}px ${token.fontFamily}`, color: token.colorText } as CSSProperties;
-    return <div data-prompt-editor={owner} className="cg-terms" style={{ ...S.root, padding: 0, minHeight: 0, ...look }} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
+    return <RuleProtection.Provider value={globalProtection}><div data-prompt-editor={owner} className="cg-terms" style={{ ...S.root, padding: 0, minHeight: 0, ...look }} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
         <PromptTrash owner={owner} />
         <style>{TERMS_STYLE}</style>
         <GroupView bare box={box} index={0} count={1} state={state} onChange={change} suggest={suggest} placeholder={placeholder} />
         {clothingReview && <ClothingReview text={termsOf(state).join(', ')} />}
         {clothingReview && <GlobalTagReview text={termsOf(state).join(', ')} />}
         {clothingReview && <HairReview text={termsOf(state).join(', ')} />}
-    </div>;
+    </div></RuleProtection.Provider>;
 }

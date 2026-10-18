@@ -24,7 +24,7 @@ export function makeSuggest(deps: SuggestDeps) {
         const found: Suggestion[] = [], seen = new Set<string>();
         const add = (item: Suggestion) => { const key = item.kind + ':' + item.label.toLowerCase(); if (!seen.has(key) && found.length < 10) { seen.add(key); found.push(item); } };
         const shared = await library();
-        for (const prefix of shared?.prefixes || []) { if (found.length >= 10) break; if (prefix.name.toLowerCase().includes(needle)) add({ label: prefix.name, kind: 'prefix', terms: deps.expandPrefix(shared!, '@' + prefix.name) }); }
+        for (const prefix of shared?.prefixes || []) { if (found.length >= 10) break; if (prefix.name.toLowerCase().includes(needle)) add({ label: prefix.name, kind: 'prefix', prefixId:prefix.id, terms: deps.expandPrefix(shared!, '@' + prefix.name) }); }
         if (!query.startsWith('@')) {
             // Library entries that are whole {a|b} groups or long tag lists (saved from grouped appends) are not single tags.
             for (const tag of shared?.tags || []) { if (found.length >= 10) break; if (/[{}|]/.test(tag.text) || tag.text.includes(',')) continue; if (tag.text.toLowerCase().includes(needle)) add({ label: tag.text, kind: 'tag' }); }

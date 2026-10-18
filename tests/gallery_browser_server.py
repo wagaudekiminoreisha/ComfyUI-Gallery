@@ -126,6 +126,8 @@ bridge = module.register_hydrus_routes(routes, lambda: str(MEDIA), storage_dir=M
 app.on_startup.append(bridge.sync.startup)
 app.on_cleanup.append(bridge.sync.cleanup)
 thumb_module.register_thumbnail_routes(routes, lambda: str(MEDIA))
+from gallery_qa.rules_library import register_rules_routes
+register_rules_routes(routes, lambda request: MEMORY / 'gallery-rulesets.json')
 from gallery_qa.prefix_library import register_prefix_routes
 register_prefix_routes(routes, lambda request: MEMORY / "prompt-library.json")
 from gallery_qa.media_archive import register_archive_routes

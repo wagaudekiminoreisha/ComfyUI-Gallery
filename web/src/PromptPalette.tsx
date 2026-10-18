@@ -9,7 +9,7 @@ import { expandPrefix, loadPrefixes, matchesPolarity, POLARITY_OPTIONS, type Pre
 type Vocabulary = { items: { name: string; count: number }[]; total: number; categories: { value: string; label: string; count: number; source: string }[] };
 const FAVORITES = 'gallery-vocabulary-favorites';
 /** An explicit browseable vocabulary, separate from autocomplete suggestions. */
-export function PromptPalette({ onChoose, onSearch, onAppend, onEdit, chooseSearches = false }: { chooseSearches?: boolean; onEdit?: (prefixId: string) => void; onAppend?: (groups: string[][], options: PromptInsertion, meta?: { name?: string }) => Promise<void>; onChoose: (terms: string[], prefixId?: string, negativeTerms?: string[]) => void; onSearch?: (terms: string[]) => void }) {
+export function PromptPalette({ onChoose, onSearch, onAppend, onEdit, chooseSearches = false }: { chooseSearches?: boolean; onEdit?: (prefixId: string) => void; onAppend?: (groups: string[][], options: PromptInsertion, meta?: { name?: string;prefixIds?:string[] }) => Promise<void>; onChoose: (terms: string[], prefixId?: string, negativeTerms?: string[]) => void; onSearch?: (terms: string[]) => void }) {
     type Pick = { key: string; label: string; terms: string[]; prefixId?: string };
     const [selected, setSelected] = useState<Record<string, Pick>>({});
     const [insertion, setInsertion] = useState<PromptInsertion>(defaultInsertion);
@@ -59,9 +59,9 @@ export function PromptPalette({ onChoose, onSearch, onAppend, onEdit, chooseSear
             if (grouping !== 'combined' && picks.some(row => row.prefixId)) {
                 // Prepending reverses calls, so the resulting boxes retain the selection order.
                 for (const { row, terms } of options.position === 'before' ? [...chosen].reverse() : chosen) {
-                    await onAppend(terms.map(term => [term]), { ...options, format: grouping === 'individual' ? rules[row.key] || options.format : options.format }, { name: row.prefixId ? row.label : undefined });
+                    await onAppend(terms.map(term => [term]), { ...options, format: grouping === 'individual' ? rules[row.key] || options.format : options.format }, { name: row.prefixId ? row.label : undefined,prefixIds:row.prefixId?[row.prefixId]:[] });
                 }
-            } else await onAppend(chosen.map(item => item.terms), options, { name: chosen.every(item => item.row.prefixId) ? chosen.map(item => item.row.label).join(' + ') : undefined });
+            } else await onAppend(chosen.map(item => item.terms), options, { name: chosen.every(item => item.row.prefixId) ? chosen.map(item => item.row.label).join(' + ') : undefined,prefixIds:chosen.flatMap(item=>item.row.prefixId?[item.row.prefixId]:[]) });
         } catch (error) { setError(String(error)); } finally { setInserting(false); }
     };
     const selectAll = async () => { setInserting(true); setError(''); try { const all = await allMatching(); setSelected(Object.fromEntries(all.map(row => [row.key, row]))); } catch (error) { setError(String(error)); } finally { setInserting(false); } };

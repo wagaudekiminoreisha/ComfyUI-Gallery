@@ -1,3 +1,5 @@
+import {rulesRequest,RULES_CHANGED} from './RulesLibrary';
+import {applyRulePreview,type RuleBox,type RulesLibrary} from './RuleEngine';
 import { cleanHairPolicy, filterHairPrompt } from './HairPolicy';
 import { removeTagsFromChip } from './BatchTagBlacklist';
 import { createRoot } from 'react-dom/client';
@@ -24,7 +26,7 @@ export function sourcePromptInfo(node: any): SourceInfo {
             const side = link.origin_slot === 4 ? 'positive' : 'negative';
             const images = manifest.layout === 'single' ? manifest.images.slice(manifest.active_index || 0, (manifest.active_index || 0) + 1) : manifest.images;
             const ids = [...new Set(images.map(image => image.metadata?.gallery_prefix?.id).filter((id): id is string => typeof id === 'string'))];
-            return { connected: true, text: sourcePrompt(manifest, side), prefixes: ids.map(id => ({ id, name: images.find(image => image.metadata?.gallery_prefix?.id === id)?.metadata?.gallery_prefix?.name || id })),
+            return { connected: true, negative:side==='negative', text: sourcePrompt(manifest, side), prefixes: ids.map(id => ({ id, name: images.find(image => image.metadata?.gallery_prefix?.id === id)?.metadata?.gallery_prefix?.name || id })),
                 append: async (id, text) => {
                     const library = await loadPrefixes();
                     const prefix = library.prefixes.find(item => item.id === id);
@@ -66,6 +68,12 @@ export function installPromptBoxes(node: any, deps: Deps) {
 
     if (!widget('hair_policy')) node.addWidget?.('text', 'hair_policy', '{}', () => undefined);
     state = { ...state, hairPolicy: state.hairPolicy || cleanHairPolicy(widget('hair_policy')?.value) };
+    if (!widget('rules_state')) node.addWidget?.('text','rules_state','[]',()=>undefined);
+    let rulesLibrary:RulesLibrary={version:1,definitions:[],globals:[],prefixes:{}};
+    let inheritedRules:RuleBox[]=node.properties?.gallery_inherited_rules||[];
+    let rulesNotice='';let alive=true;let rulesRequestId=0;let rulesPending:Promise<void>=Promise.resolve();
+    const effectiveRules=()=>[...inheritedRules,...(state.rulesets||[])];
+    const syncRules=()=>{const rules=widget('rules_state');if(rules)rules.value=JSON.stringify(effectiveRules());};
     const suggest = makeSuggest(deps);
 
     const host = document.createElement('div');
@@ -80,6 +88,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
     const compiledNow = () => compileBoxes(state, together());
     /** Keep the stored prompt in step with the boxes (the exclusive mode can change without an edit). */
     const sync = () => {
+        syncRules();
         const hair = widget('hair_policy');
         if (hair) hair.value = JSON.stringify(cleanHairPolicy(state.hairPolicy));
         const compiled = compiledNow(), text = widget('text');
@@ -91,11 +100,36 @@ export function installPromptBoxes(node: any, deps: Deps) {
         const notes = [notice,
             ...(mode === 'together' ? neverTogether(state, conflicts).map(ids => 'Never together: ' + names(ids)) : []),
             ...(mode !== 'off' ? alwaysTogether(state, conflicts).map(([a, b]) => `${a} and ${b} are both always used (make one optional)`) : [])].filter(Boolean);
-        root.render(<PromptBoxEditor state={state} source={source} unfilteredPreview={composeWithSource(compiledNow(), source.text)} preview={filterHairPrompt(composeWithSource(compiledNow(), source.text), cleanHairPolicy(state.hairPolicy))} suggest={suggest} onChange={commit} lastEncodedPrompt={node.__galleryEffectivePrompt} notice={notes.join(' · ')} />);
+        const rawPreview=composeWithSource(compiledNow(),source.text),filtered=filterHairPrompt(rawPreview,cleanHairPolicy(state.hairPolicy));
+        let reviewed:ReturnType<typeof applyRulePreview>;
+        try{reviewed=applyRulePreview(filtered,effectiveRules());}catch(error){reviewed={text:filtered,errors:[String(error)],notes:[],protectedTags:[]};}
+        root.render(<PromptBoxEditor ruleDefinitions={rulesLibrary.definitions} inheritedRules={inheritedRules} ruleErrors={reviewed.errors} ruleProtected={reviewed.protectedTags} rulesNotice={[rulesNotice,...reviewed.notes].filter(Boolean).join(' · ')} onReloadRules={()=>void loadRules(true)} state={state} source={source} unfilteredPreview={rawPreview} preview={reviewed.text} suggest={suggest} onChange={commit} lastEncodedPrompt={node.__galleryEffectivePrompt} notice={notes.join(' · ')} />);
     };
+    function loadRules(resetGlobals=false) {
+        const requestId=++rulesRequestId;
+        const task=(async()=>{try {
+            const [result,prefixes]=await Promise.all([rulesRequest(),deps.loadLibrary()]);
+            if(!alive||requestId!==rulesRequestId)return;rulesLibrary=result.library;
+            if(resetGlobals||state.rulesets===undefined){state={...state,rulesets:[...rulesLibrary.globals.map(box=>({...box,origin:'global' as const})),...(resetGlobals?(state.rulesets||[]).filter(box=>box.origin!=='global'):[])]};}
+            const source=sourcePromptInfo(node);
+            const sourceEnabled=state.boxes.some(box=>box.kind==='source'&&box.enabled);
+            const ids=new Set<string>([...(sourceEnabled&&!source.negative?source.prefixes?.map(prefix=>prefix.id)||[]:[]),...state.boxes.flatMap(box=>box.kind==='group'&&box.enabled?[...(box.prefixId?[box.prefixId]:[]),...(box.prefixIds||[])]:[])]);
+            // Nested @prefix references contribute their attached rules without losing their origin.
+            const visited=new Set<string>();
+            const visit=(id:string)=>{if(visited.has(id)||visited.size>=100)return;const prefix=prefixes.prefixes.find(item=>item.id===id);if(!prefix?.tags.length)return;visited.add(id);for(const tagId of prefix?.tags||[]){const text=prefixes.tags.find(tag=>tag.id===tagId)?.text.trim();if(text?.startsWith('@')){const child=prefixes.prefixes.find(item=>item.name.toLowerCase()===text.slice(1).toLowerCase());if(child)visit(child.id);}}};
+            ids.forEach(visit);
+            inheritedRules=[...visited].flatMap(id=>(rulesLibrary.prefixes[id]||[]).map(box=>({...box,id:'prefix:'+id+':'+box.id,origin:'prefix' as const,label:'Prefix '+(prefixes.prefixes.find(item=>item.id===id)?.name||id)})));
+            node.properties ||= {};node.properties.gallery_inherited_rules=inheritedRules;node.properties.prompt_boxes=state;
+            rulesNotice='';syncRules();render();sizing.request(false);
+        } catch(error){if(alive&&requestId===rulesRequestId){rulesNotice='Rules library unavailable; saved snapshots remain active. '+String(error);render();}}})();
+        rulesPending=task;return task;
+    }
+    widget('rules_state').serializeValue=async()=>{let pending;do{pending=rulesPending;await pending;}while(pending!==rulesPending);if(state.rulesets===undefined)throw new Error('Rules library could not be loaded. Retry Reload global defaults before queuing this new encoder.');syncRules();return widget('rules_state').value;};
+    const rulesChanged=(event:Event)=>{void loadRules(!!(event as CustomEvent).detail?.resetGlobals);};window.addEventListener(RULES_CHANGED,rulesChanged);window.addEventListener('gallery-prefix-library-changed',rulesChanged);
     const exclusiveChanged = () => { sync(); render(); };
     window.addEventListener(EXCLUSIVE_MODE_EVENT, exclusiveChanged);
     /** Shown under the boxes after an edit, e.g. which tags "Exclusive tags" turned off. */
+    let inheritedPrefixSignature:unknown[]=[];
     let notice = '';
     function commit(next: BoxState) {
         const groups = state.boxes.filter(box => box.kind === 'group');
@@ -107,7 +141,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
             next = result.state;
             if (result.disabled.length) notice = 'Exclusive tags turned off: ' + result.disabled.join(', ');
         }
-        state = next;
+        state = next;syncRules();
         const hair = widget('hair_policy'); if (hair) hair.value = JSON.stringify(cleanHairPolicy(state.hairPolicy));
         node.properties ||= {}; node.properties.prompt_boxes = state;
         const compiled = compiledNow(), text = widget('text'), mode = widget('source_mode');
@@ -116,6 +150,8 @@ export function installPromptBoxes(node: any, deps: Deps) {
         node.setDirtyCanvas?.(true, true); node.graph?.change?.();
         render();
         sizing.request(removedTail);
+        if(JSON.stringify(next.boxes.flatMap(box=>box.kind==='group'?[box.prefixId,box.prefixIds,box.enabled]:[box.enabled]))!==JSON.stringify(inheritedPrefixSignature))void loadRules();
+        inheritedPrefixSignature=next.boxes.flatMap(box=>box.kind==='group'?[box.prefixId,box.prefixIds,box.enabled]:[box.enabled]);
     }
     /** Re-read the stored text: if something else changed it (an API call, another extension) the boxes follow it. */
     const refresh = () => {
@@ -127,21 +163,21 @@ export function installPromptBoxes(node: any, deps: Deps) {
         sync(); render();
     };
 
-    hideWidget(widget('text')); hideWidget(widget('source_mode')); hideWidget(widget('hair_policy'));
+    hideWidget(widget('text')); hideWidget(widget('source_mode')); hideWidget(widget('hair_policy')); hideWidget(widget('rules_state'));
     const dom = node.addDOMWidget('prompt_boxes', 'prompt_boxes', host, sizing.options);
     if (dom) dom.serialize = false;
     sizing.calibrate();
     node.__galleryPromptBoxes = {
         /** Library and image-prompt appends arrive here as text and become their own box. Returns the compiled prompt. */
-        insert(text: string, position: 'before' | 'after' | 'replace', name?: string) { commit(insertText(state, text, position, name)); return compiledNow(); },
+        insert(text: string, position: 'before' | 'after' | 'replace', name?: string, prefixId?:string|string[]) { let next=insertText(state,text,position,name);if(prefixId)next={...next,boxes:next.boxes.map(box=>box.kind==='group'&&!state.boxes.some(previous=>previous.id===box.id)?{...box,...(Array.isArray(prefixId)?{prefixIds:prefixId}:{prefixId})}:box)};commit(next);void loadRules();return compiledNow(); },
     };
 
     for (const key of ['onConnectionsChange', 'onConfigure']) {
         const previous = node[key];
         node[key] = function (...args: any[]) {
             const result = previous?.apply(this, args);
-            if (key === 'onConfigure') state = parseState(node.properties?.prompt_boxes) ?? state;
-            setTimeout(refresh, 0);
+            if (key === 'onConfigure') {state = parseState(node.properties?.prompt_boxes) ?? state;inheritedRules=node.properties?.gallery_inherited_rules||[];syncRules();}
+            setTimeout(()=>{refresh();void loadRules();}, 0);
             return result;
         };
     }
@@ -153,12 +189,13 @@ export function installPromptBoxes(node: any, deps: Deps) {
         render();
         return result;
     };
-    const changed = () => refresh();
+    const changed = () => {refresh();void loadRules();};
     window.addEventListener('gallery-source-changed', changed);
     const removed = node.onRemoved;
     node.onRemoved = function (...args: any[]) {
         window.removeEventListener('gallery-source-changed', changed);
         window.removeEventListener(EXCLUSIVE_MODE_EVENT, exclusiveChanged);
+        alive=false;window.removeEventListener(RULES_CHANGED,rulesChanged);window.removeEventListener('gallery-prefix-library-changed',rulesChanged);
         sizing.dispose();
         setTimeout(() => root.unmount(), 0);
         return removed?.apply(this, args);
@@ -166,4 +203,5 @@ export function installPromptBoxes(node: any, deps: Deps) {
 
     node.setSize?.([Math.max(400, node.size?.[0] || 0), Math.max(node.size?.[1] || 0, node.computeSize?.()[1] || 0, 460)]);
     if (saved) refresh(); else commit(state);
+    void loadRules();
 }

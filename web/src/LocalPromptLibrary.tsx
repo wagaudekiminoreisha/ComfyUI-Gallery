@@ -124,7 +124,7 @@ export function LocalPromptSearch({ onLocalSearch, managerOnly = false }: { onLo
             const terms = await formatPromptTerms(positive.length ? positive : prefix.negative_terms || []);
             if (seed.node.__galleryPromptBoxes) {
                 seed.node.properties ||= {}; seed.node.properties.prompt_library_selected_prefix = prefix.id;
-                seed.node.__galleryPromptBoxes.insert(terms.join(', '), 'after', prefix.name);
+                seed.node.__galleryPromptBoxes.insert(terms.join(', '), 'after', prefix.name, prefix.id);
                 message.success('Prefix appended to the node'); return;
             }
             const combined = [nodePrompt(seed.node), terms.join(', ')].filter(Boolean).join(', ');
@@ -198,7 +198,7 @@ export function LocalPromptSearch({ onLocalSearch, managerOnly = false }: { onLo
                     const terms = options.format === 'comma' && options.weight === 1 && !options.prefix && !options.suffix ? groups.flat() : [await prepareInsertion(groups, options)];
                     addToDraft(terms, paletteTarget); setEditorOpen(true); message.success('Added to the prefix editor (' + paletteTarget + ')'); return;
                 }
-                if (!appendTarget) throw new Error('Choose a prompt target above first.'); const text = await prepareInsertion(groups, options); const value = await writePromptTarget(appendTarget, text, options.position, meta?.name); if (seed.node && JSON.parse(appendTarget)[0] === String(seed.node.id)) setNodeText(value); message.success('Appended to prompt node'); }}
+                if (!appendTarget) throw new Error('Choose a prompt target above first.'); const text = await prepareInsertion(groups, options); const value = await writePromptTarget(appendTarget, text, options.position, meta?.name,meta?.prefixIds); if (seed.node && JSON.parse(appendTarget)[0] === String(seed.node.id)) setNodeText(value); message.success('Appended to prompt node'); }}
                 onChoose={(terms, prefixId) => { const prefix = shared.prefixes.find(item => item.id === prefixId); openTagSearch(terms, 'all', prefix ? { id: prefix.id, name: prefix.name, terms } : undefined); }}
                 onSearch={terms => openTagSearch(terms)} />
             <Typography.Paragraph type="secondary" style={{ marginTop: 8 }}>{status}. Prefix definitions are shared with your Prompt Library node.</Typography.Paragraph>

@@ -7,13 +7,12 @@ try{
  const node={comfyClass:'GalleryPromptEncode',widgets:[{name:'text',value:'a, b, c'},{name:'source_mode',value:'after'}],inputs:[{name:'source_text',link:null}],properties:{},setDirtyCanvas(){},addWidget(type,name,value,callback){this.widgets.push({type,name,value,callback});},addDOMWidget(name,type,el){host.append(el);return{name,type};}};window.comfyAPI.app.app.graph.add(node);window.qaExtension.nodeCreated(node);window.qaBatch=node;});
 
  const editor=page.locator('#qa-batch');
- await editor.locator('summary').filter({hasText:'Batch blacklist'}).click();
- const blacklist=editor.getByRole('textbox',{name:'Batch tag blacklist',exact:true});
- await editor.getByRole('textbox',{name:'Search tags in this box',exact:true}).fill('b');await editor.getByRole('checkbox',{name:'Blacklist b',exact:true}).check();await editor.getByRole('button',{name:'Save batch blacklist',exact:true}).click();
+ const protect=async tags=>{await page.evaluate(async tags=>{const response=await fetch('/Gallery/rulesets');const data=await response.json();const definition={version:1,id:'qa-batch-protection',name:'QA batch protections',family:'batch-protection',rules:[{op:'protect',tags}],choices:[]};data.library.globals=[{id:'qa-protect',definition,origin:'global',scope:'main',preferences:{},enabled:true,collapsed:true}];const saved=await fetch('/Gallery/rulesets',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(!saved.ok)throw new Error(await saved.text());window.dispatchEvent(new CustomEvent('gallery-rules-changed',{detail:{resetGlobals:true}}));},tags);};
+ await protect(['b']);
  await editor.getByText('1 chip(s) excluded from batch selection',{exact:true}).waitFor();
  await editor.getByRole('button',{name:'Select all chips',exact:true}).click();await editor.getByText('2 selected',{exact:true}).waitFor();
  // Saving new entries also removes them from an existing selection.
- await blacklist.fill('b, c');await editor.getByRole('button',{name:'Save batch blacklist',exact:true}).click();await editor.getByText('1 selected',{exact:true}).waitFor();
+ await protect(['b','c']);await editor.getByText('1 selected',{exact:true}).waitFor();
  await editor.getByRole('button',{name:'Clear picked tags',exact:true}).click();
  await editor.getByRole('button',{name:'Edit a',exact:true}).click({modifiers:['Control']});await editor.getByRole('button',{name:'Edit c',exact:true}).click({modifiers:['Shift']});await editor.getByText('1 selected',{exact:true}).waitFor();
  await editor.getByRole('button',{name:'Remove selected chips',exact:true}).click();
@@ -22,6 +21,6 @@ try{
  await editor.getByRole('button',{name:'Select chips',exact:true}).click();await editor.getByRole('button',{name:'Edit b',exact:true}).click();await editor.getByRole('textbox',{name:'Tag text',exact:true}).waitFor();
  await page.reload();await page.getByRole('tab',{name:'Gallery workspace',exact:true}).click();
  await page.getByAltText('study-1.png',{exact:true}).click({button:'right'});await page.getByRole('menuitem',{name:'Use for prefix… (1)',exact:true}).click();
- const flow=page.getByRole('dialog',{name:/^Use for prefix/});await flow.locator('summary').filter({hasText:'Batch blacklist (2)'}).click();assert.equal(await flow.getByRole('textbox',{name:'Batch tag blacklist'}).inputValue(),'b\nc');
+ const flow=page.getByRole('dialog',{name:/^Use for prefix/});await flow.getByText('Batch protections: 2',{exact:false}).waitFor();
  assert.deepEqual(errors,[]);console.log('PASS blacklist select-all/ranges, live pruning, selection-mode protection, single editing, persistence and gallery sharing');
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exit(1)});

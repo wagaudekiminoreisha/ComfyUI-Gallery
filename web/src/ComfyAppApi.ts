@@ -85,6 +85,7 @@ const app = comfyApp || (STANDALONE ? {
 } : mockApi);
 
 export const ComfyAppApi = {
+    rulesLibrary: (options?: RequestInit): Promise<Response> => app.api.fetchApi('/Gallery/rulesets', options),
     // Keep credentials in the server bridge, and never pass Hydrus requests through the logging mock.
     fetchHydrus: (path: string, options?: RequestInit): Promise<Response> =>
         comfyApp ? comfyApp.api.fetchApi(`/Gallery/hydrus/${path}`, options) : fetch(`/Gallery/hydrus/${path}`, options),

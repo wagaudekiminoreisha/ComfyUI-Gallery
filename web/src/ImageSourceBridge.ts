@@ -367,7 +367,7 @@ function localCommand(command: string, payload: any): any {
         const graph = graphNow(); graph.beforeChange?.();
         try {
             // The encoder shows boxes: an append becomes a new box, named after the prefix when one was used.
-            if (node.__galleryPromptBoxes && widget.name === 'text') return node.__galleryPromptBoxes.insert(payload.text, payload.position, typeof payload.name === 'string' ? payload.name.slice(0, 80) : undefined);
+            if (node.__galleryPromptBoxes && widget.name === 'text') return node.__galleryPromptBoxes.insert(payload.text, payload.position, typeof payload.name === 'string' ? payload.name.slice(0, 80) : undefined,Array.isArray(payload.prefixIds)?payload.prefixIds.filter((id:unknown)=>typeof id==='string').slice(0,100):undefined);
             widget.value = mergePrompt(widget.value, payload.text, payload.position); if (widget.inputEl) widget.inputEl.value = widget.value; widget.callback?.(widget.value); node.setDirtyCanvas?.(true, true); return widget.value;
         }
         finally { graph.afterChange?.(); }
@@ -469,4 +469,4 @@ export function openGalleryTab() {
     for (const old of children) if (old.closed) children.delete(old);
 }
 
-export const writePromptTarget = (target: string, text: string, position: 'before' | 'after', name?: string) => command<string>('write_prompt', { target, text, position, name });
+export const writePromptTarget = (target: string, text: string, position: 'before' | 'after', name?: string,prefixIds?:string[]) => command<string>('write_prompt', { target, text, position, name,prefixIds });

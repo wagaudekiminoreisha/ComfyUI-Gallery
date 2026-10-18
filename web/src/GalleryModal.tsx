@@ -1,3 +1,5 @@
+import {RulesManager} from './RulesManager';
+import {openRules} from './RulesLibrary';
 import { SourcePicker } from './SourcePicker';
 import { ExclusiveTagsPanel } from './ExclusiveTagsPanel';
 import { HydrusSyncPanel } from './HydrusSyncPanel';
@@ -87,6 +89,7 @@ const GalleryModal = () => {
                 <Segmented disabled={gallery.archiveView} aria-label="Gallery sources" value={source} onChange={changeSource} options={[{ value: 'local', label: 'Local' }, { value: 'hydrus', label: 'Hydrus' }, { value: 'both', label: 'Both' }]} />
                 <div className="cg-spacer" />
                 <Button icon={<TagsOutlined />} title="Prompts & prefixes: palette, append to workflow, prefix editor" onClick={() => window.dispatchEvent(new Event(PROMPTS_WINDOW_EVENT))}>Prompts & prefixes</Button>
+                <Button onClick={()=>openRules()}>Rules &amp; protections</Button>
                 <Button icon={<BookOutlined />} title="Library search: saved prefixes and every prompt phrase" onClick={() => window.dispatchEvent(new Event(LIBRARY_SEARCH_EVENT))}>Library search</Button>
                 <HydrusSyncPanel visible={visible} />
                 <Button icon={<ReloadOutlined />} title="Reload local images" aria-label="Reload local images" loading={gallery.loading} onClick={() => { void runAsync().catch(error => message.error(String(error))); }} />
@@ -114,7 +117,7 @@ const GalleryModal = () => {
             <GalleryHeader /><HydrusToolbar onBrowseHydrus={() => { changeSource('hydrus'); setTools(false); }} /><GallerySidebar />
         </Modal>
         {showSettings && <GallerySettingsModal />}
-        <HydrusSettingsModal /><HydrusExportModal /><HydrusDetailsModal /><SourcePrefixPanel /><ImageSearchPanel /><ExclusiveTagsPanel /><SourcePicker />
+        <RulesManager /><HydrusSettingsModal /><HydrusExportModal /><HydrusDetailsModal /><SourcePrefixPanel /><ImageSearchPanel /><ExclusiveTagsPanel /><SourcePicker />
     </>;
 };
 export default GalleryModal;
