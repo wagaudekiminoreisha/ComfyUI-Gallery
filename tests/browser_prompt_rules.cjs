@@ -13,7 +13,7 @@ try{
  await manager.getByRole('button',{name:'Import legacy blacklist as Protect rules',exact:true}).click();
  await manager.getByRole('button',{name:'Save rules library',exact:true}).click();
  await page.waitForFunction(async()=>{const data=await(await fetch('/Gallery/rulesets')).json();return data.library.globals.length===2;});await observer.waitForFunction(()=>window.rulesBroadcastSeen>0);await observer.close();
- await manager.getByRole('button',{name:'New ruleset',exact:true}).click();await manager.getByLabel('Ruleset JSON script').fill(JSON.stringify({version:1,id:'qa-script',name:'QA script',family:'test',rules:[{op:'exclude',tags:['unwanted']}],choices:[]}));
+ await manager.getByRole('button',{name:'New ruleset',exact:true}).click();await manager.getByText('Advanced JSON script',{exact:true}).click();await manager.getByLabel('Ruleset JSON script').fill(JSON.stringify({version:1,id:'qa-script',name:'QA script',family:'test',rules:[{op:'exclude',tags:['unwanted']}],choices:[]}));
  await manager.getByRole('button',{name:'Save rules library',exact:true}).click();await manager.getByText('Apply the script draft before saving the library.',{exact:true}).waitFor();
  await manager.getByRole('button',{name:'Apply script draft',exact:true}).click();await manager.getByRole('button',{name:'Save rules library',exact:true}).click();
  await page.waitForFunction(async()=>{const data=await(await fetch('/Gallery/rulesets')).json();return data.library.definitions.some(d=>d.id==='qa-script');});

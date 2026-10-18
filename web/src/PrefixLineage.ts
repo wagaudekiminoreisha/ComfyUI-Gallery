@@ -44,6 +44,7 @@ export function sourceLinks(metadata: unknown): SourceLinks {
             if (typeof prefix?.id === 'string') prefixIds.add(prefix.id);
         }
     }
+    for(const record of Object.values(object(object(metadata).gallery_prompts)))for(const ref of Array.isArray((record as any)?.prefix_snapshots)?(record as any).prefix_snapshots:[])if(typeof ref.prefix_id==='string')prefixIds.add(ref.prefix_id);
     return { hashes: [...hashes], prefixIds: [...prefixIds] };
 }
 
@@ -277,4 +278,18 @@ export function prefixConditions(terms: string[]): string[][] {
 /** The tags a prefix requires outright (conditions with a single option). */
 export function requiredTerms(terms: string[]): string[] {
     return prefixConditions(terms).flatMap(options => options.length === 1 ? options : []);
+}
+
+/** Snapshot identity comes from recorded encoder provenance or explicit image membership. */
+export function imageSnapshotIds(library:PrefixLibrary,keys:string[],metadata:unknown):string[]{
+ const ids=new Set<string>();const value=object(metadata),prefix=object(value.gallery_prefix);
+ if(typeof prefix.snapshot_id==='string')ids.add(prefix.snapshot_id);
+ for(const record of Object.values(object(value.gallery_prompts)))for(const ref of Array.isArray((record as any)?.prefix_snapshots)?(record as any).prefix_snapshots:[])if(typeof ref.snapshot_id==='string')ids.add(ref.snapshot_id);
+ const sources=metadataSources(metadata);
+ for(const node of Object.values(object(sources.prompt)))if((node as any)?.class_type==='GalleryImageSource'){
+  const manifest=object((node as any).inputs?.sources),images=Array.isArray(manifest.images)?manifest.images:[],used=manifest.layout==='single'?images.slice(manifest.active_index||0,(manifest.active_index||0)+1):images;
+  for(const image of used){const id=object(image?.metadata).gallery_prefix?.snapshot_id;if(typeof id==='string')ids.add(id);}
+ }
+ for(const row of Object.values(library.snapshots||{}))if(keys.some(key=>Object.prototype.hasOwnProperty.call(row.members,key)||Object.values(row.members).some(ref=>ref.local_url&&key.endsWith(':'+ref.local_url))))ids.add(row.id);
+ return [...ids];
 }

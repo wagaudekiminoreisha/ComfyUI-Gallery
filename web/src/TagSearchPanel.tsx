@@ -7,7 +7,7 @@ import { BASE_PATH } from './ComfyAppApi';
 import { hydrusRequest } from './HydrusApi';
 import { appendLocalImages } from './ImageSourceBridge';
 import { extractLocalPrompts, matchesLocalImage, type LocalPrompts, type LocalSearchField } from './LocalImageSearch';
-import { ancestorLevels, hashLookup, hasAllTerms, imagePrefixIds, imageTagSet, lineageTree, madeFrom, pairedHashIndex, pairedImages, prefixConditions, requiredTerms, type LineageTree } from './PrefixLineage';
+import { ancestorLevels, hashLookup, hasAllTerms, imagePrefixIds, imageSnapshotIds, imageTagSet, lineageTree, madeFrom, pairedHashIndex, pairedImages, prefixConditions, requiredTerms, type LineageTree } from './PrefixLineage';
 import { associateImages, expandPrefix, imagePrefixKeys, imagePrefixRefs, loadPrefixes, type SharedLibrary }
  from './PrefixLibrary';
 import { openImageInfo, openSourcePrefix, localEntry } from './ImageInfo';
@@ -26,7 +26,7 @@ import type { FileDetails } from './types';
  *            Generated from it / Same source (other images made from the same source) / Same prefix
  * Images can be dragged into the query from the gallery or from the results.
  */
-export type QueryChip = { kind: 'tag'; text: string } | { kind: 'prefix'; id: string; name: string } | { kind: 'image'; url: string; name: string; hash?: string; metadata?: unknown };
+export type QueryChip = { kind:'snapshot'; id:string; name:string } | { kind: 'tag'; text: string } | { kind: 'prefix'; id: string; name: string } | { kind: 'image'; url: string; name: string; hash?: string; metadata?: unknown };
 /** A prefix a search was started from ("Find images" in the prefix editor). */
 export type SearchPrefix = { id?: string; name: string; terms: string[] };
 /** `append` adds the chips to an open search instead of starting a new one. */
@@ -48,7 +48,7 @@ export function droppedImage(event: DragEvent): { url: string; name: string } | 
 const PAGE = 120;
 /** Tile borders that tell result kinds apart (the same colours as their labels). */
 const BORDER: Record<string, string> = { gold: '#d4b106', green: '#52c41a', blue: '#1677ff', purple: '#9254de', cyan: '#13c2c2', magenta: '#eb2f96' };
-const encode = (chip: QueryChip) => chip.kind === 'tag' ? chip.text : chip.kind === 'prefix' ? 'prefix::' + chip.id : 'image::' + chip.url;
+const encode = (chip: QueryChip) => chip.kind === 'tag' ? chip.text : chip.kind === 'prefix' ? 'prefix::' + chip.id : chip.kind==='snapshot'?'snapshot::'+chip.id:'image::' + chip.url;
 
 export async function fetchLocalHashes(urls: string[]): Promise<Record<string, string>> {
     const result: Record<string, string> = {};
@@ -74,6 +74,7 @@ export function ImageSearchPanel() {
     const [field, setField] = useState<LocalSearchField>('all');
     const [tab, setTab] = useState('');
     const [strict, setStrict] = useState(false);
+    const [broadPrefix,setBroadPrefix]=useState(false);
     const [library, setLibrary] = useState<SharedLibrary>({ version: 2, tags: [], prefixes: [] });
     const [tabs, setTabs] = useState<ResultTab[]>([]);
     const [aliases, setAliases] = useState<string[][]>();
@@ -90,14 +91,14 @@ export function ImageSearchPanel() {
         const show = (event: Event) => {
             const request = (event as CustomEvent<ImageSearchRequest>).detail;
             if (request.append && openRef.current) setChips(old => [...old, ...request.chips.filter(chip => !old.some(item => encode(item) === encode(chip)))]);
-            else { setChips(request.chips); setField(request.field || 'all'); setTab(''); }
+            else { setChips(request.chips); setField(request.field || 'all'); setTab('');setBroadPrefix(false); }
             setOpen(true);
         };
         const reload = () => { void loadPrefixes().then(setLibrary).catch(() => undefined); setRevision(value => value + 1); };
         void loadPrefixes().then(setLibrary).catch(() => undefined);
         window.addEventListener(IMAGE_SEARCH_EVENT, show);
-        window.addEventListener('gallery-prefix-library-changed', reload);
-        return () => { window.removeEventListener(IMAGE_SEARCH_EVENT, show); window.removeEventListener('gallery-prefix-library-changed', reload); };
+        window.addEventListener('gallery-prefix-library-changed', reload);window.addEventListener('gallery-prefix-snapshots-changed',reload);
+        return () => { window.removeEventListener(IMAGE_SEARCH_EVENT, show); window.removeEventListener('gallery-prefix-library-changed', reload);window.removeEventListener('gallery-prefix-snapshots-changed',reload); };
     }, []);
     const pool = useSearchPool(open ? gallery.data?.folders : undefined, gallery.localHydrusTags);
     const files = useMemo(() => Object.values(gallery.data?.folders || {}).flatMap(folder => Object.values(folder)).filter(file => file.type === 'image'), [gallery.data]);
@@ -105,8 +106,9 @@ export function ImageSearchPanel() {
     const prefixes = chips.filter(chip => chip.kind === 'prefix') as Extract<QueryChip, { kind: 'prefix' }>[];
     const images = chips.filter(chip => chip.kind === 'image') as Extract<QueryChip, { kind: 'image' }>[];
     const tags = chips.filter(chip => chip.kind === 'tag').map(chip => (chip as Extract<QueryChip, { kind: 'tag' }>).text);
-    const scoped = prefixes.length > 0 || images.length > 0;
-    const scopeKey = JSON.stringify([prefixes.map(chip => chip.id), images.map(chip => chip.url)]);
+    const snapshots=chips.filter(chip=>chip.kind==='snapshot') as Extract<QueryChip,{kind:'snapshot'}>[];
+    const scoped = prefixes.length > 0 || images.length > 0 || snapshots.length>0;
+    const scopeKey = JSON.stringify([prefixes.map(chip => chip.id), images.map(chip => chip.url),snapshots.map(chip=>chip.id)]);
     useEffect(() => { setShown(PAGE); }, [scopeKey, tags.join('\n'), field, tab, strict]);
 
     // Build the result tabs for the prefix and image chips.
@@ -140,7 +142,7 @@ export function ImageSearchPanel() {
                     return [...groups].map(([hash, hits]) => ({ title: hash ? 'Made from ' + nameOf(tree, hash) : unlinked, hits: hits.sort((a, b) => (b.file.timestamp || 0) - (a.file.timestamp || 0)) }))
                         .sort((a, b) => b.hits.length - a.hits.length);
                 };
-                const pairedHashes = images.length ? await pairedHashIndex(shared, hashOf) : new Map<string, Set<string>>();
+                const pairedHashes = images.length&&broadPrefix ? await pairedHashIndex(shared, hashOf) : new Map<string, Set<string>>();
                 const listed = new Set<string>();
                 // --- prefix chips ---
                 for (const chip of prefixes) {
@@ -177,6 +179,17 @@ export function ImageSearchPanel() {
                         { title: tag + 'Generated from the lineage', hits: [...tree.nodes.keys()].flatMap(url => hit(url, tree.usedAsSource.has(url) ? 'used as source' : 'generation ' + tree.nodes.get(url)!.depth, tree.usedAsSource.has(url) ? 'green' : 'blue')).sort((a, b) => (b.file.timestamp || 0) - (a.file.timestamp || 0)) },
                         { title: tag + 'Has the prefix tags (not in the lineage)', hits: tagged.map(file => ({ file, note: 'tags', color: 'purple' })) });
                 }
+                // Snapshot searches deliberately do not broaden to the parent prefix.
+                const snapshotTab=(id:string)=>{
+                    const row=shared.snapshots?.[id];if(!row)return;
+                    const target=tabFor('snapshot','Same snapshot','Images linked to this exact saved tag-and-rule variant. The parent prefix and other variants stay outside this search.');
+
+                    target.sections.push({title:'@'+(shared.prefixes.find(p=>p.id===row.prefix_id)?.name||'prefix')+' · '+id.slice(0,8),hits:files.filter(file=>imageSnapshotIds(shared,[...imagePrefixKeys(localEntry(file,known[file.url]),root)],file.metadata).includes(id)).map(file=>({file,note:'snapshot',color:'cyan'}))});
+                    const local=new Set(target.sections.flatMap(s=>s.hits.map(h=>h.file.url)));
+                    target.inputs=[...(target.inputs||[]),...Object.values(row.members).filter(ref=>!ref.local_url||!local.has(ref.local_url)).filter(ref=>ref.hash||ref.input_name).map(ref=>({input_name:ref.input_name||'',hash:ref.hash,title:ref.name,note:'snapshot',original:true}))];
+
+                };
+                snapshots.forEach(chip=>snapshotTab(chip.id));
                 // --- image chips ---
                 for (const chip of images) {
                     const file = byUrl.get(chip.url);
@@ -185,6 +198,7 @@ export function ImageSearchPanel() {
                     lineage.sections.push({ title: tag + 'Searched image', hits: hit(chip.url, 'searched', 'purple') });
                     if (!file && !chip.hash) continue;
                     const metadata = file?.metadata || chip.metadata;
+                    imageSnapshotIds(shared,imagePrefixKeys(file?localEntry(file,known[file.url]):{hash:chip.hash},root),metadata).forEach(snapshotTab);
                     if (chip.hash) lineage.inputs = [{ input_name: '', hash: chip.hash, title: chip.name, metadata: { gallery_origin: 'hydrus', hydrus: { ...(chip.metadata as any || {}), hash: chip.hash } }, note: 'searched', original: true }];
                     const levels = ancestorLevels(metadata);
                     // Input copies are named by hash: the loaded image with that hash is the same picture, and is shown
@@ -208,7 +222,7 @@ export function ImageSearchPanel() {
                     if (siblings) sameSource.sections.push(...bySource(siblings, skip, '').map(section => ({ ...section, title: tag + section.title })));
                     // Images of the prefixes it belongs to that are not in the tabs above.
                     const seen = new Set([...skip, ...(siblings?.nodes.keys() || [])]);
-                    for (const id of imagePrefixIds(shared, imagePrefixKeys(file ? localEntry(file, known[file.url]) : { hash: chip.hash }, root), metadata, pairedHashes)) {
+                    for (const id of (broadPrefix?imagePrefixIds(shared, imagePrefixKeys(file ? localEntry(file, known[file.url]) : { hash: chip.hash }, root), metadata, pairedHashes):[])) {
                         const name = shared.prefixes.find(prefix => prefix.id === id)?.name || 'prefix';
                         const paired = await pairedImages(files, shared, id, hashOf, known);
                         const tree = await lineageTree(files, paired.hashes, [id], hashOf, paired.urls);
@@ -220,15 +234,15 @@ export function ImageSearchPanel() {
                 const spellings = strict && terms.length ? (await hydrusRequest<{ aliases: string[][] }>('aliases', { terms }).catch(() => ({ aliases: terms.map(term => [term]) }))).aliases : undefined;
                 if (!live) return;
                 // Tabs that add nothing (no images) are hidden; Lineage always shows.
-                const order = ['prefix-all', 'lineage', 'sources', 'generated', 'source', 'prefix'];
+                const order = ['lineage', 'snapshot', 'prefix-all', 'sources', 'generated', 'source', 'prefix'];
                 const list = order.flatMap(key => result.get(key) ? [result.get(key)!] : []).filter(item => item.key === 'lineage' || item.key === 'prefix-all' || item.key === 'sources' || item.sections.some(section => section.hits.length) || !!item.inputs?.length);
                 setLibrary(shared); setAliases(spellings); setTabs(list);
-                setTab(current => list.some(item => item.key === current) ? current : (list.find(item => item.key === 'prefix-all') || list.find(item => item.key === 'generated') || list.find(item => item.key === 'source') || list[0])?.key || '');
+                setTab(current => list.some(item => item.key === current) ? current : (list.find(item => images.length>0&&item.key==='lineage') || list.find(item => item.key === 'prefix-all') || list.find(item => item.key === 'generated') || list.find(item => item.key === 'source') || list[0])?.key || '');
             } catch (reason) { if (live) setError(String(reason)); }
             finally { if (live) setBusy(false); }
         })();
         return () => { live = false; };
-    }, [open, scopeKey, strict, files, hydrus.items, revision]);
+    }, [open, scopeKey, strict, files, hydrus.items, revision,broadPrefix]);
 
     const promptsOf = (file: FileDetails) => {
         const metadata = file.metadata;
@@ -262,13 +276,15 @@ export function ImageSearchPanel() {
     });
     const chipLabel = (value: string) => {
         const chip = chips.find(item => encode(item) === value);
+        if(chip?.kind==='snapshot')return <><b>snapshot</b> {chip.name} · {chip.id.slice(0,8)}</>;
         if (chip?.kind === 'prefix') return <><b>prefix</b> {chip.name}</>;
         if (chip?.kind === 'image') return <><img alt="" src={chip.hash ? `${BASE_PATH}/Gallery/hydrus/thumbnail?hash=${chip.hash}&target=${encodeURIComponent(`${hydrus.settings?.url}|${hydrus.settings?.profile}`)}` : `${BASE_PATH}/Gallery/thumbnail?url=${encodeURIComponent(chip.url)}&root=${encodeURIComponent(root)}`}  style={{ width: 16, height: 16, objectFit: 'cover', verticalAlign: 'middle', marginRight: 4 }} /><b>image</b> {chip.name}</>;
         return value;
     };
-    const kindColor = (value: string) => value.startsWith('prefix::') ? 'gold' : value.startsWith('image::') ? 'blue' : undefined;
+    const kindColor = (value: string) => value.startsWith('snapshot::')?'cyan':value.startsWith('prefix::') ? 'gold' : value.startsWith('image::') ? 'blue' : undefined;
     const addImage = (image: { url: string; name: string }, replace = false) => {
         const chip: QueryChip = { kind: 'image', url: image.url, name: image.name };
+        if(replace){setBroadPrefix(false);setTab('lineage');}
         setChips(old => replace ? [...old.filter(item => item.kind === 'tag'), chip] : [...old.filter(item => encode(item) !== encode(chip)), chip]);
     };
     const onDrop = (event: DragEvent) => { setDropping(false); const image = droppedImage(event); if (!image) return; event.preventDefault(); addImage(image); };
@@ -277,7 +293,7 @@ export function ImageSearchPanel() {
     const selected = new Set(gallery.selectedImages);
     const toggle = (url: string) => gallery.setSelectedImages(old => old.includes(url) ? old.filter(item => item !== url) : [...old, url]);
     const targets = (url: string) => selected.has(url) ? gallery.selectedImages.filter(item => byUrl.has(item)) : [url];
-    const title = scoped ? 'Image search · ' + [...prefixes.map(chip => '@' + chip.name), ...images.map(chip => chip.name)].join(' + ') : 'Image search' + (tags.length ? ' · ' + tags.join(' + ') : '');
+    const title = scoped ? 'Image search · ' + [...prefixes.map(chip => '@' + chip.name), ...images.map(chip => chip.name),...snapshots.map(chip=>'snapshot '+chip.id.slice(0,8))].join(' + ') : 'Image search' + (tags.length ? ' · ' + tags.join(' + ') : '');
     const scopeMain = (hits: Hit[]) => { gallery.setLocalScope({ label: title.replace(/^Image search · /, ''), urls: new Set(hits.map(item => item.file.url)) }); };
     /** Open in the gallery viewer, stepping through this tab's results. The main gallery's own view is left alone. */
     const openInViewer = (url: string) => window.dispatchEvent(new CustomEvent(OPEN_VIEWER_EVENT, { detail: { url, urls: currentHits.map(item => item.file.url) } }));
@@ -339,7 +355,7 @@ export function ImageSearchPanel() {
                     <div style={{ fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{input.title || input.input_name}</div>
                 </div>)}</div></>}
             {!total && !item.inputs?.length && !busy && <Typography.Text type="secondary">Nothing here{tags.length ? ' that matches the tag chips' : ''}.</Typography.Text>}
-            {total > shown && <div style={{ marginTop: 8 }}><Button onClick={() => setShown(value => value + PAGE)}>Show more ({(total - shown).toLocaleString()} left)</Button></div>}
+            {total > shown && <MoreResults remaining={total-shown} onMore={()=>setShown(value=>value+PAGE)}/>}
         </>;
     };
     const count = (item: ResultTab) => item.sections.reduce((sum, section) => sum + section.hits.length, 0) + (item.inputs?.length || 0);
@@ -356,6 +372,7 @@ export function ImageSearchPanel() {
             </Space.Compact>
         </div>
         <Space wrap style={{ margin: '8px 0' }}>
+            {images.length>0&&<Checkbox checked={broadPrefix} onChange={event=>setBroadPrefix(event.target.checked)}>Include broader prefix results</Checkbox>}
             {prefixes.length > 0 && <Checkbox checked={strict} onChange={event => setStrict(event.target.checked)}>Only images that still have every prefix tag (aliases count)</Checkbox>}
             <Button size="small" disabled={!allHits.length} onClick={() => { scopeMain(allHits); message.success('The main gallery now shows these images (close the Scope chip there to undo)'); }}>Show all in main gallery</Button>
             <Button size="small" disabled={!currentHits.length} onClick={() => gallery.setSelectedImages(old => Array.from(new Set([...old, ...currentHits.map(item => item.file.url)])))}>Select all here</Button>
@@ -368,4 +385,9 @@ export function ImageSearchPanel() {
         </>}
         {scoped && <Tabs activeKey={active?.key} onChange={setTab} items={shownTabs.map(item => ({ key: item.key, label: `${item.label} (${count(item)})`, children: sections(item) }))} />}
     </FloatingPanel>;
+}
+
+function MoreResults({remaining,onMore}:{remaining:number;onMore:()=>void}){
+ const ref=useRef<HTMLDivElement>(null);useEffect(()=>{const observer=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting))onMore();},{rootMargin:'100px'});if(ref.current)observer.observe(ref.current);return()=>observer.disconnect();},[remaining]);
+ return <div ref={ref} style={{marginTop:8}}><Button onClick={onMore}>Show more ({remaining.toLocaleString()} left)</Button></div>;
 }

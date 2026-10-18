@@ -4,7 +4,6 @@ import { useGalleryTheme, interactionStyles } from './GalleryTheme';
 import { installPrefixWidgets } from './PrefixLibrary';
 import { installWorkspaceTab, closeWorkspace } from './GalleryWorkspace';
 import { getComfyApp } from './ComfyAppApi';
-import { exclusiveTagsEnabled } from './TagConflicts';
 import { installLoadImageDrop, installSourceWidgets, registerSourceConstructor } from './ImageSourceBridge';
 import { createRoot } from 'react-dom/client'
 import Gallery from './Gallery.tsx'
@@ -26,7 +25,6 @@ if (STANDALONE) {
         installSessionOutputs(api);
         installWorkspaceTab();
         installLoadImageDrop();
-        exclusiveTagsEnabled(); // loads the exclusive tag list when the setting is on
         getComfyApp()?.extensionManager?.registerSidebarTab?.({
             id: 'comfy-gallery', icon: 'pi pi-images', title: 'Gallery', tooltip: 'Local and Hydrus gallery', type: 'custom',
             render: mountGalleryAssetPane,

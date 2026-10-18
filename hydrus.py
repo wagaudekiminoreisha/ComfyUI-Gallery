@@ -4,6 +4,8 @@ API reference: https://hydrusnetwork.github.io/hydrus/developer_api.html
 No ComfyUI imports: the active gallery root is supplied by the server.
 """
 
+import secrets
+import time
 import asyncio
 import hashlib
 import json
@@ -721,40 +723,44 @@ class HydrusBridge:
                 result = await client.request("GET", "/manage_pages/get_pages")
                 return {"pages": result.get("pages", {})}
             if action == "search":
-                terms = clean_tags(data.get('metadata_terms', []))
-                if not terms:
-                    identifiers = await self.search_identifiers(client, data, limit)
-                    return {"items": await self.cache_records(await self.remote_metadata(client, identifiers[:limit]), settings), "total": len(identifiers), "limit": limit}
-                field = data.get('metadata_field', 'positive')
-                join = data.get('field_join', 'any')
-                if field not in ('positive', 'negative', 'hydrus', 'name', 'all') or join not in ('all', 'any'): raise HydrusError('Invalid metadata search mode.')
-                try:
-                    from .hydrus_sync import sort_records
-                except ImportError:
-                    from hydrus_sync import sort_records
-                has_tags = bool(data.get('tags') or data.get('or_groups'))
-                tag_ids = await self.search_identifiers(client, data, None) if has_tags else []
-                self.sync.wake.set()
-                matched = await asyncio.to_thread(self.sync.search, settings, field, terms)
-                index_status = self.sync.status(settings)
-                if has_tags and join == 'all':
-                    allowed = set(tag_ids)
-                    matched = [record for record in matched if record.get('file_id') in allowed]
-                if has_tags and join == 'any':
-                    matched = await self.remote_metadata(client, tag_ids[:limit]) + matched
-                order = {value: index for index, value in enumerate(tag_ids)}
-                if has_tags:
-                    matched.sort(key=lambda record: order.get(record.get('file_id'), len(order)))
-                unique = list({record['hash']: record for record in matched}.values())
-                sort_type, ascending = data.get('file_sort_type', 2), data.get('file_sort_asc', False)
-                if type(sort_type) is not int or sort_type not in (set(range(28)) - {17}) or type(ascending) is not bool:
-                    raise HydrusError('Invalid metadata search sort.')
-                native_order = has_tags and join == 'all'
-                if not native_order:
-                    sort_records(unique, sort_type, ascending)
-                return {'items': unique[:limit], 'total': len(unique), 'limit': limit,
-                        'sampling_fallback': not native_order and sort_type not in (0, 1, 2, 3, 4, 5, 6, 14, 20),
-                        'metadata_scanned': index_status['indexed'], 'index_status': {k: v for k, v in index_status.items() if k != 'jobs'}}
+                query={key:value for key,value in data.items() if key not in ('offset','limit','search_id','target')}
+                identity=hashlib.sha256(json.dumps({'query':query,'url':settings.get('url'),'profile':settings.get('profile'),'key':settings.get('access_key')},sort_keys=True).encode()).hexdigest()
+                now=time.monotonic()
+                sessions=getattr(self,'_gallery_search_pages',{})
+                sessions={key:value for key,value in sessions.items() if value['expires']>now}
+                self._gallery_search_pages=sessions
+                token=data.get('search_id');session=sessions.get(token) if isinstance(token,str) else None
+                if token and (not session or session['identity']!=identity):raise HydrusError('Search expired or its connection changed. Search again to reload results.')
+                if not session:
+                    if offset:raise HydrusError('Search again before requesting more results.')
+                    terms=clean_tags(data.get('metadata_terms',[]));extra={};known={}
+                    if not terms:identifiers=await self.search_identifiers(client,data,None)
+                    else:
+                        field=data.get('metadata_field','positive');join=data.get('field_join','any')
+                        if field not in ('positive','negative','hydrus','name','all') or join not in ('all','any'):raise HydrusError('Invalid metadata search mode.')
+                        try:from .hydrus_sync import sort_records
+                        except ImportError:from hydrus_sync import sort_records
+                        has_tags=bool(data.get('tags') or data.get('or_groups'))
+                        tag_ids=await self.search_identifiers(client,data,None) if has_tags else []
+                        self.sync.wake.set();matched=await asyncio.to_thread(self.sync.search,settings,field,terms)
+                        if has_tags and join=='all':
+                            allowed=set(tag_ids);matched=[record for record in matched if record.get('file_id') in allowed]
+                        sort_type,ascending=data.get('file_sort_type',2),data.get('file_sort_asc',False)
+                        if type(sort_type) is not int or sort_type not in (set(range(28))-{17}) or type(ascending) is not bool:raise HydrusError('Invalid metadata search sort.')
+                        if has_tags and join=='all':
+                            order={value:index for index,value in enumerate(tag_ids)};matched.sort(key=lambda record:order.get(record.get('file_id'),len(order)))
+                        else:sort_records(matched,sort_type,ascending)
+                        known={record['file_id']:record for record in matched if record.get('file_id') is not None}
+                        identifiers=list(dict.fromkeys((tag_ids if has_tags and join=='any' else [])+list(known)))
+                        status=self.sync.status(settings);extra={'sampling_fallback':has_tags and join=='any','metadata_scanned':status['indexed'],'index_status':{key:value for key,value in status.items() if key!='jobs'}}
+                    token=secrets.token_urlsafe(24);session={'identity':identity,'ids':identifiers,'records':known,'extra':extra,'expires':now+600};sessions[token]=session
+                    if len(sessions)>32:sessions.pop(next(iter(sessions)))
+                session['expires']=now+600;identifiers=session['ids'];batch=identifiers[offset:offset+limit]
+                missing=[value for value in batch if value not in session['records']]
+                fetched=await self.remote_metadata(client,missing) if missing else []
+                records={**session['records'],**{record.get('file_id'):record for record in fetched}}
+                items=[records[value] for value in batch if value in records]
+                return {'items':await self.cache_records(items,settings),'total':len(identifiers),'offset':offset,'limit':limit,'search_id':token,'next_offset':offset+len(batch) if offset+len(batch)<len(identifiers) else None,**session['extra']}
             page_key = data.get("page_key")
             if not isinstance(page_key, str) or not re.fullmatch(r"[0-9a-fA-F]{64}", page_key):
                 raise HydrusError("Choose a valid open Hydrus page.")
@@ -772,7 +778,7 @@ class HydrusBridge:
             batch = identifiers[offset:offset + limit]
             return {"items": await self.cache_records(await self.remote_metadata(client, batch, by_hash), settings),
                     "total": len(identifiers), "offset": offset, "limit": limit,
-                    "page_name": page.get("name", ""), "page_state": page.get("page_state", 0)}
+                    "next_offset": offset+len(batch) if offset+len(batch)<len(identifiers) else None, "page_name": page.get("name", ""), "page_state": page.get("page_state", 0)}
 
     async def suggest(self, data):
         query = data.get("query", "")

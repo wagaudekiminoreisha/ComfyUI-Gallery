@@ -123,7 +123,7 @@ class BrowserTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn(['blue eyes', 'green eyes'], predicates)
         self.assertIn(['system:width > 1000', 'system:height > 1000'], predicates)
         self.assertIn('-bad', predicates)
-        self.assertIn('system:limit=30', predicates)
+        self.assertFalse(any(isinstance(tag,str) and tag.startswith('system:limit') for tag in predicates))
         self.assertEqual(query['file_sort_type'], '21')
         self.assertEqual(query['file_sort_asc'], 'true')
 
@@ -150,7 +150,7 @@ class BrowserTests(unittest.IsolatedAsyncioTestCase):
         result = await self.post('search', {'tags': ['landscape', '-portrait'], 'limit': 10})
         self.assertEqual([item['hash'] for item in result['items']], [self.digest, 'e' * 64])
         params = next(query for endpoint, query in self.calls if endpoint.endswith('search_files'))
-        self.assertIn('system:limit=10', json.loads(params['tags']))
+        self.assertFalse(any(isinstance(tag,str) and tag.startswith('system:limit') for tag in json.loads(params['tags'])))
         self.assertIn('-portrait', json.loads(params['tags']))
         self.assertEqual(params['file_sort_asc'], 'false')
         self.assertEqual(params['return_file_ids'], 'true')
@@ -215,7 +215,7 @@ class BrowserTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn(['landscape', 'portrait'], tags)
         self.assertIn('-low quality', tags)
         self.assertIn('system:width > 1000', tags)
-        self.assertIn('system:limit=25', tags)
+        self.assertFalse(any(isinstance(tag,str) and tag.startswith('system:limit') for tag in tags))
         self.assertNotIn('system:limit=99999', tags)
         self.assertTrue(any(isinstance(tag, str) and tag.startswith('system:filetype') for tag in tags))
 

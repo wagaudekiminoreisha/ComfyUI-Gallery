@@ -14,7 +14,7 @@ def clean_policy(value):
         except ValueError: value = {}
     value = value if isinstance(value, dict) else {}
     attributes = value.get('attributes', ['length'])
-    return {'mode': value.get('mode') if value.get('mode') in ('natural', 'minimal') else 'specific',
+    return {**({'attributeMode':'one'} if value.get('attributeMode')=='one' else {}),'mode': value.get('mode') if value.get('mode') in ('natural', 'minimal') else 'specific',
             'attributes': [key for key in attributes if isinstance(key, str) and key in ATTRIBUTES] if isinstance(attributes, list) else ['length'],
             'singleColour': value.get('singleColour') is True}
 
@@ -53,3 +53,11 @@ def filter_hair_prompt(text, policy, depth=0):
             facet = FACETS.get(PACK['aliases'].get(key, key))
             if facet is None or policy['mode'] == 'minimal' and facet in policy['attributes']: result.append(part)
     return ', '.join(result)
+
+
+def sample_policy(value):
+    policy=clean_policy(value)
+    if policy['mode']=='minimal' and policy.get('attributeMode')=='one' and policy['attributes']:
+        import random
+        policy={**policy,'attributes':[random.choice(policy['attributes'])]}
+    return policy

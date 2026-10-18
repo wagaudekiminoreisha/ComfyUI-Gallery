@@ -141,6 +141,7 @@ export function LocalPromptSearch({ onLocalSearch, managerOnly = false }: { onLo
     const unpair = async (keys: string[]) => {
         try { await dissociateImages(keys, shared.revision); await load(); message.success('Image unpaired from the prefix'); } catch (error) { message.error(String(error)); }
     };
+    useEffect(()=>{const refresh=()=>{void load();};window.addEventListener('gallery-prefix-snapshots-changed',refresh);return()=>window.removeEventListener('gallery-prefix-snapshots-changed',refresh);},[]);
     const draftLabel = prefixName.trim() || 'unnamed prefix';
     const boxed = !!seed.node?.__galleryPromptBoxes;
     return <>

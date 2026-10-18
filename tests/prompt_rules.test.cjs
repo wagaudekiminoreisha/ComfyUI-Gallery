@@ -35,3 +35,12 @@ test('exclusive allows OR alternatives, rejects co-active tags, conditionals wai
  assert.equal(R.applyRulePreview('solo, long hair',conditional).text,'solo');
  assert.equal(R.applyRulePreview('{solo|2girls}, long hair',conditional).notes.length,1);
 });
+
+
+test('nested conditions defer optional decisions and respect AND/OR/NOT',()=>{
+ const {conditionPreview}=load('RuleEngine');
+ const condition={op:'all',children:[{op:'any',children:[{op:'tag',tag:'solo'},{op:'tag',tag:'1girl'}]},{op:'not',children:[{op:'tag',tag:'hat'}]}]};
+ assert.equal(conditionPreview(condition,[{tag:'solo',conditions:new Map()}]),true);
+ assert.equal(conditionPreview(condition,[{tag:'solo',conditions:new Map()},{tag:'hat',conditions:new Map()}]),false);
+ assert.equal(conditionPreview(condition,[{tag:'solo',conditions:new Map([[1,0]])}]),undefined);
+});

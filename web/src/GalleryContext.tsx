@@ -172,6 +172,7 @@ const GalleryCardContext = createContext<GalleryCardContextType | undefined>(und
 
 export function GalleryProvider({ children }: { children: React.ReactNode }) {
     const [currentFolder, setCurrentFolder] = useState("output");
+    const initialFolderChosen=useRef(false);
     const [searchFileName, setSearchFileName] = useState("");
     const [qualities, setQualities] = useState<ImageQualities>({ minWidth: 0, minHeight: 0, format: '' });
     const [localTerms, setLocalTerms] = useState<string[]>([]);
@@ -208,10 +209,11 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (data && data.folders) {
             const keys = Object.keys(data.folders);
-            if (keys.length > 0 && !data.folders[currentFolder]) {
-                setCurrentFolder(keys.sort()[0]);
+            if (keys.length > 0 && (!data.folders[currentFolder] || !initialFolderChosen.current&&!Object.keys(data.folders[currentFolder]).length)) {
+                setCurrentFolder(keys.sort().find(key=>Object.keys(data.folders[key]).length>0)||keys[0]);
             }
         }
+        if(data&&Object.keys(data.folders).length)initialFolderChosen.current=true;
     }, [data, currentFolder]);
 
     useAsyncEffect(async () => {

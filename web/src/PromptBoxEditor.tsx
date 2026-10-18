@@ -1,3 +1,5 @@
+import {RuleImpact,useRuleImpact,promptLeaves,CollapsedTags,tagCount} from './RuleImpact';
+import {ruleTag} from './RuleEngine';
 import {RuleStyles} from './RuleOperation';
 import {RuleProtection,useGlobalProtections} from './RuleProtection';
 import {RuleBoxes} from './RuleBoxes';
@@ -17,7 +19,7 @@ import { addBox, addBoxWithChip, addChips, addModeOf, ADD_MODES, chipItems, conv
 
 export type Suggestion = { label: string; kind: 'tag' | 'prefix'; terms?: string[]; prefixId?: string };
 /** What the node's `source_text` input currently provides. `text` is known for Gallery Image Source and after a run. */
-export type SourceInfo = { connected: boolean; negative?: boolean; text?: string; note?: string; prefixes?: { id: string; name: string }[]; append?: (prefixId: string, text: string) => Promise<void> };
+export type SourceInfo = { connected: boolean; negative?: boolean;snapshotTargets?:import('./EncoderSnapshots').SnapshotTarget[]; text?: string; note?: string; prefixes?: { id: string; name: string }[]; append?: (prefixId: string, text: string) => Promise<void> };
 
 /** What is being dragged right now (dataTransfer contents are not readable while dragging over a target). */
 let dragging: { kind: 'chip'; id: string; chip: Chip } | { kind: 'box'; id: string } | undefined;
@@ -389,7 +391,8 @@ function GroupView({ box, index, count, state, onChange, suggest, bare, placehol
         onChange(convertBoxContents(state, box.id, pickedIds, blacklist, mode));
         clearSelection();
     };
-    const preview = formatBoxTerms(box.chips.map(compileChip).filter(Boolean), box.format).join(', ');
+    const preview = formatBoxTerms(box.chips.map(chip=>compileChip({...chip,enabled:true})).filter(Boolean), box.format).join(', ');
+    const effective=useRuleImpact(),savedCount=tagCount(box.chips),retainedCount=box.enabled?promptLeaves(box.chips.filter(chip=>chip.enabled).map(compileChip).join(', ')).filter(tag=>!effective||effective.has(ruleTag(tag))).length:0;
     return <div data-prompt-drop ref={ref} tabIndex={0} aria-label={bare ? 'Prefix tag box' : 'Tag box ' + box.name}
         onKeyDownCapture={event => {
             const element = event.target as HTMLElement;
@@ -423,7 +426,7 @@ function GroupView({ box, index, count, state, onChange, suggest, bare, placehol
             {renaming === undefined
                 ? <strong title="Double-click to rename" onDoubleClick={() => setRenaming(box.name)} style={{ cursor: 'text' }}>{box.name || 'untitled'}</strong>
                 : <input autoFocus aria-label="Box name" value={renaming} onChange={event => setRenaming(event.target.value)} onBlur={() => { patch({ name: renaming.trim() || box.name }); setRenaming(undefined); }} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(undefined); }} style={{ ...S.input, width: 110 }} />}
-            <small style={{ opacity: .6 }}>{box.chips.length} tag{box.chips.length === 1 ? '' : 's'}</small>
+            <small style={{ opacity: .6 }}>{effective&&retainedCount!==savedCount?`${retainedCount}/${savedCount} retained`:savedCount+' tags'}</small>
             <span style={{ flex: 1 }} />
             <Btn label="Move box up" disabled={index === 0} onClick={() => onChange(moveBox(state, box.id, -1))}>▲</Btn>
             <Btn label="Move box down" disabled={index === count - 1} onClick={() => onChange(moveBox(state, box.id, 1))}>▼</Btn>
@@ -439,14 +442,15 @@ function GroupView({ box, index, count, state, onChange, suggest, bare, placehol
             <button type="button" aria-label="Select chips" aria-pressed={selecting} onClick={() => { setSelecting(!selecting); clearSelection(); }} style={S.btn}>Select chips</button>
             <Btn label="Select all chips" disabled={!eligible.length} onClick={() => { setPicked(eligible); setSelected(undefined); setActiveChipId(undefined); }}>Select all</Btn>
         </div>
-        <Btn label={box.chipsCollapsed ? 'Expand tag groups' : 'Collapse tag groups'} onClick={() => patch({ chipsCollapsed: !box.chipsCollapsed })}>{box.chipsCollapsed ? '▸' : '▾'} Tag groups ({box.chips.length})</Btn>
+        <Btn label={box.chipsCollapsed ? 'Expand tag groups' : 'Collapse tag groups'} onClick={() => patch({ chipsCollapsed: !box.chipsCollapsed })}>{box.chipsCollapsed ? '▸' : '▾'} Tag groups ({savedCount} tags · {box.chips.length} groups)</Btn>
         <small className="cg-rule-controls">Batch protections: {blacklist.length} · <button type="button" onClick={()=>openRules()}>Rules &amp; protections</button></small>
         {eligible.length < box.chips.length && <small style={S.muted}>{box.chips.length - eligible.length} chip(s) excluded from batch selection</small>}
         {!!pickedIds.length && <MergeBar count={selectedCount} onClear={clearSelection}
             onEnabled={enabled => { const next = applyBatchTags(state, box.id, pickedIds, blacklist, enabled ? 'enable' : 'disable'); const ids = new Set(box.chips.map(chip => chip.id)); setPicked(next.boxes.flatMap(item => item.kind === 'group' && item.id === box.id ? item.chips.filter(chip => (!ids.has(chip.id) || pickedIds.includes(chip.id)) && eligibleBatchIds([chip], blacklist).includes(chip.id)).map(chip => chip.id) : [])); onChange(next); }} onRemove={removePicked} />}
         {box.collapsed
-            ? !!preview && <div style={S.preview} title={preview}>{preview}</div>
+            ? !!preview && <CollapsedTags text={preview} enabled={box.enabled}/>
             : <div style={S.body}>
+                {box.chipsCollapsed&&<CollapsedTags text={preview} enabled={box.enabled}/>}
                 <div data-tag-surface style={{ ...S.chips, minHeight: 48, alignItems: 'flex-start', cursor: 'text' }}><span hidden={box.chipsCollapsed} style={{ display: box.chipsCollapsed ? 'none' : 'contents' }}>{box.chips.map(item => <ChipView key={item.id} chip={item} selected={item.id === selected || item.id === activeChipId} picked={picked.includes(item.id)} onSelect={() => { if (selecting) { pick(item.id); return; } setSelected(item.id); setActiveChipId(item.id); focusInput(); }} onRemove={() => remove(item.id)}
                     onPick={range => pick(item.id, range)}
                     onDrop={(sourceChip, after) => onChange(dropPromptChip(state, sourceChip, box.id, { chipId: item.id, after }))}
@@ -477,7 +481,7 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
     const append = async (text: string) => {
         if (!source.append || !selectedPrefix || saving || !text.trim()) return;
         setSaving(true); setStatusMessage('Saving…');
-        try { await source.append(selectedPrefix.id, text); setStatusMessage((text.trim().startsWith('-') ? 'Removed from ' : 'Added to ') + selectedPrefix.name); }
+        try { await source.append(selectedPrefix.id, text); setStatusMessage((text.trim().startsWith('-') ? 'Removed locally from ' : 'Added locally to ') + selectedPrefix.name); }
         catch (error) { setStatusMessage(String(error)); }
         finally { setSaving(false); }
     };
@@ -488,7 +492,8 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
     const kept = parts.filter(part => !dropped.has(sourceKey(part)));
     const patch = (value: Partial<Pick<SourceBox, 'enabled' | 'collapsed' | 'excluded'>>) => onChange(updateBox(state, box.id, value));
     const setExcluded = (next: string[]) => patch({ excluded: next.length ? next : undefined });
-    const status = !source.connected ? 'not connected' : source.text ? kept.length + ' tag' + (kept.length === 1 ? '' : 's') + (kept.length < parts.length ? ` · ${parts.length - kept.length} left out` : '') : 'connected';
+    const effective=useRuleImpact();const leaves=promptLeaves(kept.join(', '));const retained=leaves.filter(tag=>!effective||effective.has(ruleTag(tag))).length;
+    const status = !source.connected ? 'not connected' : source.text ? (retained<leaves.length?retained+'/'+leaves.length+' retained':leaves.length+' tags') + (kept.length < parts.length ? ` · ${parts.length - kept.length} left out` : '') : 'connected';
     return <div data-prompt-drop ref={ref}
         onClick={event => { if (!(event.target as HTMLElement).closest('button,input,select,[data-chip-id]')) ref.current?.querySelector<HTMLInputElement>('[data-add-input] input')?.focus(); }}
         onDragOver={event => { if (dragging?.kind === 'chip' && source.append && selectedPrefix && !saving) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; } else if (dragging?.kind === 'box' && dragging.id !== box.id) { event.preventDefault(); setMark(lower(event) ? 'after' : 'before'); } }}
@@ -505,14 +510,15 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
             <Btn label="Move source box up" disabled={index === 0} onClick={() => onChange(moveBox(state, box.id, -1))}>▲</Btn>
             <Btn label="Move source box down" disabled={index === count - 1} onClick={() => onChange(moveBox(state, box.id, 1))}>▼</Btn>
         </div>
+        {box.collapsed&&<CollapsedTags text={source.text||''} enabled={box.enabled}/>}
         {!box.collapsed && <>
             {!!source.prefixes?.length && <div style={S.body}>
                 <select aria-label="Source prefix drop target" value={selectedPrefix?.id || ''} onChange={event => setPrefixId(event.target.value)} style={S.input}>
                     <option value="" disabled>Choose a prefix for added tags</option>
                     {source.prefixes.map(prefix => <option key={prefix.id} value={prefix.id}>{prefix.name}</option>)}
                 </select>
-                <small>Drop copies tags into the saved prefix. Double-click a source chip to leave it out of this encoder.</small>
-                {selectedPrefix && <fieldset disabled={saving} style={{ border: 0, padding: 0, margin: 0 }}><AddInput placeholder="Add tags to source prefix (Enter)" suggest={query => query.startsWith('-') ? Promise.resolve(availableBatchTags(parsePrompt(source.text || '')).filter(tag => tag.includes(query.slice(1).toLowerCase())).map(tag => ({ label: '-' + tag, kind: 'tag' as const }))) : suggest(query)} onText={text => void append(text)} onPrefix={(item, head) => void append([head, ...(item.terms || [])].filter(Boolean).join(', '))} /></fieldset>}
+                <small>Drop edits the workflow source only. Queuing records a prefix snapshot; the saved parent prefix stays unchanged.</small>
+                {selectedPrefix && <fieldset disabled={saving} style={{ border: 0, padding: 0, margin: 0 }}><AddInput placeholder="Add tags to workflow source (Enter)" suggest={query => query.startsWith('-') ? Promise.resolve(availableBatchTags(parsePrompt(source.text || '')).filter(tag => tag.includes(query.slice(1).toLowerCase())).map(tag => ({ label: '-' + tag, kind: 'tag' as const }))) : suggest(query)} onText={text => void append(text)} onPrefix={(item, head) => void append([head, ...(item.terms || [])].filter(Boolean).join(', '))} /></fieldset>}
             </div>}
             {statusMessage && <div role="status" style={S.muted}>{statusMessage}</div>}
             {!source.connected
@@ -565,9 +571,9 @@ function PromptTrash({ owner }: { owner: string }) {
     </div>,document.body);
 }
 
-export function PromptBoxEditor({ state, source, preview, suggest, onChange, notice, lastEncodedPrompt, unfilteredPreview, ruleDefinitions = [], inheritedRules = [], ruleErrors = [], ruleProtected = [], onReloadRules, rulesNotice }: { state: BoxState; source: SourceInfo; preview: string; suggest: (query: string) => Promise<Suggestion[]>; onChange: (state: BoxState) => void; notice?: string; lastEncodedPrompt?: string; unfilteredPreview?: string; ruleDefinitions?: Ruleset[]; inheritedRules?: RuleBox[]; ruleErrors?: string[]; ruleProtected?: string[]; onReloadRules?: ()=>void; rulesNotice?: string }) {
+export function PromptBoxEditor({ state, source, preview, suggest, onChange, notice, lastEncodedPrompt, unfilteredPreview, ruleDefinitions = [], inheritedRules = [], ruleErrors = [], ruleProtected = [], onReloadRules, rulesNotice,snapshotReferences=[],onOpenSnapshot }: { state: BoxState; source: SourceInfo; preview: string; suggest: (query: string) => Promise<Suggestion[]>; onChange: (state: BoxState) => void; notice?: string; lastEncodedPrompt?: string; unfilteredPreview?: string; ruleDefinitions?: Ruleset[]; inheritedRules?: RuleBox[]; ruleErrors?: string[]; ruleProtected?: string[]; onReloadRules?: ()=>void; rulesNotice?: string;snapshotReferences?:import('./EncoderSnapshots').SnapshotReference[];onOpenSnapshot?:(reference:import('./EncoderSnapshots').SnapshotReference)=>void }) {
     const owner = useId();
-    return <RuleProtection.Provider value={ruleProtected}><div data-prompt-editor={owner} style={S.root} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
+    return <RuleImpact.Provider value={new Set(promptLeaves(preview).map(ruleTag))}><RuleProtection.Provider value={ruleProtected}><div data-prompt-editor={owner} style={S.root} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
         <PromptTrash owner={owner} />
         {state.boxes.map((box, index) => box.kind === 'source'
             ? <SourceView key={box.id} box={box} index={index} count={state.boxes.length} state={state} onChange={onChange} source={source} suggest={suggest} />
@@ -583,12 +589,13 @@ export function PromptBoxEditor({ state, source, preview, suggest, onChange, not
             {ruleErrors.map(error=><div role="alert" key={error}>{error} Encoding will stop until the rules agree.</div>)}
             <small>Encoder overrides prefix rules, then global defaults, for the same family and scope. Rules run after optional choices. Scope does not create regional conditioning.</small>
         </details>
+        {!!snapshotReferences.length&&<details className="cg-rule-tree"><summary>Prefix snapshots · {snapshotReferences.filter(row=>row.snapshot_id).length}</summary>{snapshotReferences.map((row,index)=><button type="button" style={S.btn} key={index} onClick={()=>onOpenSnapshot?.(row)}>{row.prefix_name} · {row.snapshot_id?row.snapshot_id.slice(0,8):'parent tags'}</button>)}</details>}
         <HairReview text={preview} policy={state.hairPolicy??undefined} />
         <ClothingReview text={preview} />
         <GlobalTagReview text={preview} />
         <CopyablePrompt title="Prompt sent to the encoder" value={preview} />
         {lastEncodedPrompt !== undefined && <><CopyablePrompt title="Last encoded prompt (after optional choices)" value={lastEncodedPrompt} /><HairReview resolved text={lastEncodedPrompt} policy={state.hairPolicy??undefined} /></>}
-    </div></RuleProtection.Provider>;
+    </div></RuleProtection.Provider></RuleImpact.Provider>;
 }
 
 /** Image prompt chips use the same shapes and drag behavior, with the gallery theme. */

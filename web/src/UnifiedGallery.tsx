@@ -33,8 +33,8 @@ function ModelThumbnail({ file }: { file: FileDetails }) {
     return thumbnail ? <img src={thumbnail} alt={file.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <div style={{ padding: 40, color: 'white' }}>3D · Open viewer</div>;
 }
 
-export function UnifiedGallery({ viewKey, sortRequest, source, remote, selectedRemote, setSelectedRemote, copy, download, working, scope, active, onTrashed }: {
-    viewKey: string;
+export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoadMore, viewKey, sortRequest, source, remote, selectedRemote, setSelectedRemote, copy, download, working, scope, active, onTrashed }: {
+    onNearEnd?:()=>void;hasMore?:boolean;loadingMore?:boolean;onLoadMore?:()=>void;viewKey: string;
     sortRequest?: { type: number; ascending: boolean; revision: number };
     onTrashed: (hashes: string[]) => void;
     source: string; remote: RemoteImage[]; selectedRemote: string[]; setSelectedRemote: React.Dispatch<React.SetStateAction<string[]>>;
@@ -336,7 +336,7 @@ export function UnifiedGallery({ viewKey, sortRequest, source, remote, selectedR
         <div style={{ flex: 1, minHeight: 120, position: 'relative' }} aria-label="Unified gallery">
             {!entries.length ? <Empty description={gallery.archiveView ? "No archived files in this library root." : "No files loaded. Choose a local folder or search Hydrus."} /> : <AutoSizer>{({ width, height }) => {
                 const count = Math.max(1, Math.floor(width / tileSize)); columns.current = count;
-                return <FixedSizeGrid key={viewKey} initialScrollTop={scrollPositions.current[viewKey] || 0} onScroll={({ scrollTop }) => { scrollPositions.current[viewKey] = scrollTop; }} ref={grid} width={width} height={height} columnCount={count} columnWidth={width / count} rowCount={Math.ceil(entries.length / count)} rowHeight={Math.round(width / count * .7) + 58}
+                return <FixedSizeGrid onItemsRendered={({visibleRowStopIndex})=>{if(hasMore&&visibleRowStopIndex>=Math.ceil(entries.length/count)-2)onNearEnd?.();}} key={viewKey} initialScrollTop={scrollPositions.current[viewKey] || 0} onScroll={({ scrollTop }) => { scrollPositions.current[viewKey] = scrollTop; }} ref={grid} width={width} height={height} columnCount={count} columnWidth={width / count} rowCount={Math.ceil(entries.length / count)} rowHeight={Math.round(width / count * .7) + 58}
                     itemData={{ render: ({ rowIndex, columnIndex, style }: GridChildComponentProps) => {
                         return renderCard(rowIndex, columnIndex, count, style);
                     } }}
@@ -346,6 +346,7 @@ export function UnifiedGallery({ viewKey, sortRequest, source, remote, selectedR
             }}</AutoSizer>}
         </div>
         {/* The image takes all the height the window has: one compact toolbar row above, the filmstrip below. */}
+        {hasMore&&<Button loading={loadingMore} onClick={onLoadMore}>Load more · continues when scrolling</Button>}
         <FloatingPanel key={detached ? 'workflow-viewer' : 'viewer'} panelKey={detached ? 'workflow-viewer' : 'viewer'} destroyOnHidden className="cg-viewer" title={current ? `Gallery viewer · ${index + 1} / ${shown.length}${viewerList ? sourceImages ? ' (node images)' : ' (selected assets)' : ''} · ${current.name}` : 'Gallery viewer'} open={!!current && viewerActive} onCancel={closeViewer} width="96vw" zIndex={BASE_Z_INDEX + 10} footer={null}
             initialSize={detached ? { width: Math.min(960, innerWidth * .78), height: Math.min(720, innerHeight * .82) } : { width: innerWidth * .96, height: innerHeight - 76 }} bodyStyle={{ padding: 8, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
             afterOpenChange={opened => { if (opened) viewerRef.current?.focus(); }}>

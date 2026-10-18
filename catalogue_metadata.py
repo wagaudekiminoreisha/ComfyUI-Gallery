@@ -19,7 +19,11 @@ def project(value, depth=0):
             except ValueError: pass
         return value
     if isinstance(value, list):return [project(item,depth+1) for item in value]
-    if isinstance(value, dict):return {key:project(item,depth+1) for key,item in value.items() if key not in DROP}
+    if isinstance(value, dict):
+        result={key:project(item,depth+1) for key,item in value.items() if key not in DROP}
+        metadata=value.get('metadata')
+        if isinstance(metadata,dict) and isinstance(metadata.get('gallery_prefix'),dict):result['metadata']={'gallery_prefix':project(metadata['gallery_prefix'],depth+1)}
+        return result
     return value
 
 def object_value(value):

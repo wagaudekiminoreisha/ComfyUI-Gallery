@@ -48,6 +48,10 @@ def validate(value):
         if image is not None and (not isinstance(image, dict) or any(not isinstance(v, str) or len(v) > 4096 for v in image.values())):
             raise ValueError('Invalid associated image reference.')
     if associations: result['associations'] = associations
+    if 'snapshots' in value:
+        try:from .prefix_snapshots import validate_snapshots
+        except ImportError:from prefix_snapshots import validate_snapshots
+        result['snapshots']=validate_snapshots(value['snapshots'])
     return result
 
 
@@ -77,6 +81,19 @@ def update(path, data):
             library['prefixes'] = [prefix for prefix in library['prefixes'] if prefix['id'] != data.get('id')]
             library['associations'] = {key: item for key, item in library.get('associations', {}).items()
                                        if item['prefix_id'] != data.get('id')}
+        elif action == 'snapshot':
+            try:from .prefix_snapshots import capture_snapshot
+            except ImportError:from prefix_snapshots import capture_snapshot
+            baseline=[]
+            rules_path=path.parent/'gallery-rulesets.json'
+            if rules_path.is_file():
+                try:
+                    try:from .rules_library import read_library
+                    except ImportError:from rules_library import read_library
+                    rules,_=read_library(rules_path);baseline=rules.get('globals',[])+rules.get('prefixes',{}).get(data.get('prefix_id'),[])
+                except ImportError:pass
+            snapshot_id=capture_snapshot(library,data,baseline)
+            validate(library)
         elif action == 'save':
             name, terms = data.get('name'), data.get('terms')
             if not isinstance(name, str) or not name.strip() or len(name) > 200:
@@ -154,7 +171,7 @@ def update(path, data):
         finally:
             if temporary:
                 temporary.unlink(missing_ok=True)
-        return {'library': library, 'revision': hashlib.sha256(raw).hexdigest()}
+        return {'library': library, 'revision': hashlib.sha256(raw).hexdigest(), **({'snapshot_id':snapshot_id} if action=='snapshot' else {})}
 
 
 def register_prefix_routes(routes, get_path):
@@ -298,7 +315,7 @@ class GalleryPromptEncode:
     @classmethod
     def INPUT_TYPES(cls):
         return {'required': {'clip': ('CLIP',), 'text': ('STRING', {'multiline': True, 'dynamicPrompts': True, 'default': ''})},
-                'optional': {'source_text': ('STRING', {'forceInput': True}), 'source_mode': (list(SOURCE_MODES), {'default': 'after'}), 'hair_policy': ('STRING', {'default': '{}'}), 'rules_state': ('STRING', {'default': '[]'})},
+                'optional': {'source_text': ('STRING', {'forceInput': True}), 'source_mode': (list(SOURCE_MODES), {'default': 'after'}), 'hair_policy': ('STRING', {'default': '{}'}), 'rules_state': ('STRING', {'default': '[]'}), 'prefix_snapshots': ('STRING', {'default': '[]'})},
                 'hidden': {'extra_pnginfo': 'EXTRA_PNGINFO', 'unique_id': 'UNIQUE_ID'}}
 
     RETURN_TYPES = ('CONDITIONING', 'STRING')
@@ -309,13 +326,17 @@ class GalleryPromptEncode:
     @classmethod
     def IS_CHANGED(cls, text='', source_text=None, source_mode='after', **kwargs):
         # Unresolved {a|b} groups are picked here each run, so the result must not be cached.
-        return float('nan') if '{' in (text or '') + (source_text or '') else ''
+        return float('nan') if '{' in (text or '') + (source_text or '') or 'one' in str(kwargs.get('hair_policy','')) else ''
 
-    def encode(self, clip, text, source_text=None, source_mode='after', extra_pnginfo=None, unique_id=None, hair_policy='{}', rules_state='[]'):
+    def encode(self, clip, text, source_text=None, source_mode='after', extra_pnginfo=None, unique_id=None, hair_policy='{}', rules_state='[]', prefix_snapshots='[]'):
+        snapshots=json.loads(prefix_snapshots) if isinstance(prefix_snapshots,str) else prefix_snapshots
+        if not isinstance(snapshots,list) or len(snapshots)>100 or any(not isinstance(row,dict) or not isinstance(row.get('prefix_id'),str) or row.get('snapshot_id') is not None and (not isinstance(row['snapshot_id'],str) or not re.fullmatch('[a-f0-9]{64}',row['snapshot_id'])) for row in snapshots):raise ValueError('Invalid prefix snapshot list.')
         if clip is None:
             raise ValueError('Connect a CLIP text encoder to Gallery Prompt Encode.')
         composed = compose_prompt(text, source_text, source_mode)
-        policy = clean_policy(hair_policy)
+        try: from .hair_policy import sample_policy
+        except ImportError: from hair_policy import sample_policy
+        policy = sample_policy(hair_policy)
         effective, choices = resolve_dynamic(composed)
         effective = filter_hair_prompt(effective, policy)
         try: from .prompt_rules import apply_rules
@@ -328,6 +349,7 @@ class GalleryPromptEncode:
             extra_pnginfo[RESOLVED_KEY][str(unique_id)]['hair_policy'] = policy
             extra_pnginfo[RESOLVED_KEY][str(unique_id)]['rules_applied'] = rules_trace
             extra_pnginfo[RESOLVED_KEY][str(unique_id)]['rules_program'] = rules
+            extra_pnginfo[RESOLVED_KEY][str(unique_id)]['prefix_snapshots'] = snapshots
         return {'ui': {'effective_prompt': [effective], 'source_text': [source_text or '']}, 'result': (clip.encode_from_tokens_scheduled(clip.tokenize(effective)), effective)}
 
 

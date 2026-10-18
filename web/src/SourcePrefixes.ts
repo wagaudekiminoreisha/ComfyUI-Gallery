@@ -18,13 +18,16 @@ export function refreshSourcePrefix(image: ImageSourceImage, library: PrefixLibr
         return { ...image, metadata }; // Deletion unpairs; existing workflow text remains editable.
     }
     const terms = (values: string[]) => values.flatMap(text => text.split(/\n+/).flatMap(line => splitTop(line, ','))).map(text => text.trim()).filter(Boolean);
-    const positive = terms(prefix.tags.map(id => library.tags.find(tag => tag.id === id)?.text || ''));
-    const negative = terms(prefix.negative_terms || []);
+    const snapshot=old?.snapshot_id?library.snapshots?.[old.snapshot_id]:undefined;
+    const positive = snapshot?terms(snapshot.terms):terms(prefix.tags.map(id => library.tags.find(tag => tag.id === id)?.text || ''));
+    const negative = terms(snapshot?.negative_terms||prefix.negative_terms || []);
     const update = (side: 'positive' | 'negative', next: string[]) => {
         const current = image.prompt?.[side] || '';
         const previous: string[] = Array.isArray(old?.[side]) ? old[side] : [];
         const enabled = old?.[side + '_enabled'] ?? (!old || !!current || previous.length === 0);
         if (!enabled) return current;
+        const currentKeys=new Set(splitTop(current,',').map(key));
+        if(previous.length&&terms(previous).some(term=>!currentKeys.has(key(term))))return current; // Encoder/source edits are local variants.
         const previousKeys = new Set(terms(previous).map(key));
         const kept = splitTop(current, ',').map(s => s.trim()).filter(s => s && !previousKeys.has(key(s)));
         return [...new Map([...kept, ...next].map(s => [key(s), s])).values()].join(', ');

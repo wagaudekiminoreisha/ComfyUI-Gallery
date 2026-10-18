@@ -2,12 +2,13 @@ import { compileChip, parsePrompt } from './PromptBoxes';
 import { compatibleBranches, promptRuleOccurrences } from './PromptRuleContext';
 import pack from '../../data/global-tag-rules.json';
 
-export type Rule = { op: 'exclude'|'protect'|'require'|'select'|'exclusive'; tags:string[]; value?:string; if_all?:string[] };
+export type RuleCondition={op:'tag';tag:string}|{op:'all'|'any'|'not';children:RuleCondition[]};
+export type Rule = { op: 'exclude'|'protect'|'require'|'select'|'exclusive'; tags:string[]; value?:string; if_all?:string[];condition?:RuleCondition };
 export type Ruleset = { version:1; id:string; name:string; family:string; rules:Rule[]; choices:{id:string;label:string;default:string;options:{id:string;label:string;rules:Rule[]}[]}[] };
-export type RuleBox = {id:string;definition:Ruleset;scope:string;origin:'global'|'prefix'|'encoder';label?:string;preferences:Record<string,string>;enabled:boolean;collapsed:boolean};
+export type RuleBox = {id:string;definition:Ruleset;scope:string;origin:'global'|'prefix'|'snapshot'|'encoder';label?:string;preferences:Record<string,string>;enabled:boolean;collapsed:boolean};
 export type RulesLibrary = {version:1;definitions:Ruleset[];globals:RuleBox[];prefixes:Record<string,RuleBox[]>};
 export const ruleTag = (text:string) => {const key=text.trim().toLowerCase().replace(/\s+/g,'_');return (pack.aliases as Record<string,string>)[key]||key;};
-const ranks={global:0,prefix:1,encoder:2};
+const ranks={global:0,prefix:1,snapshot:2,encoder:3};
 export const ruleBoxKey=(box:RuleBox)=>box.definition.family+'\n'+box.scope;
 export function activeRuleBoxes(boxes:RuleBox[]) {
     const maxima=new Map<string,number>();
@@ -26,6 +27,14 @@ function filterTags(text:string,excluded:Set<string>,depth=0):string {
         return excluded.has(ruleTag(chip.text))?[]:[compileChip(chip)];
     }).join(', ');
 }
+export function conditionPreview(condition:RuleCondition|undefined,items:{tag:string;conditions:Map<number,number>}[]):boolean|undefined {
+    if(!condition)return true;
+    if(condition.op==='tag'){const found=items.filter(item=>item.tag===ruleTag(condition.tag));return found.some(item=>!item.conditions.size)?true:found.length?undefined:false;}
+    const values=condition.children.map(child=>conditionPreview(child,items));
+    if(condition.op==='all')return values.includes(false)?false:values.every(value=>value===true)?true:undefined;
+    if(condition.op==='any')return values.includes(true)?true:values.every(value=>value===false)?false:undefined;
+    return values.includes(true)?false:values.every(value=>value===false)?true:undefined;
+}
 /** Preview checks reachable branches; conditional rules wait for resolved input unless guaranteed. */
 export function applyRulePreview(text:string,boxes:RuleBox[]){
     const parsed=promptRuleOccurrences(text),items=parsed.occurrences.map(item=>({...item,tag:ruleTag(item.tag)}));
@@ -33,6 +42,7 @@ export function applyRulePreview(text:string,boxes:RuleBox[]){
     const errors:string[]=[],notes:string[]=[];
     for(const box of activeRuleBoxes(boxes))for(const rule of selectedRules(box)){
         if(rule.if_all?.length&&!rule.if_all.every(tag=>items.some(item=>item.tag===ruleTag(tag)&&!item.conditions.size))){notes.push('Conditional rules are checked after optional choices.');continue;}
+        const matches=conditionPreview(rule.condition,items);if(matches===false)continue;if(matches===undefined){notes.push('Conditional rules are checked after optional choices.');continue;}
         const tags=rule.tags.map(ruleTag);
         if(rule.op==='exclude')tags.forEach(tag=>excluded.add(tag));
         if(rule.op==='protect')tags.forEach(tag=>protectedTags.add(tag));

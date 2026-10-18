@@ -13,7 +13,7 @@ import { appendToImageSource } from './ImageSourceBridge';
 
 export type RemoteImage = { hash: string; file_id: number; mime: string; width: number; height: number; tags?: Record<string, any>; [key: string]: any };
 type Page = { page_key: string; name: string; is_media_page: boolean; selected?: boolean; pages?: Page[] };
-type Results = { items: RemoteImage[]; total: number; offset?: number; page_name?: string; page_state?: number };
+type Results = { items: RemoteImage[]; total: number; offset?: number;limit?:number;search_id?:string;next_offset?:number|null;page_name?: string; page_state?: number };
 type InputCopy = { name: string; subfolder: string; type: string; input_name: string; url: string; hash: string; metadata?: Record<string, any> };
 
 export function HydrusBrowser({ open, source = 'hydrus', searchMode, viewRevision, onSourceChange }: { onSourceChange: (source: string) => void; source?: string; open: boolean; searchMode: string; viewRevision: number }) {
@@ -48,6 +48,9 @@ export function HydrusBrowser({ open, source = 'hydrus', searchMode, viewRevisio
     const [notice, setNotice] = useViewState(viewKey, '');
     const [error, setError] = useViewState(viewKey, '');
     const [progress, setProgress] = useState('');
+    const [loadingMore,setLoadingMore]=useState(false);
+    const activeRequest=useRef<{kind:'search'|'page';payload:Record<string,unknown>;version:number}|undefined>(undefined);
+    const moreInFlight=useRef(false),moreFailed=useRef(false);
     const requestVersion = useRef(0);
     const lastSampling = useRef<Record<string, string>>({});
     const cancelCopies = useRef(false);
@@ -65,7 +68,7 @@ export function HydrusBrowser({ open, source = 'hydrus', searchMode, viewRevisio
 
 
     const read = async (kind: 'search' | 'pages' | 'page', key = pageKey, offset = 0) => {
-        const version = ++requestVersion.current;
+        const version = ++requestVersion.current;moreFailed.current=false;setLoadingMore(false);activeRequest.current=undefined;
         setBusy(true); setError(''); setNotice('');
         if (kind !== 'pages') { setResult(undefined); setSelected([]); }
         if (kind === 'search') {
@@ -79,7 +82,9 @@ export function HydrusBrowser({ open, source = 'hydrus', searchMode, viewRevisio
                 if (version !== requestVersion.current) return;
                 setPages(data.pages?.pages || (data.pages?.is_media_page ? [data.pages] : []));
             } else {
-                const data = !settings?.has_access_key && kind === 'search' ? { items: [], total: 0 } : await hydrusRequest<Results>(kind, kind === 'search' ? { tags, match, limit, metadata_terms: localBranch, metadata_field: localField, field_join: fieldJoin, or_groups: orGroups, file_sort_type: sortType, file_sort_asc: ascending, expand_danbooru_aliases: gallery.settings.hydrusSearchAliases !== false } : { page_key: key, offset, limit });
+                const payload=kind === 'search' ? { tags, match, limit, metadata_terms: localBranch, metadata_field: localField, field_join: fieldJoin, or_groups: orGroups, file_sort_type: sortType, file_sort_asc: ascending, expand_danbooru_aliases: gallery.settings.hydrusSearchAliases !== false } : { page_key: key, offset, limit };
+                activeRequest.current={kind:kind as 'search'|'page',payload,version};
+                const data = !settings?.has_access_key && kind==='search'?{items:[],total:0}:await hydrusRequest<Results>(kind,payload);
                 if (version !== requestVersion.current) return;
                 setResult(data); reloadMemory();
                 if (kind === 'search') {
@@ -91,6 +96,17 @@ export function HydrusBrowser({ open, source = 'hydrus', searchMode, viewRevisio
             }
         } catch (reason) { if (version === requestVersion.current) setError(reason instanceof Error ? reason.message : String(reason)); }
         finally { if (version === requestVersion.current) setBusy(false); }
+    };
+    const nextOffset=result?.next_offset!==undefined?result.next_offset:result&&(result.offset||0)+(result.limit||limit)<result.total?(result.offset||0)+(result.limit||limit):null;
+    const loadMore=async(force=false)=>{
+        const request=activeRequest.current;if(!open||busy||moreInFlight.current||nextOffset===null||!request||request.version!==requestVersion.current||moreFailed.current&&!force)return;
+        moreInFlight.current=true;moreFailed.current=false;setLoadingMore(true);setError('');
+        try{
+            const page=await hydrusRequest<Results>(request.kind,{...request.payload,offset:nextOffset,...(result?.search_id?{search_id:result.search_id}:{})});
+            if(request.version!==requestVersion.current)return;
+            setResult(previous=>previous?{...page,items:[...new Map([...previous.items,...page.items].map(item=>[item.hash,item])).values()]}:page);reloadMemory();
+        }catch(error){if(request.version===requestVersion.current){moreFailed.current=true;setError(String(error));}}
+        finally{moreInFlight.current=false;setLoadingMore(false);}
     };
     const changeTab = (value: string) => {
         requestVersion.current++; setBusy(false); setTab(value); setResult(undefined); setSelected([]); setError('');
@@ -156,9 +172,9 @@ export function HydrusBrowser({ open, source = 'hydrus', searchMode, viewRevisio
                 <Space wrap><Button loading={busy} disabled={working} onClick={() => read('pages')}>Reload open pages</Button><Button disabled={!pageKey || busy || working} onClick={() => read('page')}>Reload page images</Button><span>Requires Manage Pages permission.</span></Space>
                 <Tree style={{ maxHeight: 180, overflow: 'auto' }} key={JSON.stringify(pages)} defaultExpandAll treeData={treeData(pages)} selectedKeys={[pageKey]} disabled={working}
                     onSelect={keys => { if (keys.length) { const key = String(keys[0]); setPageKey(key); void read('page', key); } }} />
-                {result && <Space style={{ marginBottom: 12 }}><Button disabled={!result.offset || busy || working} onClick={() => read('page', pageKey, Math.max(0, (result.offset || 0) - limit))}>Previous page</Button><span>Files {(result.offset || 0) + (result.total ? 1 : 0)}–{Math.min((result.offset || 0) + limit, result.total)} of {result.total}</span><Button disabled={(result.offset || 0) + limit >= result.total || busy || working} onClick={() => read('page', pageKey, (result.offset || 0) + limit)}>Next page</Button></Space>}
             </>}
         </div>
+        {result&&<small>{result.items.length} of {result.total} files loaded</small>}
         <Modal title="Metadata search group" open={localEditor} onCancel={() => setLocalEditor(false)} onOk={() => setLocalEditor(false)} okText="Use metadata group" zIndex={3030}>
             <p>Search available prompts, cached Hydrus tags or identifiers. Terms in this group are ANDed. Combine this group with the tag query using AND or OR.</p>
             <Select aria-label="Combine search groups" value={fieldJoin} onChange={setFieldJoin} options={[{value:"any",label:"Tag query OR metadata group"},{value:"all",label:"Tag query AND metadata group"}]} style={{width:"100%",marginBottom:8}} /><Select aria-label="Local group category" value={localField} onChange={setLocalField} options={['all', 'positive', 'negative', 'hydrus', 'name'].map(value => ({ value, label: value === 'hydrus' ? 'Hydrus tag (cached)' : value }))} style={{ width: '100%', marginBottom: 8 }} />
@@ -169,6 +185,6 @@ export function HydrusBrowser({ open, source = 'hydrus', searchMode, viewRevisio
         {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 12, whiteSpace: 'pre-wrap' }} />}
         {notice && <Alert type="success" showIcon message={notice} style={{ marginBottom: 12 }} />}
         {(busy || working) && <Space><Spin size="small" /><span aria-live="polite">{progress || 'Searching Hydrus…'}</span>{working && <Button onClick={() => { cancelCopies.current = true; cancelDownloads.current = true; }}>Cancel remaining</Button>}</Space>}
-        <UnifiedGallery viewKey={viewKey} sortRequest={sortRequest} onTrashed={hashes => setResult(old => old ? { ...old, items: old.items.filter(item => !hashes.includes(item.hash)), total: Math.max(0, old.total - hashes.length) } : old)} source={source} remote={items} selectedRemote={selected} setSelectedRemote={setSelected} copy={copy} download={download} working={working} scope={scope} active={open} />
+        <UnifiedGallery onNearEnd={()=>void loadMore()} hasMore={nextOffset!==null} loadingMore={loadingMore} onLoadMore={()=>void loadMore(true)} viewKey={viewKey} sortRequest={sortRequest} onTrashed={hashes => setResult(old => old ? { ...old, items: old.items.filter(item => !hashes.includes(item.hash)), total: Math.max(0, old.total - hashes.length) } : old)} source={source} remote={items} selectedRemote={selected} setSelectedRemote={setSelected} copy={copy} download={download} working={working} scope={scope} active={open} />
     </section>;
 }

@@ -13,6 +13,23 @@ def tag_key(value):
     return ALIASES.get(value, value)
 
 
+def validate_condition(value, depth=0):
+    if depth>8 or not isinstance(value,dict):raise ValueError('Invalid or overly nested rule condition.')
+    if value.get('op')=='tag':
+        tag=value.get('tag')
+        if not isinstance(tag,str) or not tag.strip() or len(tag)>300 or any(c in tag for c in ',{}[]<>|\n\r') or tag.strip().startswith('('):raise ValueError('Condition needs one literal tag.')
+    elif value.get('op') in ('all','any','not'):
+        children=value.get('children')
+        if not isinstance(children,list) or len(children)>100:raise ValueError('Condition needs at most 100 child conditions.')
+        for child in children:validate_condition(child,depth+1)
+    else:raise ValueError('Unknown condition operation.')
+
+def condition_matches(value,tags):
+    if value is None:return True
+    if value['op']=='tag':return tag_key(value['tag']) in tags
+    matches=[condition_matches(child,tags) for child in value['children']]
+    return all(matches) if value['op']=='all' else any(matches) if value['op']=='any' else not any(matches)
+
 def validate_definition(value):
     if not isinstance(value, dict) or value.get('version') != 1: raise ValueError('Ruleset requires version: 1.')
     for field in ('id', 'name', 'family'):
@@ -24,6 +41,7 @@ def validate_definition(value):
             for field in ('tags', 'if_all'):
                 tags = row.get(field, [])
                 if not isinstance(tags, list) or len(tags)>1000 or any(not isinstance(tag,str) or not tag.strip() or len(tag)>300 or any(c in tag for c in ',{}[]<>|\n\r') or tag.strip().startswith('(') for tag in tags): raise ValueError('Rules use lists of individual literal tags.')
+            if row.get('condition') is not None:validate_condition(row['condition'])
             if not row.get('tags'): raise ValueError('A rule needs tags.')
             if row['op']=='select' and (not isinstance(row.get('value'),str) or tag_key(row['value']) not in [tag_key(tag) for tag in row['tags']]): raise ValueError('Select value must belong to its tags.')
     rules(value.get('rules', []))
@@ -53,7 +71,7 @@ def validate_boxes(value):
         for field in ('enabled','collapsed'):
             if field in box and not isinstance(box[field],bool):raise ValueError('Invalid ruleset '+field+'.')
         if not isinstance(box.get('scope','main'),str) or not 1<=len(box.get('scope','main'))<=100: raise ValueError('Invalid ruleset scope.')
-        if box.get('origin','encoder') not in ('global','prefix','encoder'): raise ValueError('Invalid ruleset origin.')
+        if box.get('origin','encoder') not in ('global','prefix','snapshot','encoder'): raise ValueError('Invalid ruleset origin.')
         selections=box.get('preferences',{})
         if not isinstance(selections,dict): raise ValueError('Invalid preferences.')
         choices={choice['id']:choice for choice in definition.get('choices',[])}
@@ -64,7 +82,7 @@ def validate_boxes(value):
 
 def active_boxes(boxes):
     boxes=validate_boxes(boxes)
-    ranks={'global':0,'prefix':1,'encoder':2}
+    ranks={'global':0,'prefix':1,'snapshot':2,'encoder':3}
     enabled=[box for box in boxes if box.get('enabled',True)]
     ranks_by_scope={}
     for box in enabled:
@@ -97,6 +115,7 @@ def apply_rules(text, boxes):
             rows.extend(next(option for option in choice['options'] if option['id']==selected).get('rules',[]))
         for row in rows:
             if not all(tag_key(tag) in initial for tag in row.get('if_all',[])):continue
+            if not condition_matches(row.get('condition'),initial):continue
             tags={tag_key(tag) for tag in row['tags']}; op=row['op']
             if op=='protect':protected.update(tags)
             elif op=='exclude':excluded.update(tags)

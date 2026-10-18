@@ -5,7 +5,7 @@ import {HairControls} from './HairControls';
 import {cleanHairPolicy,type HairPolicy} from './HairPolicy';
 
 type HairBox={value:HairPolicy|null;onChange:(value:HairPolicy|null)=>void};
-export function RuleBoxes({value,onChange,definitions,origin='encoder',inherited=[],promote=false,template='',hairPrompting}:{value:RuleBox[];onChange:(value:RuleBox[])=>void;definitions:Ruleset[];origin?:RuleBox['origin'];inherited?:RuleBox[];promote?:boolean;template?:string;hairPrompting?:HairBox}){
+export function RuleBoxes({value,onChange,definitions,origin='encoder',inherited=[],promote=false,template='',hairPrompting,onEdit}:{value:RuleBox[];onChange:(value:RuleBox[])=>void;definitions:Ruleset[];origin?:RuleBox['origin'];inherited?:RuleBox[];promote?:boolean;template?:string;hairPrompting?:HairBox;onEdit?:(id:string)=>void}){
  const all=[...inherited,...value],active=new Set(activeRuleBoxes(all));
  const patch=(id:string,changes:Partial<RuleBox>,preference=false)=>onChange(value.map(box=>box.id===id?{...box,...changes,...(promote&&preference?{origin:'encoder' as const,label:'Encoder override'}:{})}:box));
  const move=(index:number,delta:number)=>{const result=[...value];[result[index],result[index+delta]]=[result[index+delta],result[index]];onChange(result);};
@@ -15,6 +15,7 @@ export function RuleBoxes({value,onChange,definitions,origin='encoder',inherited
    <button type="button" aria-label={'Collapse ruleset '+box.definition.name} disabled={readOnly} onClick={()=>patch(box.id,{collapsed:!box.collapsed})}>{box.collapsed?'Expand':'Collapse'}</button>
    {!readOnly&&<><button type="button" aria-label="Move ruleset up" disabled={!index} onClick={()=>move(index,-1)}>▲</button><button type="button" aria-label="Move ruleset down" disabled={index===value.length-1} onClick={()=>move(index,1)}>▼</button><button type="button" aria-label="Remove ruleset box" onClick={()=>onChange(value.filter(item=>item.id!==box.id))}>×</button></>}
    {readOnly&&<button type="button" onClick={()=>onChange([...value,{...newRuleBox(box.definition),scope:box.scope,preferences:{...box.preferences},label:'Override '+(box.label||'prefix')}])}>Override on encoder</button>}
+   {!readOnly&&onEdit&&<button type="button" onClick={()=>onEdit(box.id)}>Edit rules</button>}
   </div>
   {(!box.collapsed||readOnly)&&<div>
    <small>{box.label||box.definition.family} · pinned ruleset snapshot</small>

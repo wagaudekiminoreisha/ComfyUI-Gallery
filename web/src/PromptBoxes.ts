@@ -44,7 +44,7 @@ export function filterSource(source: string, excluded: string[]): string {
 export type TagChip = { id: string; kind: 'tag'; text: string; enabled: boolean; weight?: number; emphasis?: 'round' | 'square' };
 export type OrChip = { id: string; kind: 'or'; options: string[]; optional: boolean; enabled: boolean; weight?: number };
 export type Chip = TagChip | OrChip;
-export type GroupBox = { id: string; kind: 'group'; name: string; chips: Chip[]; enabled: boolean; collapsed: boolean; chipsCollapsed?: boolean; prefixId?: string; prefixIds?:string[]; format?: AddMode };
+export type GroupBox = { id: string; kind: 'group'; name: string; chips: Chip[]; enabled: boolean; collapsed: boolean; chipsCollapsed?: boolean; prefixId?: string; prefixIds?:string[];prefixSnapshotId?:string; format?: AddMode };
 export type SourceBox = { id: string; kind: 'source'; enabled: boolean; collapsed: boolean; /** Source tags left out of the prompt. */ excluded?: string[] };
 export type PromptBox = GroupBox | SourceBox;
 export type BoxState = { version: 1; boxes: PromptBox[]; hairPolicy?: HairPolicy | null; rulesets?: RuleBox[] };
@@ -240,7 +240,7 @@ export function parseState(value: unknown): BoxState | undefined {
             const excluded = Array.isArray(raw.excluded) ? raw.excluded.filter((item): item is string => typeof item === 'string' && !!item.trim()) : [];
             if (!hasSource) { hasSource = true; boxes.push({ id, kind: 'source', enabled: raw.enabled !== false, collapsed: raw.collapsed === true, ...(excluded.length ? { excluded } : {}) }); }
         } else if (raw.kind === 'group') {
-            boxes.push({ id, kind: 'group', name: typeof raw.name === 'string' ? raw.name.slice(0, 80) : '', ...(typeof raw.prefixId === 'string' ? {prefixId:raw.prefixId} : {}), ...(Array.isArray(raw.prefixIds)?{prefixIds:raw.prefixIds.filter((id:unknown)=>typeof id==='string').slice(0,100)}:{}), ...(ADD_MODES.some(mode => mode.value === raw.format) ? { format: raw.format as AddMode } : {}), chips: (Array.isArray(raw.chips) ? raw.chips : []).map(cleanChip).filter((chip): chip is Chip => !!chip), enabled: raw.enabled !== false, collapsed: raw.collapsed === true, chipsCollapsed: raw.chipsCollapsed === true });
+            boxes.push({ id, kind: 'group', name: typeof raw.name === 'string' ? raw.name.slice(0, 80) : '', ...(typeof raw.prefixId === 'string' ? {prefixId:raw.prefixId} : {}),...(typeof raw.prefixSnapshotId==='string'?{prefixSnapshotId:raw.prefixSnapshotId}:{}), ...(Array.isArray(raw.prefixIds)?{prefixIds:raw.prefixIds.filter((id:unknown)=>typeof id==='string').slice(0,100)}:{}), ...(ADD_MODES.some(mode => mode.value === raw.format) ? { format: raw.format as AddMode } : {}), chips: (Array.isArray(raw.chips) ? raw.chips : []).map(cleanChip).filter((chip): chip is Chip => !!chip), enabled: raw.enabled !== false, collapsed: raw.collapsed === true, chipsCollapsed: raw.chipsCollapsed === true });
         }
     }
     if (!hasSource) boxes.push(sourceBox());

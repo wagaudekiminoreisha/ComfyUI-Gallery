@@ -1,3 +1,8 @@
+import {SnapshotRail} from './SnapshotRail';
+import {PrefixRulesEditor} from './PrefixRulesEditor';
+import {capturePrefixSnapshot} from './PrefixLibrary';
+import {rulesRequest} from './RulesLibrary';
+import {promptLeaves} from './RuleImpact';
 import {loadLocalMetadata} from './LocalMetadata';
 import { useUnsavedPrefix } from './UnsavedPrefix';
 /**
@@ -223,6 +228,7 @@ export function SourcePrefixPanel() {
     const [entries, setEntries] = useState<GalleryEntry[]>([]);
     const [library, setLibrary] = useState<SharedLibrary>({ version: 2, tags: [], prefixes: [] });
     const [prefixId, setPrefixId] = useState<string>();
+    const [snapshot,setSnapshot]=useState<string>();
     const [name, setName] = useState('');
     /** What is typed in the prefix box right now; a name that matches no prefix becomes the new prefix's name. */
     const [typed, setTyped] = useState('');
@@ -240,11 +246,11 @@ export function SourcePrefixPanel() {
             const detail = (event as CustomEvent<GalleryEntry[] | string[]>).detail || [];
             const files = hydrusRef.current.imageFiles, items = hydrusRef.current.items;
             setEntries(detail.flatMap(value => typeof value !== 'string' ? [value] : files[value] ? [localEntry(files[value], items[value]?.hash)] : []));
-            setPrefixId(undefined); setName(''); setTyped(''); setSide('positive'); void reload();
+            setSnapshot(undefined);setPrefixId(undefined); setName(''); setTyped(''); setSide('positive'); void reload();
         };
         window.addEventListener(SOURCE_PREFIX_EVENT, open);
-        window.addEventListener('gallery-prefix-library-changed', reload);
-        return () => { window.removeEventListener(SOURCE_PREFIX_EVENT, open); window.removeEventListener('gallery-prefix-library-changed', reload); };
+        window.addEventListener('gallery-prefix-library-changed', reload);window.addEventListener('gallery-prefix-snapshots-changed',reload);
+        return () => { window.removeEventListener(SOURCE_PREFIX_EVENT, open); window.removeEventListener('gallery-prefix-library-changed', reload);window.removeEventListener('gallery-prefix-snapshots-changed',reload); };
     }, []);
     const metadataOf = (entry: GalleryEntry) => entry.local ? { ...entry.local.metadata, hydrus: hydrus.items[entry.local.url]?.metadata || (entry.local.metadata as any)?.hydrus } : { hydrus: entry.remote };
     const tags = useMemo(() => {
@@ -280,7 +286,7 @@ export function SourcePrefixPanel() {
         if (!label) throw new Error('Name the new prefix first.');
         // Spelling (spaces or canonical underscores) follows the gallery settings, as in the prefix editor.
         const terms = positive.length ? await formatPromptTerms(positive) : [], negativeTerms = negative.length ? await formatPromptTerms(negative) : [];
-        message.success(await savePrefix(label, terms, library.revision, keys, negativeTerms, refs));
+        if(snapshot&&prefix){const previous=library.snapshots?.[snapshot];const rules=(await rulesRequest()).library.prefixes['snapshot:'+snapshot]||previous?.rules||[];const id=await capturePrefixSnapshot({prefix_id:prefix.id,terms,negative_terms:negativeTerms,rules,hair_policy:previous?.hair_policy,image_keys:[...new Set([...Object.keys(previous?.members||{}),...keys])],image_refs:{...previous?.members,...refs}});setSnapshot(id||undefined);message.success('Saved snapshot; parent prefix unchanged.');}else message.success(await savePrefix(label, terms, library.revision, keys, negativeTerms, refs));
         drafts.markSaved({ name: label, positive: terms, negative: negativeTerms });
         setName(label); setPositive(terms); setNegative(negativeTerms);
         const fresh = await reload();
@@ -307,8 +313,8 @@ export function SourcePrefixPanel() {
                 <Button onClick={close}>Close</Button>
                 <Button onClick={() => { drafts.guard(() => { setAppending(entries); setEntries([]); }); }}>Append images and prompts…</Button>
                 <Button disabled={!prefix || busy} onClick={() => void pair()} title="Pair the image(s) with this prefix without changing its tags">Pair only</Button>
-                <Button type="link" onClick={() => { openPrefixManager({ name: prefix?.name || name, positive, negative, imageKeys: keys, imageRefs: refs }); setEntries([]); }}>Full prefix editor…</Button>
-                <Button type="primary" loading={busy} disabled={!total || !(prefix || name.trim())} onClick={() => void save()}>{prefix ? `Save “${prefix.name}” and pair` : name ? `Create “${name}” with ${total} tag(s)` : `Create prefix with ${total} tag(s)`}</Button>
+                <Button type="link" onClick={() => { openPrefixManager({snapshotId:snapshot, name: prefix?.name || name, positive, negative, imageKeys: keys, imageRefs: refs }); setEntries([]); }}>Full prefix editor…</Button>
+                <Button type="primary" loading={busy} disabled={!total || !(prefix || name.trim())} onClick={() => void save()}>{snapshot?'Save snapshot':prefix ? `Save “${prefix.name}” and pair` : name ? `Create “${name}” with ${total} tag(s)` : `Create prefix with ${total} tag(s)`}</Button>
             </Space>}>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>{entries.slice(0, 8).map(entry => <img key={entry.id} src={thumb(entry)} alt={entry.name} style={{ width: 84, height: 84, objectFit: 'contain', background: '#8882', borderRadius: 4 }} />)}{entries.length > 8 && <Typography.Text type="secondary">+{entries.length - 8}</Typography.Text>}</div>
             {!!pairedWith.length && <div style={{ marginBottom: 8 }}><Typography.Text>Paired with: </Typography.Text>{pairedWith.map(id => <Tag key={id} closable onClose={event => { event.preventDefault(); void unpair(id); }}>{library.prefixes.find(item => item.id === id)?.name || 'deleted prefix'}</Tag>)}</div>}
@@ -317,7 +323,7 @@ export function SourcePrefixPanel() {
                 disabled={busy}
                 value={prefix ? prefix.id : name ? 'new:' + name : undefined} searchValue={typed} onSearch={setTyped} autoClearSearchValue
                 filterOption={(input, option) => String(option?.value).startsWith('new:') || String(option?.label).toLowerCase().includes(input.trim().toLowerCase())}
-                onChange={(value?: string) => { setTyped(''); if (!value) { setPrefixId(undefined); setName(''); } else if (value.startsWith('new:')) { setPrefixId(undefined); setName(value.slice(4)); } else setPrefixId(value); }}
+                onChange={(value?: string) => {setSnapshot(undefined); setTyped(''); if (!value) { setPrefixId(undefined); setName(''); } else if (value.startsWith('new:')) { setPrefixId(undefined); setName(value.slice(4)); } else setPrefixId(value); }}
                 onBlur={() => { const match = matchOf(typedName); if (match) setPrefixId(match.id); else if (typedName) { setPrefixId(undefined); setName(typedName); } setTyped(''); }}
                 options={[
                     ...(typedName && !matchOf(typedName) ? [{ value: 'new:' + typedName, label: 'Create new prefix “' + typedName + '”' }] : []),
@@ -327,7 +333,9 @@ export function SourcePrefixPanel() {
             {!prefix && <Input aria-label="New prefix name" placeholder="New prefix name — editable until saved" value={name} allowClear disabled={busy} style={{ marginTop: 8 }}
                 onChange={event => { setName(event.target.value); setTyped(''); }} onKeyDown={event => { if (event.key === 'Enter') event.preventDefault(); }} />}
             <Typography.Paragraph type="secondary" style={{ margin: '6px 0 4px' }}>{prefix ? 'Editing “' + prefix.name + '”: its tags are on the right. Saving changes them and pairs the image(s); “Pair only” pairs without changing anything.' : 'A new prefix starts with the image’s positive prompt. Saving creates it and pairs the image(s).'} Tag spelling follows Settings.</Typography.Paragraph>
-            <Tabs size="small" activeKey={side} onChange={key => setSide(key as 'positive' | 'negative')} items={(['positive', 'negative'] as const).map(key => ({ key, label: `${key === 'positive' ? 'Positive' : 'Negative'} (${(key === 'positive' ? positive : negative).length})` }))} />
+            <SnapshotRail prefixId={prefix?.id} selected={snapshot} onSelect={row=>{const positive=row?.terms||(prefix?expandPrefix(library,'@'+prefix.name):[]),negative=row?.negative_terms||prefix?.negative_terms||[];drafts.markSaved({name:prefix?.name||name,positive,negative});setSnapshot(row?.id);setPositive(positive);setNegative(negative);}}/>
+            <PrefixRulesEditor bindingId={snapshot?'snapshot:'+snapshot:prefix?.id} name={snapshot?'snapshot '+snapshot.slice(0,8):prefix?.name||name} template={positive.join(', ')} fallback={snapshot?library.snapshots?.[snapshot]?.rules:undefined}/>
+            <Tabs size="small" activeKey={side} onChange={key => setSide(key as 'positive' | 'negative')} items={(['positive', 'negative'] as const).map(key => ({ key, label: `${key === 'positive' ? 'Positive' : 'Negative'} (${promptLeaves((key === 'positive' ? positive : negative).join(', ')).length})` }))} />
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
                 <div style={{ flex: '1 1 340px', minWidth: 0 }}>
                     <Typography.Title level={5} style={{ marginTop: 0 }}>From the image{entries.length === 1 ? '' : 's'}</Typography.Title>
@@ -342,6 +350,6 @@ export function SourcePrefixPanel() {
                 </div>
             </div>
         </FloatingPanel>
-        <AppendImagesModal entries={appending} onClose={() => setAppending([])} />
+        <AppendImagesModal snapshotId={snapshot} entries={appending} onClose={() => setAppending([])} />
     </>;
 }

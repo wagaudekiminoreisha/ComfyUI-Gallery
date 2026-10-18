@@ -4,7 +4,7 @@ import { FloatingPanel } from './FloatingPanel';
 import { PromptPalette } from './PromptPalette';
 import { useGalleryContext } from './GalleryContext';
 import { usePromptSpelling, formatPromptTerms, prepareInsertion } from './PromptSpelling';
-import { openPrefixManager, loadPrefixes, imagePrefixKeys, imagePrefixRefs } from './PrefixLibrary';
+import { openPrefixManager, loadPrefixes, imagePrefixKeys, imagePrefixRefs,type SharedLibrary } from './PrefixLibrary';
 import { ImageSourceTarget } from './ImageSourceHost';
 import { useEffect, useState } from 'react';
 import { Alert, Button, Checkbox, Collapse, Modal, Select, Space, Typography, message } from 'antd';
@@ -16,10 +16,11 @@ import { useHydrus } from './HydrusContext';
 import type { GalleryEntry } from './GalleryOrder';
 import type { ImageSourceImage, PromptApply } from './ImageSourceGeometry';
 
-type Row = { entry: GalleryEntry; metadata: any; positive: string[]; negative: string[]; usePositive: boolean; useNegative: boolean; useTags: boolean; tags: string[]; sync: boolean; prefixId?: string };
-export function AppendImagesModal({ entries, onClose }: { entries: GalleryEntry[]; onClose: () => void }) {
+type Row = { entry: GalleryEntry; metadata: any; positive: string[]; negative: string[]; usePositive: boolean; useNegative: boolean; useTags: boolean; tags: string[]; sync: boolean; prefixId?: string;snapshotId?:string };
+export function AppendImagesModal({ entries, onClose,snapshotId }: { entries: GalleryEntry[]; onClose: () => void;snapshotId?:string }) {
     const hydrus = useHydrus();
     const gallery = useGalleryContext();
+    const [library,setLibrary]=useState<SharedLibrary>({version:2,tags:[],prefixes:[]});
     const [paletteImage, setPaletteImage] = useState(0);
     const [paletteSide, setPaletteSide] = useState<'positive' | 'negative' | 'tags'>('positive');
     const [spaces, setSpaces] = usePromptSpelling();
@@ -39,10 +40,11 @@ export function AppendImagesModal({ entries, onClose }: { entries: GalleryEntry[
             return { entry, metadata, positive: promptTags(prompts.positive, ''), negative: promptTags(prompts.negative, ''), usePositive: false, useNegative: false, useTags: false, tags: extractHydrusTags(metadata), sync: false };
         });
         setRows([]);
-        void loadPrefixes().then(library => { if (live) setRows(initial.map(row => {
+        void loadPrefixes().then(library => { if (live){setLibrary(library); setRows(initial.map(row => {
             const association = imagePrefixKeys(row.entry, gallery.settings.relativePath).map(key => library.associations?.[key]).find(Boolean);
+            const variant=library.snapshots?.[snapshotId||row.metadata?.gallery_prefix?.snapshot_id];if(variant)return {...row,positive:variant.terms,negative:variant.negative_terms,prefixId:variant.prefix_id,snapshotId:variant.id,usePositive:true,useNegative:!!variant.negative_terms.length};
             return association ? { ...row, positive: association.terms, usePositive: association.terms.length > 0, negative: association.negative_terms || row.negative, useNegative: !!association.negative_terms?.length, prefixId: association.prefix_id } : row;
-        })); }).catch(reason => { if (live) { setRows(initial); setError('Could not load image-prefix associations: ' + String(reason)); } });
+        }));} }).catch(reason => { if (live) { setRows(initial); setError('Could not load image-prefix associations: ' + String(reason)); } });
         void getPromptTargets().then(setTargets).catch(reason => setError(String(reason)));
         return () => { live = false; };
     }, [entries]);
@@ -55,12 +57,12 @@ export function AppendImagesModal({ entries, onClose }: { entries: GalleryEntry[
                 let copied: any;
                 if (row.entry.local) {
                     const originalMetadata=await loadLocalMetadata(row.entry.local,gallery.settings.relativePath);
-                    const response = await fetch('/Gallery/source/local', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: row.entry.local.url, metadata: { ...originalMetadata,hydrus:row.metadata.hydrus, ...(row.prefixId ? { gallery_prefix: { id: row.prefixId, positive: row.positive, negative: row.negative, tags: row.tags } } : {}) } }) });
+                    const response = await fetch('/Gallery/source/local', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: row.entry.local.url, metadata: { ...originalMetadata,hydrus:row.metadata.hydrus, ...(row.prefixId ? { gallery_prefix: { id: row.prefixId,snapshot_id:row.snapshotId, positive: row.positive, negative: row.negative, tags: row.tags } } : {}) } }) });
                     copied = await response.json();
                     if (!response.ok) throw new Error(copied.error || 'Local image copy failed');
                 } else copied = await hydrusRequest('import', { hash: row.entry.hash });
                 if (copied.warning) throw new Error(copied.warning + ' Retry after checking Hydrus permissions; workflow was not changed.');
-                const metadata = { ...row.metadata, ...copied.metadata, gallery_prefix: row.prefixId ? { id: row.prefixId, positive: row.positive, negative: row.negative, tags: row.tags, positive_enabled: row.usePositive, negative_enabled: row.useNegative } : undefined, hydrus: copied.metadata?.hydrus || row.metadata.hydrus };
+                const metadata = { ...row.metadata, ...copied.metadata, gallery_prefix: row.prefixId ? { id: row.prefixId,snapshot_id:row.snapshotId, positive: row.positive, negative: row.negative, tags: row.tags, positive_enabled: row.usePositive, negative_enabled: row.useNegative } : undefined, hydrus: copied.metadata?.hydrus || row.metadata.hydrus };
                 images.push({ input_name: copied.input_name, title: row.entry.name, metadata, prompt: { positive: (await formatPromptTerms(Array.from(new Set([...(row.usePositive ? row.positive : []), ...(row.useTags ? row.tags : [])])), spaces)).join(', '), negative: row.useNegative ? (await formatPromptTerms(row.negative, spaces)).join(', ') : '', tags: row.tags } });
             }
             // Append first so a missing workflow target cannot silently become a copy-only action.
@@ -93,6 +95,7 @@ export function AppendImagesModal({ entries, onClose }: { entries: GalleryEntry[
         <PromptPalette onAppend={async (groups, options) => { const row = rows[paletteImage]; if (!row) throw new Error('Choose an image first.'); const text = await prepareInsertion(groups, options); setRows(old => old.map((item, index) => index !== paletteImage ? item : { ...item, [paletteSide]: options.position === 'before' ? [text, ...item[paletteSide]] : [...item[paletteSide], text], ...(paletteSide === 'positive' ? {usePositive:true} : paletteSide === 'negative' ? {useNegative:true} : {}) })); }} onChoose={(terms, prefixId, negatives) => { const row = rows[paletteImage]; if (row) update(paletteImage, { [paletteSide]: Array.from(new Set([...row[paletteSide], ...terms])), ...(paletteSide === 'positive' ? {usePositive:true, prefixId:prefixId || row.prefixId, ...(negatives?.length ? {negative: Array.from(new Set([...row.negative, ...negatives])), useNegative:true} : {})} : paletteSide === 'negative' ? {useNegative:true} : {} ) }); }} />
         <Collapse defaultActiveKey={['0']} items={rows.map((row, index) => ({ key: String(index), label: row.entry.name, children: <Space direction="vertical" style={{ width: '100%' }}>
             <Button onClick={() => openPrefixManager({ positive: row.positive, negative: row.negative, hydrus: row.tags, imageKeys: imagePrefixKeys(row.entry, gallery.settings.relativePath), imageRefs: imagePrefixRefs(row.entry, gallery.settings.relativePath), onSaved: (terms, prefixId, negativeTerms) => update(index, { positive: terms, usePositive: !!terms.length, negative: negativeTerms, useNegative: !!negativeTerms.length, prefixId }) })}>Create prefix from this image</Button>
+            {row.prefixId&&<Select aria-label={'Reference snapshot '+index} style={{width:'100%'}} value={row.snapshotId||''} options={[{value:'',label:'Parent prefix tags'},...Object.values(library.snapshots||{}).filter(variant=>variant.prefix_id===row.prefixId).map(variant=>({value:variant.id,label:(variant.name||'Snapshot')+' · '+variant.id.slice(0,8)}))]} onChange={id=>{const variant=library.snapshots?.[id],parent=library.prefixes.find(p=>p.id===row.prefixId);update(index,{snapshotId:id||undefined,positive:variant?.terms||(parent?parent.tags.map(id=>library.tags.find(tag=>tag.id===id)?.text||'').filter(Boolean):row.positive),negative:variant?.negative_terms||parent?.negative_terms||[],usePositive:true});}}/>}
             {row.prefixId && <Typography.Text type="success">Image prefix paired · selected terms are enabled below</Typography.Text>}
             <Checkbox checked={row.usePositive} onChange={event => update(index, { usePositive: event.target.checked })}>Load positive prompt</Checkbox>
             <HydrusTagSelect label={'Positive terms ' + index} value={row.positive} onChange={positive => update(index, { positive })} />

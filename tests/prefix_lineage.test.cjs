@@ -70,3 +70,12 @@ test('prefix conditions: plain tags are required, {a|b} needs one option, option
     assert.deepEqual(L2.prefixConditions(['activator tag', '{tag1|}', '{(tag2, tag3)|}', '(tag4:0.5)', '{red hair|blue hair}']), [['activator tag'], ['tag4'], ['red hair', 'blue hair']]);
     assert.deepEqual(L2.requiredTerms(['a, b', '{c|d}', '{e|}']), ['a', 'b']);
 });
+
+
+test('snapshot provenance follows generated encoder records, source variants and original membership without broadening to other variants',()=>{
+ const lib={tags:[],prefixes:[],snapshots:{s1:{id:'s1',members:{['sha256:'+h('a')]:{local_url:'/a.png'}}},s2:{id:'s2',members:{}}}};
+ assert.deepEqual(L.imageSnapshotIds(lib,['local:output:/a.png'],{}),['s1']);
+ assert.deepEqual(L.imageSnapshotIds(lib,[],{gallery_prompts:{n:{prefix_snapshots:[{prefix_id:'p',snapshot_id:'s2'}]}}}),['s2']);
+ assert.deepEqual(L.imageSnapshotIds(lib,[],source(h('b'),{metadata:{gallery_prefix:{id:'p',snapshot_id:'s2'}}})),['s2']);
+ assert.deepEqual(L.sourceLinks({gallery_prompts:{n:{prefix_snapshots:[{prefix_id:'p',snapshot_id:'s2'}]}}}).prefixIds,['p']);
+});

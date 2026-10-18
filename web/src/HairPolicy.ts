@@ -5,12 +5,12 @@ import { compatibleBranches, promptRuleOccurrences } from './PromptRuleContext';
 
 export const HAIR_ATTRIBUTES = ['length', 'colour', 'distribution', 'presence', 'arrangement', 'texture', 'details', 'alteration', 'bangs-length', 'material'] as const;
 export type HairAttribute = typeof HAIR_ATTRIBUTES[number];
-export type HairPolicy = { mode: 'specific' | 'natural' | 'minimal'; attributes: HairAttribute[]; singleColour?: boolean };
+export type HairPolicy = { mode: 'specific' | 'natural' | 'minimal'; attributes: HairAttribute[]; singleColour?: boolean; attributeMode?:'one' };
 export const DEFAULT_HAIR_POLICY: HairPolicy = { mode: 'specific', attributes: ['length'] };
 export function cleanHairPolicy(value: unknown): HairPolicy {
     if (typeof value === 'string') { try { value = JSON.parse(value); } catch { value = null; } }
     const raw = value as Partial<HairPolicy> | null;
-    return { mode: raw?.mode === 'natural' || raw?.mode === 'minimal' ? raw.mode : 'specific', attributes: Array.isArray(raw?.attributes) ? HAIR_ATTRIBUTES.filter(key => raw.attributes!.includes(key)) : ['length'], singleColour: raw?.singleColour === true };
+    return { ...(raw?.attributeMode==='one'?{attributeMode:'one' as const}:{}),mode: raw?.mode === 'natural' || raw?.mode === 'minimal' ? raw.mode : 'specific', attributes: Array.isArray(raw?.attributes) ? HAIR_ATTRIBUTES.filter(key => raw.attributes!.includes(key)) : ['length'], singleColour: raw?.singleColour === true };
 }
 const key = (text: string) => text.trim().toLowerCase().replace(/\s+/g, '_');
 const facets = new Map(Object.entries(vocabulary.tags)) as Map<string, HairAttribute>;

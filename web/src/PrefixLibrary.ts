@@ -4,8 +4,9 @@ import { getComfyApp } from './ComfyAppApi';
 import { splitTop } from './PromptBoxes';
 // The encoder's source-prompt lookup moved next to the box editor; keep the old import path working.
 export { effectiveSourceText } from './EncoderNode';
-export type PrefixImage = { name?: string; local_url?: string; root?: string; hash?: string; /** Association keys this image is stored under (filled in when listing). */ keys?: string[] };
-export type PrefixLibrary = { version: number; associations?: Record<string, { prefix_id: string; terms: string[]; negative_terms?: string[]; image?: PrefixImage }>; tags: { id: string; name: string; text: string }[]; prefixes: { id: string; name: string; tags: string[]; negative_terms?: string[] }[] };
+export type PrefixImage = { input_name?:string; name?: string; local_url?: string; root?: string; hash?: string; /** Association keys this image is stored under (filled in when listing). */ keys?: string[] };
+export type PrefixSnapshot={id:string;prefix_id:string;name:string;terms:string[];negative_terms:string[];rules:import('./RuleEngine').RuleBox[];hair_policy?:import('./HairPolicy').HairPolicy;members:Record<string,PrefixImage>;created_at:number};
+export type PrefixLibrary = { snapshots?:Record<string,PrefixSnapshot>;version: number; associations?: Record<string, { prefix_id: string; terms: string[]; negative_terms?: string[]; image?: PrefixImage }>; tags: { id: string; name: string; text: string }[]; prefixes: { id: string; name: string; tags: string[]; negative_terms?: string[] }[] };
 async function api() {
     const current = (window as any).comfyAPI?.api?.api || getComfyApp()?.api;
     if (current?.fetchApi) return current;
@@ -14,15 +15,15 @@ async function api() {
 export const PREFIX_MANAGER_EVENT = 'gallery-prefix-manager';
 /** Opens the prefix editor window as it is (no new seed). */
 export const PREFIX_EDITOR_EVENT = 'gallery-prefix-editor';
-export type PrefixSeed = { name?: string; positive?: string[]; negative?: string[]; hydrus?: string[]; node?: any; imageKeys?: string[]; imageRefs?: Record<string, PrefixImage>; onSaved?: (terms: string[], prefixId: string, negativeTerms: string[]) => void };
+export type PrefixSeed = {snapshotId?:string; name?: string; positive?: string[]; negative?: string[]; hydrus?: string[]; node?: any; imageKeys?: string[]; imageRefs?: Record<string, PrefixImage>; onSaved?: (terms: string[], prefixId: string, negativeTerms: string[]) => void };
 export function openPrefixManager(seed: PrefixSeed = {}) { window.dispatchEvent(new CustomEvent(PREFIX_MANAGER_EVENT, { detail: seed })); }
 export type SharedLibrary = PrefixLibrary & { revision?: string };
-async function request(body?: unknown): Promise<{ library: PrefixLibrary; revision: string }> {
+async function request(body?: unknown): Promise<{ library: PrefixLibrary; revision: string;snapshot_id?:string|null }> {
     const service = await api();
     const options = body === undefined ? undefined : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
     const response = await (service?.fetchApi ? service.fetchApi('/Gallery/prefixes', options) : fetch('/Gallery/prefixes', options));
     const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'Shared Prompt Library request failed');
+    if (!response.ok) throw Object.assign(new Error(result.error || 'Shared Prompt Library request failed'),{status:response.status});
     return result;
 }
 let channel: BroadcastChannel | undefined;
@@ -166,4 +167,9 @@ export function writeLibraryNodeText(node: any, text: string) {
 
 export function imagePrefixRefs(entry: { name?: string; hash?: string; local?: { url: string } }, root: string): Record<string, PrefixImage> {
     return Object.fromEntries(imagePrefixKeys(entry, root).map(key => [key, { name: entry.name || '', ...(entry.hash ? { hash: entry.hash } : {}), ...(entry.local ? { local_url: entry.local.url, root } : {}) }]));
+}
+
+export async function capturePrefixSnapshot(data:{prefix_id:string;terms:string[];negative_terms?:string[];rules?:import('./RuleEngine').RuleBox[];hair_policy?:unknown;image_keys?:string[];image_refs?:Record<string,PrefixImage>;name?:string}){
+ for(let attempt=0;attempt<2;attempt++){const library=await loadPrefixes();try{const result=await request({...data,action:'snapshot',revision:library.revision});window.dispatchEvent(new Event('gallery-prefix-snapshots-changed'));return result.snapshot_id||null;}catch(error){if(attempt||(error as any).status!==409)throw error;}}
+ return null;
 }
