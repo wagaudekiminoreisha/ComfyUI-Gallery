@@ -1,3 +1,4 @@
+import {loadLocalMetadata} from './LocalMetadata';
 import { promptTags } from './PromptTags';
 import { FloatingPanel } from './FloatingPanel';
 import { PromptPalette } from './PromptPalette';
@@ -53,7 +54,8 @@ export function AppendImagesModal({ entries, onClose }: { entries: GalleryEntry[
             for (const row of rows) {
                 let copied: any;
                 if (row.entry.local) {
-                    const response = await fetch('/Gallery/source/local', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: row.entry.local.url, metadata: { ...row.metadata, ...(row.prefixId ? { gallery_prefix: { id: row.prefixId, positive: row.positive, negative: row.negative, tags: row.tags } } : {}) } }) });
+                    const originalMetadata=await loadLocalMetadata(row.entry.local,gallery.settings.relativePath);
+                    const response = await fetch('/Gallery/source/local', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: row.entry.local.url, metadata: { ...originalMetadata,hydrus:row.metadata.hydrus, ...(row.prefixId ? { gallery_prefix: { id: row.prefixId, positive: row.positive, negative: row.negative, tags: row.tags } } : {}) } }) });
                     copied = await response.json();
                     if (!response.ok) throw new Error(copied.error || 'Local image copy failed');
                 } else copied = await hydrusRequest('import', { hash: row.entry.hash });

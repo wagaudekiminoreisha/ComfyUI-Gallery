@@ -30,7 +30,7 @@ for i, color in enumerate(['#294b65', '#bd8559', '#518978', '#796baa']):
         d.ellipse((130, 45, 510, 425), fill=['#b9cdd7', '#edcb96', '#adcfb5', '#cbc1e8'][i])
         d.text((30, 25), f'Gallery test image {i + 1}', fill='white')
         info = PngImagePlugin.PngInfo()
-        info.add_text('prompt', json.dumps({'1': {'class_type': 'KSampler', 'inputs': {'seed': 42}}}))
+        info.add_text('prompt', json.dumps({'92':{'class_type':'KSampler','inputs':{'positive':['17',0],'negative':['86',0]}},'17':{'class_type':'CLIPTextEncode','inputs':{'text':['azure sky, mountain','autumn forest','ocean sunset','winter snow'][i]}},'86':{'class_type':'CLIPTextEncode','inputs':{'text':['blurry, watermark','bad anatomy','low contrast','overexposed'][i]}}}))
         im.save(p, pnginfo=info)
 
 if os.environ.get('GALLERY_DIRECT_QA') == '1':
@@ -132,6 +132,8 @@ from gallery_qa.prefix_library import register_prefix_routes
 register_prefix_routes(routes, lambda request: MEMORY / "prompt-library.json")
 from gallery_qa.media_archive import register_archive_routes
 register_archive_routes(routes, lambda request: MEMORY / "gallery-archive.json", lambda request: MEDIA)
+from gallery_qa.catalogue_metadata import register_metadata_routes
+register_metadata_routes(routes, lambda request: MEDIA)
 from gallery_qa.exclusive_tags import register_exclusive_routes
 register_exclusive_routes(routes, lambda request: MEMORY / "gallery-exclusive-tags.json")
 from gallery_qa.image_source_api import register_source_routes
@@ -158,6 +160,8 @@ async def images(request):
                                                  '17': {'class_type': 'CLIPTextEncode', 'inputs': {'text': ['azure sky, mountain', 'autumn forest', 'ocean sunset', 'winter snow'][n]}},
                                                  '86': {'class_type': 'CLIPTextEncode', 'inputs': {'text': ['blurry, watermark', 'bad anatomy', 'low contrast', 'overexposed'][n]}}}}}
                for n, p in enumerate(MEDIA.glob('*.png'))}
+    from gallery_qa.catalogue_metadata import compact_metadata
+    for entry in entries.values():entry['metadata']=compact_metadata(entry['metadata'])
     return web.json_response({'folders': {'output': entries}})
 
 async def settings(request):

@@ -109,6 +109,8 @@ const GalleryModal = () => {
                 <Button type={targetOpen ? 'primary' : 'default'} onClick={() => setTargetOpen(value => !value)}>Image Source</Button>
             </div>
             {targetOpen && <div className="cg-target"><ImageSourceTarget /></div>}
+            {gallery.loading&&<div role="status" style={{padding:8}}>Loading local files…</div>}
+            {gallery.error&&<div role="alert" style={{padding:8}}>Cannot load local files: {String(gallery.error)}</div>}
             {gallery.archiveError && <div role="alert" style={{padding:8}}>Archive unavailable: {gallery.archiveError}. Archive state could not be verified; local files may include archived media. Reload or refocus to retry.</div>}
             {gallery.archiveView && <div style={{padding:'0 16px'}}>Archived local media · all folders in this library root. Originals remain in place; restore returns them to Media.</div>}
             <HydrusBrowser onSourceChange={setSource} source={source} open={visible} searchMode={searchMode} viewRevision={viewRevision} />

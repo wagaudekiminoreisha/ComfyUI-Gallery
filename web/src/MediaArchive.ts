@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ComfyAppApi } from './ComfyAppApi';
 
+const EMPTY_ARCHIVE=new Set<string>();
+
 export function useMediaArchive(root: string) {
     const [state, setState] = useState<{ root: string; urls: Set<string> }>();
     const [busy, setBusy] = useState(false);
@@ -14,7 +16,7 @@ export function useMediaArchive(root: string) {
         try {
             const urls = await ComfyAppApi.archive(root);
             if (request === revision.current && currentRoot.current === root) { setState({ root, urls: new Set(urls) }); setError(''); }
-        } catch (error) { if (request === revision.current && currentRoot.current === root) { setError(String(error)); setState({ root, urls: new Set() }); } }
+        } catch (error) { if (request === revision.current && currentRoot.current === root) { setError(String(error)); setState(previous=>previous?.root===root?previous:{root,urls:EMPTY_ARCHIVE}); } }
     }, [root]);
     useEffect(() => {
         void reload();
@@ -37,5 +39,5 @@ export function useMediaArchive(root: string) {
             channel.current?.postMessage('changed');
         } finally { writing.current = false; setBusy(false); }
     }, [root]);
-    return { urls: state?.root === root ? state.urls : new Set<string>(), ready: state?.root === root, busy, error, update };
+    return { urls: state?.root === root ? state.urls : EMPTY_ARCHIVE, ready: state?.root === root, busy, error, update };
 }

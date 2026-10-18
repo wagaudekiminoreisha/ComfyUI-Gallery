@@ -86,7 +86,7 @@ class GalleryEventHandler(PatternMatchingEventHandler):
             try:
                 folder_name = os.path.basename(self.base_path)
                 # Pass configured extensions to the scanner
-                new_folders_data, _ = _scan_for_images(self.base_path, folder_name, True, self.extensions, self.deduplicate_symlinks)
+                new_folders_data, _ = _scan_for_images(self.base_path, folder_name, True, self.extensions, self.deduplicate_symlinks, compact=True)
                 old_folders_data = self.last_known_folders
                 changes = detect_folder_changes(old_folders_data, new_folders_data)
 
@@ -180,7 +180,7 @@ class FileSystemMonitor:
         try:
             folder_name = os.path.basename(self.base_path)
             gallery_log("FileSystemMonitor: Starting initial background scan...")
-            initial_data, _ = _scan_for_images(self.base_path, folder_name, True, self.extensions, self.deduplicate_symlinks)
+            initial_data, _ = _scan_for_images(self.base_path, folder_name, True, self.extensions, self.deduplicate_symlinks, compact=True)
             self.event_handler.last_known_folders = initial_data
             gallery_log("FileSystemMonitor: Initial background scan complete.")
         except Exception as e:

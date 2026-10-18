@@ -1,3 +1,4 @@
+import {loadLocalMetadata} from './LocalMetadata';
 import { useUnsavedPrefix } from './UnsavedPrefix';
 /**
  * One metadata window for every image (local, Hydrus, or both) and the small "Use for prefix" flow.
@@ -120,7 +121,18 @@ export function ImageInfoPanel() {
     }, []);
     const close = () => { setRequest(undefined); setDetailsUrl(undefined); };
     const url = request?.url;
-    const file = url ? imageFiles[url] : undefined;
+    const catalogueFile = url ? imageFiles[url] : undefined;
+    const gallery=useGalleryContext();
+    const [full,setFull]=useState<{url:string;metadata:any}>();
+    const [metadataLoading,setMetadataLoading]=useState(false),[metadataError,setMetadataError]=useState('');
+    useEffect(()=>{
+        let live=true;setFull(undefined);setMetadataError('');setMetadataLoading(false);
+        if(catalogueFile&&(catalogueFile.metadata as any)?.gallery_metadata_deferred){
+            setMetadataLoading(true);void loadLocalMetadata(catalogueFile,gallery.settings.relativePath).then(metadata=>{if(live)setFull({url:catalogueFile.url,metadata});}).catch(error=>{if(live)setMetadataError(String(error));}).finally(()=>{if(live)setMetadataLoading(false);});
+        }
+        return()=>{live=false;};
+    },[url,catalogueFile?.timestamp,gallery.settings.relativePath]);
+    const file=catalogueFile&&full&&full.url===url?{...catalogueFile,metadata:full.metadata}:catalogueFile;
     const item = url ? items[url] : undefined;
     const hydrusMetadata: Record<string, any> = request?.remote || item?.metadata || {};
     const hasHydrus = !!request?.remote || !!item?.hash || !!item?.exported || Object.keys(item?.metadata || {}).length > 0;
@@ -164,6 +176,7 @@ export function ImageInfoPanel() {
             {url && <Button type="primary" disabled={busy} onClick={() => { requestExport([url]); close(); }}>Export to Hydrus</Button>}
         </Space>}>
         <div>
+        {metadataLoading&&<p role="status">Loading full image metadata…</p>}{metadataError&&<Alert type="error" message={metadataError}/>}
         <Space style={{ marginBottom: 8 }}>{url && <Tag color={badge.color}>{badge.label}</Tag>}<Typography.Text strong>{file?.name || entry?.name}</Typography.Text></Space>
         <Input.Search type="search" ref={searchRef} aria-label="Search metadata" placeholder="Search metadata keys or values (Ctrl+F)" allowClear value={query} onChange={event => setQuery(event.target.value)} onSearch={setQuery} style={{ marginBottom: 12 }} />
         {query.trim() ? <MetadataSearchResults metadata={metadata} query={query} /> : hasLocal && hasHydrus

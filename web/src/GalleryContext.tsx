@@ -24,7 +24,9 @@ function getImages(): Promise<FilesTree> {
             } catch { }
 
             let request = await ComfyAppApi.fetchImages(settings.relativePath);
+            if(!request.ok)throw new Error('Local catalogue failed (HTTP '+request.status+').');
             let json: FilesTree = await request.json();
+            if(!json?.folders||typeof json.folders!=='object'||Array.isArray(json.folders))throw new Error('Local catalogue returned an invalid folder list.');
             resolve(json);
         } catch (error) {
             reject(error);
@@ -201,7 +203,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
     const [settingsLoaded, setSettingsLoaded] = useState(false);
     const [archiveView, setArchiveView] = useState(false);
     const archive = useMediaArchive(settingsState?.relativePath || './');
-    const data = useMemo<FilesTree | undefined>(() => !rawData || !archive.ready ? undefined : ({ ...rawData, folders: Object.fromEntries(Object.entries(rawData.folders).map(([folder, files]) => [folder, Object.fromEntries(Object.entries(files).filter(([, file]) => archive.urls.has(file.url) === archiveView))])) }), [rawData, archive.urls, archive.ready, archiveView]);
+    const data = useMemo<FilesTree | undefined>(() => !rawData ? undefined : ({ ...rawData, folders: Object.fromEntries(Object.entries(rawData.folders).map(([folder, files]) => [folder, Object.fromEntries(Object.entries(files).filter(([, file]) => archiveView ? archive.ready && archive.urls.has(file.url) : !archive.urls.has(file.url)))])) }), [rawData, archive.urls, archive.ready, archiveView]);
 
     useEffect(() => {
         if (data && data.folders) {

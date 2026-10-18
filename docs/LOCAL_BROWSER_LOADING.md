@@ -1,0 +1,11 @@
+# Local browser loading and archive failure recovery
+
+The blank-browser report was reproduced on 2026-10-18. The archive endpoint returned 200 with no stored membership hiding the files. `/Gallery/images` returned 1,163,248,145 bytes because the catalogue embedded every original workflow, source history and nested reference metadata. The UI waited for this response and had no useful catalogue-error display.
+
+The scanner and filesystem monitor now publish a compact browse/search projection. It retains file properties, prompt/conditioning edges, resolved encoder records and encoder tag-box templates. UI geometry, model settings, nested source provenance, image data URLs and duplicate rule programs are omitted from the projection. The actual files and their full metadata remain unchanged. On the 5,243-file output library the corrected projection was approximately 54 MB.
+
+Full metadata is read for an individual image through `/Gallery/local-metadata`. The metadata window, explicit Image Source append and metadata ZIP download use it on demand. The endpoint confines files to the chosen library root and returns the original metadata rather than the catalogue projection. A deferred marker distinguishes these records; older complete records continue working.
+
+Local files no longer wait for the archive request to finish. A transient archive read failure retains previously known membership for the same root. An initial failure falls back to showing local files with an explicit warning; archive-only results wait for verified membership. Catalogue HTTP/schema failures are visible above the browser instead of looking like an empty library. Archive membership records are never discarded by this recovery.
+
+Regression coverage: `tests/test_catalogue_metadata.py` checks projection size, resolved/source prompt preservation, unchanged file bytes, original metadata recovery, literal filenames and root confinement. `tests/browser_local_archive_loading.cjs` covers delayed archive reads, cached membership on a failed refresh, deferred metadata loading, archive navigation and visible catalogue errors. Existing archive, metadata editing, search and source-transfer flows are exercised against compact fixture records.

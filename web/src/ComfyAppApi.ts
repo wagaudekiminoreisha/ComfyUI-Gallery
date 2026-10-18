@@ -115,6 +115,7 @@ export const ComfyAppApi = {
             return result.urls;
         } finally { window.clearTimeout(timeout); }
     },
+    localMetadata:(root:string,url:string,signal?:AbortSignal):Promise<Response>=>app.api.fetchApi(`/Gallery/local-metadata?relative_path=${encodeURIComponent(root)}&url=${encodeURIComponent(url)}`,{signal}),
     fetchImages: (relativePath?: string) =>
         app.api.fetchApi(`/Gallery/images?relative_path=${encodeURIComponent(relativePath ?? './')}`),
     onFileChange: (cb: GalleryEventCallback) =>

@@ -1,3 +1,4 @@
+import {loadLocalMetadata} from './LocalMetadata';
 import { useViewState } from './ViewState';
 import { useSessionOutputs } from './SessionOutputs';
 import { recoverStoredSourceMetadata, recoverSourceOriginals, sourceViewerEntry } from './SourceViewer';
@@ -218,7 +219,7 @@ export function UnifiedGallery({ viewKey, sortRequest, source, remote, selectedR
                         const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', await blob.arrayBuffer()))).map(byte => byte.toString(16).padStart(2, '0')).join('');
                         const name = digest.slice(0, 12) + '-' + item.name;
                         zip.file(name, blob);
-                        zip.file(name + '.gallery.json', JSON.stringify({ version: 1, sha256: digest, metadata: { ...item.local?.metadata, hydrus: hydrus.items[item.local!.url]?.metadata } }, null, 2));
+                        zip.file(name + '.gallery.json', JSON.stringify({ version: 1, sha256: digest, metadata: { ...await loadLocalMetadata(item.local!,gallery.settings.relativePath), hydrus: hydrus.items[item.local!.url]?.metadata } }, null, 2));
                     }
                     FileSaver.saveAs(await zip.generateAsync({ type: 'blob' }), 'gallery-with-metadata.zip');
                 }

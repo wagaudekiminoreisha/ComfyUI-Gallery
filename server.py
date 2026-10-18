@@ -105,6 +105,8 @@ register_source_routes(PromptServer.instance.routes, get_gallery_static_root,
                        folder_paths.get_input_directory)
 
 from .local_library import register_library_routes, root_path, plan
+from .catalogue_metadata import register_metadata_routes
+register_metadata_routes(PromptServer.instance.routes, lambda request: root_path(request.query.get('relative_path', './'), folder_paths.get_output_directory()))
 from .media_archive import register_archive_routes
 register_archive_routes(PromptServer.instance.routes,
                         lambda request: PromptServer.instance.user_manager.get_request_user_filepath(request, 'gallery-archive.json'),
@@ -183,7 +185,7 @@ async def get_gallery_images(request):
                 # Use the actual folder name as the root key
                 folder_name = os.path.basename(full_monitor_path)
                 folders_with_metadata, _ = _scan_for_images(
-                    full_monitor_path, folder_name, True, scan_extensions, deduplicate_symlinks
+                    full_monitor_path, folder_name, True, scan_extensions, deduplicate_symlinks, compact=True
                 )
                 result_queue.put(folders_with_metadata)  # Put the result in the queue
             except Exception as e:

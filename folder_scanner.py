@@ -26,16 +26,20 @@ for _ext in ['.obj', '.glb', '.gltf', '.fbx', '.stl', '.usd', '.usdz']:
 # Max threads for parallel metadata extraction
 _METADATA_WORKERS = min(8, (os.cpu_count() or 4))
 
-def _extract_metadata_safe(full_path):
+def _extract_metadata_safe(full_path, compact=False):
     """Extract metadata for a single image file, returning (full_path, metadata) or (full_path, {}) on error."""
     try:
-        _, _, metadata = buildMetadata(full_path)
+        image, _, metadata = buildMetadata(full_path)
+        if image is not None:image.close()
+        if compact:
+            from .catalogue_metadata import compact_metadata
+            metadata=compact_metadata(metadata)
         return (full_path, metadata)
     except Exception as e:
         print(f"Gallery Node: Error building metadata for {full_path}: {e}")
         return (full_path, {})
 
-def _scan_for_images(full_base_path, base_path, include_subfolders, allowed_extensions=None, deduplicate_symlinks=True, organize_files=True):
+def _scan_for_images(full_base_path, base_path, include_subfolders, allowed_extensions=None, deduplicate_symlinks=True, organize_files=True, compact=False):
     """Scans directories for files matching allowed extensions."""
     if allowed_extensions is None:
         allowed_extensions = DEFAULT_EXTENSIONS
@@ -135,7 +139,7 @@ def _scan_for_images(full_base_path, base_path, include_subfolders, allowed_exte
     if metadata_tasks:
         with ThreadPoolExecutor(max_workers=_METADATA_WORKERS) as executor:
             future_to_key = {
-                executor.submit(_extract_metadata_safe, full_path): (folder_key, filename)
+                executor.submit(_extract_metadata_safe, full_path, compact): (folder_key, filename)
                 for folder_key, filename, full_path in metadata_tasks
             }
             for future in as_completed(future_to_key):
