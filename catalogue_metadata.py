@@ -36,7 +36,7 @@ PROMPT_INPUT=re.compile(r'^(?:(?:positive|negative|pos|neg)(?:_prompt|_condition
 
 def compact_metadata(metadata):
     if not isinstance(metadata,dict):return {}
-    result={key:project(metadata[key]) for key in ('fileinfo','gallery_prompts','parameters','positive','negative','positive_prompt','negative_prompt','tags') if key in metadata}
+    result={key:project(metadata[key]) for key in ('fileinfo','gallery_prompts','gallery_associations','parameters','positive','negative','positive_prompt','negative_prompt','tags') if key in metadata}
     graph=object_value(metadata.get('prompt'))
     api=any(isinstance(node,dict) and 'inputs' in node for node in graph.values())
     if api:

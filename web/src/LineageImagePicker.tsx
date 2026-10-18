@@ -1,0 +1,31 @@
+import {metadataSources} from './PromptResolution';
+import {useEffect,useMemo,useState} from 'react';
+import {Button,Checkbox,Dropdown,Input,Modal,Select,Space,Spin,Tabs,Typography,message} from 'antd';
+import {useGalleryContext} from './GalleryContext';
+import {useHydrus} from './HydrusContext';
+import {imagePrefixIds,sourceLinks} from './PrefixLineage';
+import {imagePrefixKeys,type SharedLibrary} from './PrefixLibrary';
+import {fetchLocalHashes,openImageSearch} from './TagSearchPanel';
+import {openImageInfo} from './ImageInfo';
+import {hydrusRequest} from './HydrusApi';
+import {extractLocalPrompts} from './LocalImageSearch';
+import type {RemoteImage} from './HydrusBrowser';
+export function LineageImagePicker({open,onClose,library,onPick}:{open:boolean;onClose:()=>void;library?:SharedLibrary;onPick:(hash:string,name:string)=>void}){
+ const gallery=useGalleryContext(),hydrus=useHydrus();const [tab,setTab]=useState('local'),[query,setQuery]=useState(''),[folder,setFolder]=useState('*'),[provenance,setProvenance]=useState(true),[remote,setRemote]=useState<RemoteImage[]>([]),[busy,setBusy]=useState(false),[limit,setLimit]=useState(60),[next,setNext]=useState<number|null>(null),[searchId,setSearchId]=useState<string>();
+ useEffect(()=>{if(open){setQuery('');setLimit(60);}},[open]);
+ if(!open)return null;
+ const files=Object.entries(gallery.data?.folders||{}).flatMap(([folder,files])=>Object.values(files).filter(file=>file.type==='image').map(file=>({file,folder})));
+ const referenced=new Set(files.flatMap(({file})=>sourceLinks(file.metadata).hashes));
+ const rows=tab==='hydrus'?remote.map(item=>({name:String(item.notes?.['original filename']||'Hydrus #'+item.file_id),hash:item.hash,metadata:{hydrus:item},url:'hydrus:'+item.hash,remote:item,folder:''})):files.map(({file,folder})=>({name:file.name,hash:hydrus.items[file.url]?.hash,metadata:file.metadata,url:file.url,remote:undefined,folder}));
+ const visible=rows.filter(row=>{const ids=library?imagePrefixIds(library,[...(row.hash?['sha256:'+row.hash]:[]),...(row.url.startsWith('/static_gallery/')?['local:'+gallery.settings.relativePath+':'+row.url]:[])],row.metadata):[];const links=sourceLinks(row.metadata);if(provenance&&!metadataSources(row.metadata).gallery_associations?.length&&!ids.length&&!links.hashes.length&&!links.prefixIds.length&&!(row.hash&&referenced.has(row.hash)))return false;if(tab==='folder'&&folder!=='*'&&row.folder!==folder)return false;if(tab==='hydrus')return true;const text=[row.name,...ids.map(id=>library?.prefixes.find(prefix=>prefix.id===id)?.name||''),...Object.values(extractLocalPrompts(row.metadata))].join(' ').toLowerCase();return !query.trim()||text.includes(query.trim().replace(/^@/,'').toLowerCase());});
+ const search=async(more=false)=>{setBusy(true);try{const data=await hydrusRequest<{items:RemoteImage[];next_offset?:number|null;search_id?:string}>('search',{tags:query.split(',').map(tag=>tag.trim()).filter(Boolean),limit:100,...(more?{offset:next,search_id:searchId}:{})});setRemote(old=>more?[...old,...data.items]:data.items);setNext(data.next_offset??null);setSearchId(data.search_id);}catch(error){message.error(String(error));}finally{setBusy(false);}};
+ const pick=async(row:typeof rows[number])=>{setBusy(true);try{const hash=row.hash||(await fetchLocalHashes([row.url]))[row.url];if(!hash)throw new Error('Image hash unavailable');onPick(hash,row.name);}catch(error){message.error(String(error));}finally{setBusy(false);}};
+ return <Modal title="Choose source lineages" open={open} onCancel={onClose} footer={<Button onClick={onClose}>Done</Button>} width={850} zIndex={3090}>
+ <Tabs activeKey={tab} onChange={value=>{setTab(value);setLimit(60);if(value==='hydrus'&&!remote.length)void search();}} items={[{key:'local',label:'Local library'},{key:'hydrus',label:'Hydrus'},{key:'folder',label:'By folder'}]}/>
+ <Space.Compact style={{width:'100%'}}><Input aria-label="Find lineage images" placeholder={tab==='hydrus'?'Hydrus tags, comma separated':'Image name, prompt tags or @prefix'} value={query} onChange={event=>{setQuery(event.target.value);setLimit(60);}} onPressEnter={()=>tab==='hydrus'&&void search()}/>{tab==='hydrus'&&<Button loading={busy} onClick={()=>void search()}>Search</Button>}</Space.Compact>
+ {tab==='folder'&&<Select aria-label="Lineage image folder" style={{width:'100%',marginTop:8}} value={folder} onChange={setFolder} options={[{value:'*',label:'All folders'},...Object.keys(gallery.data?.folders||{}).map(value=>({value,label:value}))]}/>}
+ <Checkbox style={{margin:'10px 0'}} checked={provenance} onChange={event=>setProvenance(event.target.checked)}>Only images with source, generation or prefix provenance</Checkbox><Typography.Paragraph type="secondary">Choose an image to associate it and its descendants. Right-click to inspect metadata or related images.</Typography.Paragraph>
+ <Spin spinning={busy}><div style={{display:'grid',gridTemplateColumns:'repeat(5,minmax(0,1fr))',gap:8,maxHeight:'52vh',overflow:'auto'}}>{visible.slice(0,limit).map(row=><Dropdown key={row.url} trigger={['contextMenu']} menu={{items:[{key:'info',label:'Metadata'},{key:'related',label:'Find related images'}],onClick:({key})=>key==='info'?openImageInfo({url:row.remote?undefined:row.url,remote:row.remote}):openImageSearch({chips:[{kind:'image',url:row.url,name:row.name,hash:row.hash,metadata:row.metadata}]})}}><button type="button" onClick={()=>void pick(row)} style={{background:'transparent',color:'inherit',border:'1px solid #8885',borderRadius:6,padding:5,cursor:'pointer'}}><img loading="lazy" alt={row.name} src={row.remote?'/Gallery/hydrus/thumbnail?hash='+row.hash+'&target='+encodeURIComponent(hydrus.settings?.url+'|'+hydrus.settings?.profile):'/Gallery/thumbnail?url='+encodeURIComponent(row.url)+'&root='+encodeURIComponent(gallery.settings.relativePath)} style={{width:'100%',height:90,objectFit:'contain'}}/><span style={{display:'block',overflowWrap:'anywhere'}}>{row.name}</span></button></Dropdown>)}</div></Spin>
+ {!visible.length&&<Typography.Paragraph>No matching images. Try changing the provenance filter or searching Hydrus.</Typography.Paragraph>}{visible.length>limit&&<Button onClick={()=>setLimit(limit+60)}>More images</Button>}{tab==='hydrus'&&next!==null&&<Button loading={busy} onClick={()=>void search(true)}>More Hydrus results</Button>}
+ </Modal>;
+}

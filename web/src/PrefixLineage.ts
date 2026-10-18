@@ -216,6 +216,7 @@ export function imagePrefixIds(library: PrefixLibrary, keys: string[], metadata:
     const ids = new Set<string>();
     for (const key of keys) { const id = library.associations?.[key]?.prefix_id; if (id) ids.add(id); }
     imageSnapshotIds(library,keys,metadata).forEach(id=>{const parent=library.snapshots?.[id]?.prefix_id;if(parent)ids.add(parent);});
+    for(const row of metadataSources(metadata).gallery_associations||[])if(typeof row?.prefix_id==='string')ids.add(row.prefix_id);
     const { hashes, prefixIds } = ancestry(metadata);
     prefixIds.forEach(id => ids.add(id));
     hashes.forEach(hash => pairedHashes.get(hash)?.forEach(id => ids.add(id)));
@@ -287,6 +288,7 @@ export function imageSnapshotIds(library:PrefixLibrary,keys:string[],metadata:un
  if(typeof prefix.snapshot_id==='string')ids.add(prefix.snapshot_id);
  for(const record of Object.values(object(value.gallery_prompts)))for(const ref of Array.isArray((record as any)?.prefix_snapshots)?(record as any).prefix_snapshots:[])if(typeof ref.snapshot_id==='string')ids.add(ref.snapshot_id);
  const sources=metadataSources(metadata);
+ for(const row of Array.isArray(sources.gallery_associations)?sources.gallery_associations:[])if(typeof row?.snapshot_id==='string')ids.add(row.snapshot_id);
  for(const node of Object.values(object(sources.prompt)))if((node as any)?.class_type==='GalleryImageSource'){
   const manifest=object((node as any).inputs?.sources),images=Array.isArray(manifest.images)?manifest.images:[],used=manifest.layout==='single'?images.slice(manifest.active_index||0,(manifest.active_index||0)+1):images;
   for(const image of used){const id=object(image?.metadata).gallery_prefix?.snapshot_id;if(typeof id==='string')ids.add(id);}

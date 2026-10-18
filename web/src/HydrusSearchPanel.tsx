@@ -33,12 +33,6 @@ export function HydrusSearchPanel({ localSuggestions, tags, setTags, match, setM
             <Typography.Paragraph>Any tag in this group can match. This group is ANDed with the other search chips.</Typography.Paragraph>
             <HydrusTagSelect preservePrefixes localSuggestions={localSuggestions} label="OR group tags" value={draft} onChange={setDraft} active={editing !== null} onSubmit={commitGroup} />
         </Modal>
-        <details><summary>Hydrus result sampling (advanced)</summary><Space wrap style={{ marginBottom: 8 }}>
-            <span>Hydrus search order</span><Select aria-label="Hydrus search order" value={sortType} onChange={setSortType} disabled={busy || disabled} style={{ width: 210 }} options={[
-                [2, 'Import date'], [14, 'Modified date'], [19, 'Archive date'], [18, 'Last viewed'], [4, 'Random'], [3, 'Filetype'], [20, 'SHA-256 hash'], [21, 'Pixel hash'], [22, 'Blurhash'], [0, 'File size'], [5, 'Width'], [6, 'Height'], [7, 'Aspect ratio'], [8, 'Pixel count'], [9, 'Tag count'], [1, 'Duration'], [10, 'Media views'], [11, 'Media viewtime'], [12, 'Bitrate'], [13, 'Has audio'], [15, 'Framerate'], [16, 'Frame count'], [23, 'Colour: lightness'], [24, 'Colour: saturation'], [25, 'Colour: green/red'], [26, 'Colour: blue/yellow'], [27, 'Colour: hue']
-            ].map(([value, label]) => ({ value: Number(value), label }))} />
-            <Select aria-label="Hydrus sort direction" value={ascending ? 'asc' : 'desc'} onChange={value => setAscending(value === 'asc')} disabled={busy || disabled || sortType === 4 || sortType === 3} options={[{ value: 'desc', label: 'Descending' }, { value: 'asc', label: 'Ascending' }]} />
-            <Typography.Text type="secondary">More results load as you scroll.</Typography.Text>
-        </Space></details>
+
     </div>;
 }

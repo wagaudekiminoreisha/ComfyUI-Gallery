@@ -27,6 +27,13 @@ def read_metadata(path):
             digest = hasher.hexdigest()
         if saved.get('sha256') == digest:
             result.update(saved.get('metadata', {}))
+    hydrus=result.get('hydrus');notes=hydrus.get('notes',{}) if isinstance(hydrus,dict) else {}
+    for name,note in (notes if isinstance(notes,dict) else {}).items():
+        if isinstance(name,str) and name.startswith('ComfyUI Gallery generation metadata'):
+            try:
+                associations=json.loads(note).get('gallery_associations')
+                if isinstance(associations,list):result.setdefault('gallery_associations',associations)
+            except (ValueError,TypeError,AttributeError):pass
     return result
 
 

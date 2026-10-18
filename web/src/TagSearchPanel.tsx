@@ -1,3 +1,4 @@
+import {SourceImageMenu} from './SourceImageMenu';
 import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
 import { Alert, Button, Checkbox, Dropdown, Select, Space, Tabs, Tag, Typography, message } from 'antd';
 import { FloatingPanel,focusPanel } from './FloatingPanel';
@@ -223,20 +224,27 @@ export function ImageSearchPanel() {
                     const fromIt = await lineageTree(files, own, [], hashOf, new Set([chip.url]), 6, Object.fromEntries(own.map(hash => [chip.url, hash])));
                     tabFor('generated', 'Generated from it', 'Images made from the searched image, grouped by the image they were made from.').sections.push(...bySource(fromIt, new Set(), 'Made from it').map(section => ({ ...section, title: tag + section.title })));
                     // Other images made from the same source image(s) as this one, and what came from those.
-                    const direct = madeFrom(metadata).flatMap(input => input.hash ? [input.hash] : []);
+                    const direct = levels.flatMap(input => input.hash ? [input.hash] : []);
                     madeFrom(metadata).forEach(input => { if (input.hash && input.title) inputTitles.set(input.hash, input.title); });
                     const skip = new Set([chip.url, ...fromIt.nodes.keys()]);
                     const siblings = direct.length ? await lineageTree(files, direct, [], hashOf, skip) : undefined;
                     const sameSource = tabFor('source', 'Same source', 'Other images made from the same source image as the searched one (and what was made from those).');
                     if (siblings) sameSource.sections.push(...bySource(siblings, skip, '').map(section => ({ ...section, title: tag + section.title })));
                     // Images of the prefixes it belongs to that are not in the tabs above.
-                    const sameSourceUrls=new Set([chip.url,...fromIt.nodes.keys(),...(siblings?.nodes.keys()||[]),...found.flatMap(level=>byHash.get(level.hash!.toLowerCase())||[])]);
+                    const sameSourceUrls=new Set([chip.url,...files.filter(file=>own.includes(known[file.url]||'')).map(file=>file.url),...fromIt.nodes.keys(),...(siblings?.nodes.keys()||[]),...found.flatMap(level=>byHash.get(level.hash!.toLowerCase())||[])]);
                     for (const id of (broadPrefix?imagePrefixIds(shared, [...imagePrefixKeys(file ? localEntry(file, known[file.url]) : { hash: chip.hash }, root),...own.map(hash=>'sha256:'+hash)], metadata, pairedHashes):[])) {
                         const name = shared.prefixes.find(prefix => prefix.id === id)?.name || 'prefix';
                         const paired = await pairedImages(files, shared, id, hashOf, known);
                         const tree = await lineageTree(files, paired.hashes, [id], hashOf, paired.urls);
-                        const hits = [...[...paired.urls].flatMap(url => sameSourceUrls.has(url)?[]:hit(url, 'paired', 'gold')), ...[...tree.nodes.keys()].flatMap(url => sameSourceUrls.has(url)?[]:hit(url, 'generated', 'blue'))];
-                        tabFor('prefix', 'Prefix associations', 'Parent-prefix associations minus the searched image and its same-source lineage.').sections.push({ title: tag + '@' + name, hits });
+                        const forbidden=new Set([...own,...direct,...Object.values(await hashOf([...sameSourceUrls].filter(url=>byUrl.has(url))))]);
+                        const localHashes=await hashOf([...paired.urls,...tree.nodes.keys()]);
+                        const excluded=(url:string)=>sameSourceUrls.has(url)||forbidden.has(localHashes[url]);
+                        const hits = [...[...paired.urls].flatMap(url => excluded(url)?[]:hit(url, 'paired', 'gold')), ...[...tree.nodes.keys()].flatMap(url => excluded(url)?[]:hit(url, 'generated', 'blue'))];
+                        const target=tabFor('prefix', 'Prefix associations', 'Other associated images, excluding the searched image and generations from it or any of its sources.');target.sections.push({ title: tag + '@' + name, hits });
+                        const local=new Set(Object.values(localHashes));const refs=collectPrefixImages(shared,id).filter(ref=>ref.hash&&!forbidden.has(ref.hash)&&!local.has(ref.hash));
+                        const records=new Map<string,any>();try{for(let start=0;start<refs.length;start+=200){const response=await hydrusRequest<{items:any[]}>('records',{hashes:refs.slice(start,start+200).map(ref=>ref.hash)});response.items.forEach(record=>records.set(record.hash,record));}}catch{/* Saved remote associations remain browsable offline. */}
+                        const remote=refs.filter(ref=>!ancestorLevels({hydrus:records.get(ref.hash!)}).some(level=>level.hash&&forbidden.has(level.hash))).map(ref=>({input_name:'',hash:ref.hash,title:ref.name||'Hydrus image '+ref.hash!.slice(0,8),metadata:{gallery_origin:'hydrus',hydrus:records.get(ref.hash!)||{hash:ref.hash}},note:'paired',original:true}));
+                        target.inputs=[...(target.inputs||[]),...remote.filter(ref=>!target.inputs?.some(other=>other.hash===ref.hash))];
                     }
                 }
                 const terms = requiredTerms(prefixes.flatMap(chip => expandPrefix(shared, '@' + chip.name)));
@@ -244,7 +252,7 @@ export function ImageSearchPanel() {
                 if (!live) return;
                 // Tabs that add nothing (no images) are hidden; Lineage always shows.
                 const order = ['lineage', 'snapshot', 'prefix-all', 'sources', 'generated', 'source', 'prefix'];
-                const list = order.flatMap(key => result.get(key) ? [result.get(key)!] : []).filter(item => item.key === 'lineage' || item.key==='snapshot' || item.key === 'prefix-all' || item.key === 'sources' || item.sections.some(section => section.hits.length) || !!item.inputs?.length);
+                const list = order.flatMap(key => result.get(key) ? [result.get(key)!] : []).filter(item => item.key === 'lineage' || item.key==='snapshot' || item.key === 'prefix-all' || item.key==='prefix'&&broadPrefix || item.key === 'sources' || item.sections.some(section => section.hits.length) || !!item.inputs?.length);
                 setLibrary(shared); setAliases(spellings); setTabs(list);
                 setTab(current => list.some(item => item.key === current) ? current : (list.find(item => images.length>0&&item.key==='lineage') || list.find(item => item.key === 'prefix-all') || list.find(item => item.key === 'generated') || list.find(item => item.key === 'source') || list[0])?.key || '');
             } catch (reason) { if (live) setError(String(reason)); }
@@ -347,6 +355,7 @@ export function ImageSearchPanel() {
         const total = item.sections.reduce((sum, section) => sum + section.hits.length, 0);
         return <>
             <Typography.Paragraph type="secondary">{busy ? 'Following image sources… ' : ''}{item.hint}</Typography.Paragraph>
+            {item.key==='prefix'&&!total&&<Typography.Paragraph>No other associated images are loaded outside this source lineage.</Typography.Paragraph>}
             {item.derived && !!item.derived.urls.length && <Button size="small" style={{ marginBottom: 8 }} onClick={() => void pair(item.derived!.prefixId, item.derived!.urls)}>Pair the {item.derived.urls.length} later source(s) with @{item.derived.prefixName}</Button>}
             {item.sections.filter(section => section.hits.length).map((section, index) => {
                 const visible = section.hits.slice(0, Math.max(0, budget)); budget -= visible.length;
@@ -356,14 +365,14 @@ export function ImageSearchPanel() {
                 </div>;
             })}
             {item.inputs && !!item.inputs.length && <><Typography.Text strong style={{ display: 'block', margin: '4px 0' }}>{item.inputs.every(input => input.note === 'paired') ? 'Paired Hydrus images' : item.inputs.some(input => input.note === 'searched') ? 'Hydrus image and input sources' : item.sections.length > 1 ? 'Not in the loaded gallery' : 'Made from (input images, nearest first)'}</Typography.Text>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{item.inputs.map((input, index) => <div key={input.input_name + index} title="Open source in gallery viewer" role="button" aria-label={input.title || input.input_name} tabIndex={0}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{item.inputs.map((input, index) => <SourceImageMenu key={input.input_name+input.hash+index} image={{input_name:input.input_name,title:input.title,metadata:input.metadata||(input.hash?{gallery_origin:'hydrus',hydrus:{hash:input.hash}}:{})}}><div title="Open source in gallery viewer" role="button" aria-label={input.title || input.input_name} tabIndex={0}
                     onClick={() => window.dispatchEvent(new CustomEvent(OPEN_VIEWER_EVENT, { detail: { sourceImages: item.inputs, sourceIndex: index } }))}
                     onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.dispatchEvent(new CustomEvent(OPEN_VIEWER_EVENT, { detail: { sourceImages: item.inputs, sourceIndex: index } })); } }}
                     style={{ width: 130, position: 'relative', cursor: 'pointer' }}>
                     <img alt={input.title || input.input_name} src={input.input_name ? `${BASE_PATH}/Gallery/source/thumbnail?url=${encodeURIComponent('/static_gallery/' + input.input_name)}` : `${BASE_PATH}/Gallery/hydrus/thumbnail?hash=${input.hash}&target=${encodeURIComponent(`${hydrus.settings?.url}|${hydrus.settings?.profile}`)}`} style={{ width: 130, height: 110, objectFit: 'contain', background: '#8882', borderRadius: 4 }} />
                     <Tag color={input.note === 'paired' ? 'gold' : input.original ? 'magenta' : 'default'} style={{ position: 'absolute', top: 4, left: 4, margin: 0 }}>{input.note}</Tag>
                     <div style={{ fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{input.title || input.input_name}</div>
-                </div>)}</div></>}
+                </div></SourceImageMenu>)}</div></>}
             {!total && !item.inputs?.length && !busy && <Typography.Text type="secondary">Nothing here{tags.length ? ' that matches the tag chips' : ''}.</Typography.Text>}
             {total > shown && <MoreResults remaining={total-shown} onMore={()=>setShown(value=>value+PAGE)}/>}
         </>;
@@ -383,7 +392,7 @@ export function ImageSearchPanel() {
         </div>
         <Space wrap style={{ margin: '8px 0' }}>
             {images.length>0&&<><Checkbox checked={includeLineage} onChange={event=>setIncludeLineage(event.target.checked)}>Lineage · same source / generated from</Checkbox>{hasSnapshots&&<Checkbox checked={includeSnapshots} onChange={event=>setIncludeSnapshots(event.target.checked)}>Snapshot associations</Checkbox>}</>}
-            {images.length>0&&<Checkbox checked={broadPrefix} onChange={event=>setBroadPrefix(event.target.checked)}>Prefix associations · all snapshots</Checkbox>}
+            {images.length>0&&<Checkbox checked={broadPrefix} onChange={event=>setBroadPrefix(event.target.checked)}>Other prefix associations</Checkbox>}
             {prefixes.length > 0 && <Checkbox checked={strict} onChange={event => setStrict(event.target.checked)}>Only images that still have every prefix tag (aliases count)</Checkbox>}
             <Button size="small" disabled={!allHits.length} onClick={() => { scopeMain(allHits); message.success('The main gallery now shows these images (close the Scope chip there to undo)'); }}>Show all in main gallery</Button>
             <Button size="small" disabled={!currentHits.length} onClick={() => gallery.setSelectedImages(old => Array.from(new Set([...old, ...currentHits.map(item => item.file.url)])))}>Select all here</Button>
@@ -394,7 +403,7 @@ export function ImageSearchPanel() {
             <Typography.Paragraph type="secondary">{tags.length ? `${tagOnly.length.toLocaleString()} loaded image(s) have every tag.` : 'Add tags or an @prefix, or drop an image here (from the gallery or from these results).'} Tag chips search the whole gallery until a prefix or image chip is added; then they filter its results.</Typography.Paragraph>
             {sections({ key: 'tags', label: 'Results', hint: '', sections: [{ hits: tagOnly }] })}
         </>}
-        {scoped && <Tabs activeKey={active?.key} onChange={setTab} items={shownTabs.map(item => ({ key: item.key, label: `${item.label} (${count(item)})`, children: sections(item) }))} />}
+        {scoped && <Tabs activeKey={active?.key} onChange={value=>{setTab(value);gallery.setSelectedImages([]);}} items={shownTabs.map(item => ({ key: item.key, label: `${item.label} (${count(item)})`, children: sections(item) }))} />}
     </FloatingPanel>;
 }
 

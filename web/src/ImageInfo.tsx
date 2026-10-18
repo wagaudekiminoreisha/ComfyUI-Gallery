@@ -25,7 +25,7 @@ import { AppendImagesModal } from './AppendImagesModal';
 import { associateImages, dissociateImages, expandPrefix, imagePrefixKeys, imagePrefixRefs, loadPrefixes, openPrefixManager, savePrefix, sidesLabel, type PrefixImage, type SharedLibrary } from './PrefixLibrary';
 import { PrefixImages } from './PrefixImages';
 import { formatPromptTerms } from './PromptSpelling';
-import { PromptTermChips, TermsEditor } from './PromptBoxEditor';
+import { PromptTermChips, TermsEditor,ReadOnlyPromptChips } from './PromptBoxEditor';
 import { makeSuggest } from './PromptSuggest';
 import { extractHydrusTags, extractLocalPrompts } from './LocalImageSearch';
 import {associationPrompts} from './AssociationPrompts';
@@ -38,7 +38,7 @@ import type { RemoteImage } from './HydrusBrowser';
 
 export const IMAGE_INFO_EVENT = 'gallery-image-info';
 export const SOURCE_PREFIX_EVENT = 'gallery-source-prefix';
-type InfoRequest = { url?: string; remote?: RemoteImage; tab?: 'generation' | 'hydrus' };
+type InfoRequest = { metadata?:any;name?:string;url?: string; remote?: RemoteImage; tab?: 'generation' | 'hydrus' };
 /** Open the metadata window for a local file (`url`) or a Hydrus-only file (`remote`). */
 export const openImageInfo = (request: InfoRequest) => { window.dispatchEvent(new CustomEvent(IMAGE_INFO_EVENT, { detail: request })); focusPanel('image-metadata'); };
 /** Open the "Use for prefix" flow for gallery entries, or for local files by URL. */
@@ -57,11 +57,7 @@ export function PromptPicks({ metadata }: { metadata: unknown }) {
         <Typography.Paragraph type="secondary" style={{ marginBottom: 6 }}>Only the picked options become prompt tags (Hydrus export, local search). The full prompt stays in the metadata.</Typography.Paragraph>
         {resolutions.map(item => <div key={item.id} style={{ marginBottom: 8 }}>
             {resolutions.length > 1 && <Typography.Text strong>{item.title} #{item.id}</Typography.Text>}
-            {item.choices.length ? item.choices.map((choice, index) => <div key={index} style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center', margin: '3px 0' }}>
-                <Tag>{GROUPING_LABELS[choice.kind].name}</Tag><Button size="small" disabled={!chosenTags(choice).length} onClick={()=>void navigator.clipboard.writeText(chosenTags(choice).join(", "))}>Copy used tags</Button>
-                {choice.options.map(option => <Tag key={option} onDoubleClick={()=>{if(option===choice.chosen)void navigator.clipboard.writeText(option);}} color={option === choice.chosen ? 'green' : undefined} style={{ opacity: option === choice.chosen ? 1 : .55, textDecoration: option === choice.chosen ? undefined : 'line-through' }}>{option}</Tag>)}
-                {!chosenTags(choice).length && <Typography.Text type="secondary">→ nothing</Typography.Text>}
-            </div>) : <Typography.Text type="secondary">The picks could not be matched to the prompt (it was edited after the run).</Typography.Text>}
+            <ReadOnlyPromptChips text={item.template} usedText={item.resolved}/>
         </div>)}
     </div>;
 }
@@ -138,7 +134,7 @@ export function ImageInfoPanel() {
         }
         return()=>{live=false;};
     },[url,catalogueFile?.timestamp,gallery.settings.relativePath]);
-    const file=catalogueFile&&full&&full.url===url?{...catalogueFile,metadata:full.metadata}:catalogueFile;
+    const file=(catalogueFile&&full&&full.url===url?{...catalogueFile,metadata:full.metadata}:catalogueFile)||(request?.metadata?{name:request.name||'Source image',url:url||'',type:'image',date:'',timestamp:0,metadata:request.metadata}:undefined) as GalleryEntry['local'];
     const item = url ? items[url] : undefined;
     const hydrusMetadata: Record<string, any> = request?.remote || item?.metadata || {};
     const hasHydrus = !!request?.remote || !!item?.hash || !!item?.exported || Object.keys(item?.metadata || {}).length > 0;

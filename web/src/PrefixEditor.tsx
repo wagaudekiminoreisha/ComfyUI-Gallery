@@ -48,7 +48,7 @@ export function PrefixEditor({ onLoad, shared, seed, active, name, setName, posi
         <div className="cg-associations-main"><Typography.Text strong>Prefix editor{snapshot?' · snapshot '+snapshot.slice(0,8):''}</Typography.Text>
         <Button disabled={!existing} onClick={()=>openRules(snapshot?'snapshot:'+snapshot:existing?.id)}>Prefix rules…</Button>
         {!!seed.imageKeys?.length && <Typography.Paragraph style={{ margin: '4px 0 0' }}>Saving pairs this prefix with the selected image(s). Its terms will be enabled when you append them to a workflow.</Typography.Paragraph>}
-        <Space wrap style={{ marginTop: 8, width: '100%' }}>
+        <Space wrap align="center" style={{ marginTop: 8, width: '100%' }}>
             <Select aria-label="Prefix polarity filter" value={polarity} onChange={setPolarity} options={POLARITY_OPTIONS} style={{ width: 190 }} />
             <Select showSearch optionFilterProp="label" aria-label="Existing prefix" placeholder="Load an existing prefix…" value={existing?.id} onChange={load} style={{ minWidth: 240 }}
                 options={shared.prefixes.filter(prefix => matchesPolarity(prefix, polarity)).map(prefix => ({ value: prefix.id, label: prefix.name + ' · ' + sidesLabel(prefix) }))} notFoundContent={shared.prefixes.length ? 'No prefix matches this filter' : 'No saved prefixes yet'} />

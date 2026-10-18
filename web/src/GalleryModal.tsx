@@ -47,7 +47,7 @@ const GalleryModal = () => {
             gallery.setSearchFileName(saved?.searchFileName ?? ''); gallery.setLocalTerms(saved?.localTerms ?? []);
             gallery.setLocalSearchField(saved?.localSearchField ?? 'all'); gallery.setQualities(saved?.qualities ?? {});
             gallery.setLibrarySearch(saved?.librarySearch ?? null); gallery.setLocalScope(saved?.localScope ?? null);
-            gallery.setSelectedImages(saved?.selectedImages ?? []); gallery.setSortMethod(saved?.sortMethod ?? 'Newest');
+            gallery.setSelectedImages([]); gallery.setSortMethod(saved?.sortMethod ?? 'Newest');
         }
         setSource(value); setSearchMode(value); if (value !== searchMode) setViewRevision(n => n + 1);
     };

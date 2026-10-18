@@ -178,6 +178,8 @@ export function composeWithSource(compiled: string, source?: string): string {
 export const emptyGroup = (name: string, chips: Chip[] = []): GroupBox => ({ id: newId(), kind: 'group', name, chips, enabled: true, collapsed: false });
 export const sourceBox = (): SourceBox => ({ id: newId(), kind: 'source', enabled: true, collapsed: false });
 
+/** Default labels follow current tag-box position; explicit prefix/custom names are kept. */
+export function renumberBoxes(state:BoxState):BoxState{let index=0;return {...state,boxes:state.boxes.map(box=>{if(box.kind!=='group')return box;index++;return /^#\d+$/.test(box.name)?{...box,name:'#'+index}:box;})};}
 /** #1, #2, ... — the next unused default name. */
 export function nextName(state: BoxState): string {
     let highest = 0;
@@ -244,7 +246,7 @@ export function parseState(value: unknown): BoxState | undefined {
         }
     }
     if (!hasSource) boxes.push(sourceBox());
-    return { version: 1, boxes, ...(Array.isArray(value.rulesets) ? {rulesets:value.rulesets as RuleBox[]} : {}), ...(value.hairPolicy===null?{hairPolicy:null}:isRecord(value.hairPolicy) ? { hairPolicy: value.hairPolicy as HairPolicy } : {}) };
+    return renumberBoxes({ version: 1, boxes, ...(Array.isArray(value.rulesets) ? {rulesets:value.rulesets as RuleBox[]} : {}), ...(value.hairPolicy===null?{hairPolicy:null}:isRecord(value.hairPolicy) ? { hairPolicy: value.hairPolicy as HairPolicy } : {}) });
 }
 
 // --- edits (all pure: they return a new state) ---
@@ -253,7 +255,7 @@ export const updateBox = (state: BoxState, id: string, patch: Partial<Omit<Group
     ({ ...state, boxes: state.boxes.map(box => box.id === id ? { ...box, ...patch } as PromptBox : box) });
 
 /** The source box cannot be removed; it can be disabled, collapsed and moved. */
-export const removeBox = (state: BoxState, id: string): BoxState => ({ ...state, boxes: state.boxes.filter(box => box.id !== id || box.kind === 'source') });
+export const removeBox = (state: BoxState, id: string): BoxState => renumberBoxes({ ...state, boxes: state.boxes.filter(box => box.id !== id || box.kind === 'source') });
 
 export function moveItem<T extends { id: string }>(items: T[], id: string, delta: -1 | 1): T[] {
     const from = items.findIndex(item => item.id === id), to = from + delta;
@@ -261,7 +263,7 @@ export function moveItem<T extends { id: string }>(items: T[], id: string, delta
     const next = [...items]; [next[from], next[to]] = [next[to], next[from]];
     return next;
 }
-export const moveBox = (state: BoxState, id: string, delta: -1 | 1): BoxState => { const boxes = moveItem(state.boxes, id, delta); return boxes === state.boxes ? state : { ...state, boxes }; };
+export const moveBox = (state: BoxState, id: string, delta: -1 | 1): BoxState => { const boxes = moveItem(state.boxes, id, delta); return boxes === state.boxes ? state : renumberBoxes({ ...state, boxes }); };
 
 export const editChips = (state: BoxState, boxId: string, change: (chips: Chip[]) => Chip[]): BoxState =>
     ({ ...state, boxes: state.boxes.map(box => box.id === boxId && box.kind === 'group' ? { ...box, chips: change(box.chips) } : box) });
@@ -272,7 +274,7 @@ export function addBox(state: BoxState, name: string | undefined, text: string, 
     const empty = state.boxes.find(box => box.kind === 'group' && !box.chips.length);
     if (empty && parsePrompt(text).length) return updateBox(editChips(state, empty.id, () => parsePrompt(text)), empty.id, { ...(name?.trim() ? { name: name.trim() } : {}), collapsed: false });
     const box = emptyGroup(name?.trim() || nextName(state), parsePrompt(text));
-    return { ...state, boxes: position === 'start' ? [box, ...state.boxes] : [...state.boxes, box] };
+    return renumberBoxes({ ...state, boxes: position === 'start' ? [box, ...state.boxes] : [...state.boxes, box] });
 }
 
 /**
@@ -321,7 +323,7 @@ export function moveBoxTo(state: BoxState, boxId: string, target: { boxId: strin
     const at = rest.findIndex(box => box.id === target.boxId);
     if (at < 0) return state;
     rest.splice(at + (target.after ? 1 : 0), 0, moving);
-    return { ...state, boxes: rest };
+    return renumberBoxes({ ...state, boxes: rest });
 }
 
 // --- grouping types ---

@@ -30,6 +30,7 @@ const assert = require('node:assert/strict');
         await page.getByRole('button', { name: 'Edit images / crop / stitch', exact: true }).click();
         const editor = page.getByRole('dialog', { name: 'Gallery Image Source', exact: true });
         await editor.getByAltText('Combined image preview').waitFor();
+        await editor.getByRole('button',{name:/^Edit image 1:/}).click({button:'right'});await page.getByRole('menuitem',{name:'Metadata',exact:true}).last().waitFor();await page.keyboard.press('Escape');await editor.getByAltText('Crop source 1',{exact:true}).click({button:'right'});await page.getByRole('menuitem',{name:'Find related images',exact:true}).last().waitFor();await page.keyboard.press('Escape');
         await editor.getByRole('spinbutton', { name: 'Crop width', exact: true }).fill('320');
         await editor.getByRole('spinbutton', { name: 'Crop width', exact: true }).press('Tab');
         await choose(editor, 'Composition layout', 'Stitch horizontally');
@@ -74,7 +75,8 @@ const assert = require('node:assert/strict');
         assert.equal(await page.locator('[data-gallery-entry]').count(), 0);
         await page.getByRole('spinbutton', { name: 'Local minimum width', exact: true }).fill('0');
         await page.getByRole('dialog', { name: 'Local filters and tools', exact: true }).getByRole('button', { name: 'Close', exact: true }).click();
-        await page.getByRole('button', { name: 'Clear selection', exact: true }).first().click();
+        // Source-tab changes now clear selections automatically.
+        const clear=page.getByRole('button',{name:'Clear selection',exact:true}).filter({visible:true});if(await clear.count()&&await clear.first().isEnabled())await clear.first().click();
         await page.locator('[data-gallery-entry]').first().click({ button: 'right' });
         await page.getByRole('menuitem', { name: 'Append to Image Source (1)', exact: true }).click();
         await page.getByRole('button', { name: 'Append to workflow', exact: true }).click();
@@ -95,6 +97,8 @@ const assert = require('node:assert/strict');
         assert.ok(!storage.includes('a'.repeat(64)));
         // Workflow serialization retains the hidden source widget, editor buttons are not serialized.
         assert.equal(await page.evaluate(() => window.qaNodes[0].widgets[0].type), 'customtext');
+        await page.evaluate(()=>window.dispatchEvent(new CustomEvent('gallery-source-picker',{detail:{node:window.qaNodes[0],anchor:()=>({left:40,top:40,right:200,bottom:80,width:160,height:40})}})));
+        const history=page.getByRole('dialog',{name:"This node's image history",exact:true});await history.locator('.sp-image').first().click({button:'right'});await page.getByRole('menuitem',{name:'Metadata',exact:true}).last().waitFor();await page.keyboard.press('Escape');
         assert.deepEqual(errors, []);
         console.log('PASS: local bulk/range/context append, dedicated node, exact crop + stitch preview, save/reopen, Both source view, Hydrus search/pages/bulk context, quality filter, standalone tab append, no browser errors or stored key.');
     } catch (error) {

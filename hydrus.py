@@ -494,8 +494,9 @@ class HydrusBridge:
         if item.get('current_present') and metadata:
             await asyncio.to_thread(self.sync.put_records, client.settings if hasattr(client, 'settings') else self.settings.load(), [metadata])
 
-    async def batch(self, action, data):
+    async def batch(self, action, data, prefix_library=None):
         urls = self.urls(data)
+        if not isinstance(data.get('prefix_root','./'),str) or len(data.get('prefix_root','./'))>4096:raise HydrusError('Invalid prefix library root.')
         settings = self.settings.load()
         # This choice applies only to this export; the saved service is a default.
         if action == "export" and "tag_service_key" in data:
@@ -515,7 +516,7 @@ class HydrusBridge:
                         path, item = await self.cached_item(root, target, url)
                         item.update(error=None, warnings=[])
                         if action == "export":
-                            await self.export_item(client, target, path, item, settings, tags, send_metadata)
+                            await self.export_item(client, target, path, item, settings, tags, send_metadata, prefix_library, data.get('prefix_root','./'))
                         else:
                             await self.refresh_item(client, target, item)
                         item["success"] = True
@@ -532,9 +533,19 @@ class HydrusBridge:
                 "failed": sum(item.get("success") is False for item in items),
                 "warnings": sum(bool(item["warnings"]) for item in items)}}
 
-    async def export_item(self, client, target, path, item, settings, tags, send_metadata):
+    async def export_item(self, client, target, path, item, settings, tags, send_metadata, prefix_library=None, prefix_root='./'):
         stream, digest, note, note_warning = await asyncio.to_thread(image_snapshot, path)
         try:
+            if prefix_library is not None:
+                try: from .prefix_export import image_associations
+                except ImportError: from prefix_export import image_associations
+                associations=image_associations(prefix_library,digest,item['url'],prefix_root)
+                if associations:
+                    metadata=json.loads(note) if note else {}
+                    metadata['gallery_associations']=associations
+                    merged=json.dumps(metadata,ensure_ascii=False,indent=2)
+                    if len(merged.encode('utf-8'))<=2*1024*1024:note=merged
+                    else:note_warning='Prefix association metadata exceeds the note limit; original generation metadata was retained.'
             # A file may change after the status hash was read. Snapshot identity wins.
             if digest != item["hash"]:
                 replacement = await asyncio.to_thread(self.memory.get, target, digest, item["url"])
@@ -993,7 +1004,7 @@ def inspect_original_download(stream, digest):
             "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"}
 
 
-def register_hydrus_routes(routes, get_root, storage_dir=None, get_input_root=None, get_output_root=None):
+def register_hydrus_routes(routes, get_root, storage_dir=None, get_input_root=None, get_output_root=None, get_prefix_library_path=None):
     bridge = HydrusBridge(get_root, storage_dir)
 
     async def handle(request, action):
@@ -1149,7 +1160,13 @@ def register_hydrus_routes(routes, get_root, storage_dir=None, get_input_root=No
                 elif action == "trash":
                     result = await bridge.trash(data)
                 else:
-                    result = await bridge.batch(action, data)
+                    prefix_library=None
+                    if action=='export' and get_prefix_library_path:
+                        try: from .prefix_library import read
+                        except ImportError: from prefix_library import read
+                        prefix_path=get_prefix_library_path(request)
+                        if prefix_path:prefix_library,_=await asyncio.to_thread(read,Path(prefix_path))
+                    result = await bridge.batch(action, data,prefix_library)
             return web.json_response(result, headers={"Cache-Control": "no-store"})
         except HydrusError as error:
             return web.json_response({"ok": False, "error": str(error)}, status=400)

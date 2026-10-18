@@ -39,7 +39,7 @@ export interface SettingsState {
     relativePath: string;
     extraFolders: string[];
     autoOrganize: boolean;
-    routingRules: { name: string; terms: string[]; field: string; match: string; folder: string; destinationRoot?: string; enabled?: boolean; prefixIds?:string[]; lineageHashes?:string[] }[];
+    routingRules: { name: string; terms: string[]; field: string; match: string; folder: string; destinationRoot?: string; enabled?: boolean; prefixIds?:string[]; lineageHashes?:string[];lineageNames?:Record<string,string> }[];
     buttonBoxQuery: string;
     buttonLabel: string;
     showDateDivider: boolean;

@@ -1,3 +1,5 @@
+import {extractLocalPrompts} from './LocalImageSearch';
+import {ReadOnlyPromptChips} from './PromptBoxEditor';
 import { PreviewMedia } from './PreviewMedia';
 import { Typography, Button, Flex, Descriptions, Tooltip, message, Image, Popconfirm } from 'antd';
 import { parseComfyMetadata } from './metadata-parser/metadataParser';
@@ -35,25 +37,8 @@ export function MetadataView({
 
     // Memoize prompt value renderer
     const renderPromptValue = useCallback((key: string, value: string) => {
-        const isExpanded = expandedKeys[key];
-        return (
-            <Typography.Paragraph
-                ellipsis={value.length > 300 ? {
-                    rows: PROMPT_ROW_LIMIT,
-                    expandable: 'collapsible',
-                    expanded: isExpanded,
-                    onExpand: () => setExpandedKeys(k => ({ ...k, [key]: !isExpanded })),
-                } : false}
-                style={{
-                    marginBottom: 0,
-                    whiteSpace: 'pre-line',
-                    wordBreak: 'break-word'
-                }}
-            >
-                {value}
-            </Typography.Paragraph>
-        );
-    }, [expandedKeys]);
+        const actual=extractLocalPrompts(image.metadata),used=/negative/i.test(key)?actual.negative:actual.positive;return <ReadOnlyPromptChips text={value} usedText={used}/>;
+    }, [image.metadata]);
 
     // Memoize items for Descriptions
     const items = useMemo(() => Object.entries(meta).map(([key, value]) => {
@@ -68,7 +53,7 @@ export function MetadataView({
             ),
             children: (
                 <Tooltip
-                    title={copiedKey === key ? 'Copied!' : 'Click to copy'}
+                    title={isPrompt?undefined:copiedKey === key ? 'Copied!' : 'Click to copy'}
                     placement="top"
                     color={copiedKey === key ? 'blue' : undefined}
                 >
@@ -81,6 +66,7 @@ export function MetadataView({
                             maxWidth: 420
                         }}
                         onClick={() => {
+                            if(isPrompt)return;
                             navigator.clipboard.writeText(value);
                             setCopiedKey(key);
                             message.success('Copied!', 1);
@@ -353,7 +339,7 @@ export function MetadataView({
                         </div>
                     )}
                     {image.type == "3d" && (
-                        <div 
+                        <div
                             style={{ width: '80vw', maxWidth: 1000, height: '70vh', cursor: 'grab' }}
                             onMouseDown={e => e.stopPropagation()}
                             onTouchStart={e => e.stopPropagation()}
@@ -370,7 +356,7 @@ export function MetadataView({
                         column={1}
                         items={items}
                         style={{
-                            // background: 'rgba(30, 30, 30, 0.97)', 
+                            // background: 'rgba(30, 30, 30, 0.97)',
                             color: "black",
                             borderRadius: 8,
                             padding: 8,

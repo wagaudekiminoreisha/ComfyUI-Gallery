@@ -1,3 +1,4 @@
+import {resolvedTagNames,tagIdentity} from './LocalImageSearch';
 import {RuleImpact,useRuleImpact,promptLeaves,CollapsedTags,tagCount} from './RuleImpact';
 import {ruleTag} from './RuleEngine';
 import {RuleStyles} from './RuleOperation';
@@ -63,16 +64,17 @@ const modeColor = (mode: AddMode) => KIND_COLORS[mode === 'each' ? 'group' : mod
  * The parts of a grouped chip with the separator its kind uses: | between alternatives, , inside a group.
  * With `onItems` the parts are editable in place: × removes one, + adds more (with suggestions).
  */
-function ChipParts({ chip, suggest, onItems }: { chip: OrChip; suggest?: (query: string) => Promise<Suggestion[]>; onItems?: (items: string[]) => void }) {
-    const [adding, setAdding] = useState(false);
+function ChipParts({ chip, suggest, onItems,used,onPartSelect,selectedParts }: {selectedParts?:Set<string>;onPartSelect?:(chip:Chip)=>void; used?:(text:string)=>boolean;chip: OrChip; suggest?: (query: string) => Promise<Suggestion[]>; onItems?: (items: string[]) => void }) {
+    const [adding, setAdding] = useState(false),[memberMenu,setMemberMenu]=useState<{x:number;y:number;text:string}>();
     const kind = groupingKind(chip), color = KIND_COLORS[kind];
     const parts = chipItems(chip);
     const separator = kind === 'group' ? ',' : '|';
     return <span style={{ display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: 2, padding: '2px 4px' }}>
+        {memberMenu&&createPortal(<div role="menu" style={{position:'fixed',left:memberMenu.x,top:memberMenu.y,zIndex:2147483001,background:'var(--comfy-menu-bg,#333)',color:'var(--input-text,#ddd)',padding:6,border:'1px solid #888',borderRadius:6}} onMouseLeave={()=>setMemberMenu(undefined)}><button type="button" role="menuitem" onClick={event=>{event.stopPropagation();void navigator.clipboard.writeText(memberMenu.text);setMemberMenu(undefined);}}>Copy tag syntax</button></div>,document.body)}
         {parts.map((part, index) => <span key={index + part} style={{ display: 'inline-flex', alignItems: 'center' }}>
             {index > 0 && <span aria-hidden style={{ color, fontWeight: 700, padding: kind === 'group' ? '0 4px 0 0' : '0 4px' }}>{separator}</span>}
             <span style={onItems ? { display: 'inline-flex', alignItems: 'center', borderRadius: 4, background: '#ffffff12', padding: '0 0 0 4px' } : undefined}>
-                {part}
+                {parsePrompt(part).map((child,childIndex)=>{const text=compileChip(child),active=!used||used(text),transfer:Chip & {memberOf?:{chipId:string;text:string}}={...chip,id:child.id,options:[text],...(onItems?{memberOf:{chipId:chip.id,text}}:{})};return <span data-part-drag key={child.id} role="button" tabIndex={active?0:-1} aria-pressed={selectedParts?.has(compileChip(transfer))||false} onClick={event=>{if(onPartSelect&&active){event.stopPropagation();onPartSelect(transfer);}}} aria-label={'Drag tag '+text} title="Drag this tag to copy it with its group behavior; drag the group header for the whole group" onPointerDown={event=>{event.stopPropagation();if(!active)return;startPromptPointerDrag(event.nativeEvent,event.currentTarget,compileChip(transfer),PROMPT_CHIP_TYPE,JSON.stringify(transfer),onItems?()=>onItems(parts.map(part=>parsePrompt(part).filter(item=>compileChip(item)!==text).map(compileChip).join(', ')).filter(Boolean)):undefined,()=>{dragging={kind:'chip',id:transfer.id,chip:transfer};},()=>{dragging=undefined;});}} onContextMenu={event=>{event.preventDefault();event.stopPropagation();if(active)setMemberMenu({x:event.clientX,y:event.clientY,text:compileChip(transfer)});}} style={{display:'inline-flex',minHeight:24,alignItems:'center',padding:'2px 6px',margin:2,border:'1px solid '+color,outline:selectedParts?.has(compileChip(transfer))?'2px solid '+accent:undefined,borderRadius:7,cursor:active?'grab':'default',opacity:active?1:.4,textDecoration:active?undefined:'line-through'}}>{childIndex>0&&<small style={{marginRight:4}}>AND</small>}{text}</span>;})}
                 {onItems && <button type="button" aria-label={'Remove ' + part} title={'Remove “' + part + '” from this chip'} onClick={event => { event.stopPropagation(); onItems(parts.filter((_, at) => at !== index)); }} style={{ ...S.x, fontSize: 12, opacity: .7 }}>×</button>}
             </span>
         </span>)}
@@ -125,9 +127,10 @@ function PartInput({ chip, suggest, onAdd, onClose, onRemoveTag }: { chip: OrChi
  * keep their separators and can be removed or added to. Clicking the chip opens the small editor for the rest.
  * Chips in group boxes can be dragged (`onDrop` given): drop on another chip to put it before/after that chip.
  */
-function ChipView({ chip, selected, picked, onSelect, onPick, onRemove, onDrop, onKind, onItems, suggest }: { chip: Chip; selected: boolean; picked?: boolean; onSelect: () => void; onPick?: (range: boolean) => void; onRemove?: () => void; onDrop?: (chip: Chip, after: boolean) => void; onKind?: (mode: AddMode) => void; onItems?: (items: string[]) => void; suggest?: (query: string) => Promise<Suggestion[]> }) {
+function ChipView({ chip, selected, picked, onSelect, onPick, onRemove, onDrop, onKind, onItems, suggest,used,transferChip,onPartSelect,selectedParts }: {selectedParts?:Set<string>;onPartSelect?:(chip:Chip)=>void;used?:(text:string)=>boolean;transferChip?:Chip; chip: Chip; selected: boolean; picked?: boolean; onSelect: () => void; onPick?: (range: boolean) => void; onRemove?: () => void; onDrop?: (chip: Chip, after: boolean) => void; onKind?: (mode: AddMode) => void; onItems?: (items: string[]) => void; suggest?: (query: string) => Promise<Suggestion[]> }) {
     const [mark, setMark] = useState<'before' | 'after'>();
     const [folded,setFolded]=useState(false),[copyMenu,setCopyMenu]=useState<{x:number;y:number}>();
+    const transferable=transferChip||chip;
     const weighted = chip.weight !== undefined && chip.weight !== 1;
     const mode = addModeOf(chip), color = modeColor(mode);
     const grouped = chip.kind === 'or';
@@ -136,26 +139,26 @@ function ChipView({ chip, selected, picked, onSelect, onPick, onRemove, onDrop, 
     const label = <span role="button" tabIndex={0} aria-label={'Edit ' + compileChip({ ...chip, enabled: true })} onClick={select}
         onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(event); } else if (onRemove && (event.key === 'Backspace' || event.key === 'Delete')) { event.preventDefault(); event.stopPropagation(); if (!event.repeat) onRemove(); } }} style={{ cursor: 'grab' }}>
         {grouped
-            ? <ChipParts chip={chip} suggest={suggest} onItems={onItems} />
+            ? <ChipParts chip={chip} selectedParts={selectedParts} onPartSelect={onPartSelect} used={used} suggest={suggest} onItems={onItems} />
             : <>{chip.emphasis === 'round' && '('}{chip.emphasis === 'square' && '['}{chip.text}{chip.emphasis === 'round' && ')'}{chip.emphasis === 'square' && ']'}</>}
         {weighted && !grouped && <small style={{ opacity: .7 }}> ×{chip.weight}</small>}
     </span>;
     return <span data-prompt-drop data-chip-id={chip.id} onClick={event => { if (!(event.target as HTMLElement).closest('button,select,input,[role="button"]')) select(event); }} draggable={false} title={onDrop ? 'Click to edit · double-click to remove · Shift/Ctrl-click to pick several · drag to move within this editor or copy to another' : 'Drag to copy' + (onRemove ? ' · double-click to remove' : '')}
         onPointerDownCapture={event => {
-            if ((event.target as HTMLElement).closest('button,select,input,textarea')) return;
+            if ((event.target as HTMLElement).closest('button,select,input,textarea,[data-part-drag]')||!transferable.enabled) return;
             event.stopPropagation();
-            startPromptPointerDrag(event.nativeEvent,event.currentTarget,compileChip({...chip,enabled:true}),PROMPT_CHIP_TYPE,JSON.stringify(chip),onRemove,
-                ()=>{dragging={kind:'chip',id:chip.id,chip};},()=>{dragging=undefined;setMark(undefined);});
+            startPromptPointerDrag(event.nativeEvent,event.currentTarget,compileChip({...transferable,enabled:true}),PROMPT_CHIP_TYPE,JSON.stringify(transferable),onRemove,
+                ()=>{dragging={kind:'chip',id:transferable.id,chip:transferable};},()=>{dragging=undefined;setMark(undefined);});
         }}
-        onDoubleClick={event => { if (onRemove && !(event.target as HTMLElement).closest('button,select,input')) { event.stopPropagation(); onRemove(); } }}
+        onDoubleClick={event => { if (onRemove && !(event.target as HTMLElement).closest('button,select,input,[data-part-drag]')) { event.stopPropagation(); onRemove(); } }}
         onDragStart={event => { event.stopPropagation(); dragging = { kind: 'chip', id: chip.id, chip }; event.dataTransfer.effectAllowed = 'copyMove'; event.dataTransfer.setData(PROMPT_CHIP_TYPE, JSON.stringify(chip)); event.dataTransfer.setData('text/plain', compileChip({ ...chip, enabled: true })); }}
         onContextMenu={event=>{event.preventDefault();event.stopPropagation();setCopyMenu({x:event.clientX,y:event.clientY});}}
         onDragEnd={() => { dragging = undefined; setMark(undefined); }}
         onDragOver={event => { if (!onDrop || dragging?.kind !== 'chip') return; event.stopPropagation();if(dragging.chip===chip)return;event.preventDefault();setMark(right(event) ? 'after' : 'before'); }}
         onDragLeave={() => setMark(undefined)}
         onDrop={event => { if (!onDrop || dragging?.kind !== 'chip') return; event.preventDefault(); event.stopPropagation(); const after = right(event), current = dragging; setMark(undefined); if (current.chip !== chip) onDrop(current.chip, after); }}
-        style={{ ...S.chip, borderColor: color, ...(grouped ? { flexDirection: 'column', alignItems: 'stretch', gap: 0, padding: 0, borderRadius: 6, borderColor: color, overflow: 'visible' } : {}), ...(selected ? S.selected : {}), ...(picked ? { outline: `2px dashed ${accent}` } : {}), opacity: chip.enabled ? 1 : .45, textDecoration: chip.enabled ? 'none' : 'line-through', userSelect: 'none', touchAction: 'none', cursor: 'grab', boxShadow: mark === 'before' ? `inset 3px 0 0 ${accent}` : mark === 'after' ? `inset -3px 0 0 ${accent}` : undefined }}>
-        {copyMenu&&createPortal(<div role="menu" style={{position:'fixed',left:copyMenu.x,top:copyMenu.y,zIndex:2147483001,background:'#333',padding:6,border:'1px solid #888',borderRadius:6}} onMouseLeave={()=>setCopyMenu(undefined)}><button role="menuitem" onClick={event=>{event.stopPropagation();void navigator.clipboard.writeText(compileChip({...chip,enabled:true}));setCopyMenu(undefined);}}>Copy syntax</button></div>,document.body)}{grouped
+        style={{ ...S.chip, borderColor: color, ...(grouped ? { flexDirection: 'column', alignItems: 'stretch', gap: 0, padding: 0, borderRadius: 6, borderColor: color, overflow: 'visible' } : {}), ...(selected ? S.selected : {}), ...(picked ? { outline: `2px dashed ${accent}` } : {}), opacity: transferable.enabled ? 1 : .45, textDecoration: transferable.enabled ? 'none' : 'line-through', userSelect: 'none', touchAction: 'none', cursor: 'grab', boxShadow: mark === 'before' ? `inset 3px 0 0 ${accent}` : mark === 'after' ? `inset -3px 0 0 ${accent}` : undefined }}>
+        {copyMenu&&createPortal(<div role="menu" style={{position:'fixed',left:copyMenu.x,top:copyMenu.y,zIndex:2147483001,background:'#333',padding:6,border:'1px solid #888',borderRadius:6}} onMouseLeave={()=>setCopyMenu(undefined)}><button role="menuitem" onClick={event=>{event.stopPropagation();void navigator.clipboard.writeText(transferable.enabled?compileChip({...transferable,enabled:true}):'');setCopyMenu(undefined);}}>Copy syntax</button></div>,document.body)}{grouped
             ? <>
                 {/* The header names the grouping (and changes it); the body keeps the separators. */}
                 <span data-group-header title="Click header to collapse or expand; use the dropdown to change grouping" onClick={event=>{if((event.target as HTMLElement).closest('select,button,input'))return;event.stopPropagation();setFolded(!folded);}} style={{ display: 'flex', alignItems: 'center', gap: 4, background: color, color: '#fff', fontSize: 10, lineHeight: '15px', padding: '0 2px 0 4px', textTransform: 'uppercase', letterSpacing: .3, borderRadius: '5px 5px 0 0' }}>
@@ -165,7 +168,7 @@ function ChipView({ chip, selected, picked, onSelect, onPick, onRemove, onDrop, 
                             {ADD_MODES.map(item => <option key={item.value} value={item.value} style={{ color: '#fff',background:'#353535', textTransform: 'none' }}>{item.value === 'each' ? 'Optional' : item.name}</option>)}
                         </select>
                         : <span style={{ flex: 1 }}>{groupingName(chip)}</span>}
-                    {onKind&&<><button type="button" aria-label="Copy group syntax" onClick={event=>{event.stopPropagation();void navigator.clipboard.writeText(compileChip({...chip,enabled:true}));}} style={{...S.btn,background:'transparent',color:'white'}}>⧉</button><button type="button" aria-label="Select tag group for additions" onClick={event=>{event.stopPropagation();onSelect();}} style={{...S.btn,background:'transparent',color:'white',minHeight:26}}>＋ Add here</button></>}
+                    {onKind&&<><button type="button" disabled={!transferable.enabled} aria-label="Copy group syntax" onClick={event=>{event.stopPropagation();void navigator.clipboard.writeText(transferable.enabled?compileChip({...transferable,enabled:true}):'');}} style={{...S.btn,background:'transparent',color:'white'}}>⧉</button><button type="button" aria-label="Select tag group for additions" onClick={event=>{event.stopPropagation();onSelect();}} style={{...S.btn,background:'transparent',color:'white',minHeight:26}}>＋ Add here</button></>}
                     {weighted && <span>×{chip.weight}</span>}
                     {remove}
                 </span>
@@ -605,7 +608,19 @@ export function PromptBoxEditor({ state, source, preview, suggest, onChange, not
 export function PromptTermChips({ terms, selected, onSelect }: { terms: string[]; selected: (term: string) => boolean; onSelect: (term: string) => void }) {
     const { token } = theme.useToken();
     const look = { '--comfy-menu-bg': token.colorFillTertiary, '--border-color': token.colorBorder, color: token.colorText, display: 'flex', flexWrap: 'wrap', gap: 4 } as CSSProperties;
-    return <div style={look}>{terms.map(term => { const chip = parsePrompt(term)[0]; return chip && <ChipView key={term} chip={chip} selected={selected(term)} onSelect={() => onSelect(term)} />; })}</div>;
+    return <div style={look}>{terms.flatMap(parsePrompt).map((chip,index)=>{const text=compileChip(chip);return <ChipView key={index+text} chip={chip} onPartSelect={part=>onSelect(compileChip(part))} selected={selected(text)} onSelect={()=>onSelect(text)}/>;})}</div>;
+}
+
+/** Encoder-shaped read-only recipes: retain groups, select/copy them, and copy individual members by dragging. */
+export function ReadOnlyPromptChips({text,usedText}:{text:string;usedText?:string}){
+ const [selected,setSelected]=useState<string[]>([]),[parts,setParts]=useState<Chip[]>([]),{token}=theme.useToken();
+ useEffect(()=>{setSelected([]);setParts([]);},[text,usedText]);
+ const usedKeys=useMemo(()=>usedText===undefined?undefined:new Set(resolvedTagNames(usedText)),[usedText]);
+ const used=usedKeys===undefined?undefined:(value:string)=>{const terms=resolvedTagNames(value);return terms.length>0&&terms.every(tag=>usedKeys.has(tagIdentity(tag)));};
+ const rows=parsePrompt(text).map(chip=>{const transfer=chip.kind==='or'&&used?{...chip,options:chip.options.filter(option=>used(option)),enabled:chip.options.some(option=>used(option))}:chip.kind==='tag'&&used?{...chip,enabled:used(chip.text)}:chip;return {chip,transfer,key:compileChip(chip)};});
+ return <div style={{'--comfy-menu-bg':token.colorFillTertiary,'--border-color':token.colorBorder,color:token.colorText} as CSSProperties}>
+ <div style={{display:'flex',gap:6,marginBottom:6}}><button type="button" style={S.btn} onClick={()=>setSelected(rows.filter(row=>row.transfer.enabled).map(row=>row.key))}>Select used</button><button type="button" style={S.btn} disabled={!selected.length&&!parts.length} onClick={()=>void navigator.clipboard.writeText([...rows.filter(row=>row.transfer.enabled&&selected.includes(row.key)).map(row=>compileChip(row.transfer)),...parts.map(compileChip)].join(', '))}>Copy selected syntax</button><button type="button" style={S.btn} onClick={()=>{setSelected([]);setParts([]);}}>Clear selection</button></div>
+ <div style={{display:'flex',flexWrap:'wrap',gap:4}}>{rows.map((row,index)=><ChipView key={index+row.key} chip={row.chip} transferChip={row.transfer} selectedParts={new Set(parts.map(compileChip))} onPartSelect={part=>setParts(old=>old.some(value=>compileChip(value)===compileChip(part))?old.filter(value=>compileChip(value)!==compileChip(part)):[...old,part])} used={used} selected={selected.includes(row.key)} onSelect={()=>{if(row.transfer.enabled)setSelected(old=>old.includes(row.key)?old.filter(key=>key!==row.key):[...old,row.key]);}}/>)}</div></div>;
 }
 
 /** Native controls inside the term editor shaped like the gallery's antd controls. */

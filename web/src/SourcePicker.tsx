@@ -1,3 +1,4 @@
+import {SourceImageMenu} from './SourceImageMenu';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { getComfyApp } from './ComfyAppApi';
@@ -97,12 +98,12 @@ export function SourcePicker() {
         };
         update();
         const outside = (event: PointerEvent) => {
-            if (root.current?.contains(event.target as Node) || request.trigger?.contains(event.target as Node)) return;
+            if ((event.target as HTMLElement)?.closest?.('.ant-dropdown') || root.current?.contains(event.target as Node) || request.trigger?.contains(event.target as Node)) return;
             const anchor = request.anchor();
             if (anchor && event.clientX >= anchor.left && event.clientX <= anchor.right && event.clientY >= anchor.top && event.clientY <= anchor.bottom) return;
             close();
         };
-        const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(true); } };
+        const escape = (event: KeyboardEvent) => { if (event.key === 'Escape' && !document.querySelector('.ant-dropdown:not(.ant-dropdown-hidden)')) { event.preventDefault(); event.stopPropagation(); close(true); } };
         document.addEventListener('pointerdown', outside, true); document.addEventListener('keydown', escape, true);
         return () => {
             cancelAnimationFrame(frame); document.removeEventListener('pointerdown', outside, true); document.removeEventListener('keydown', escape, true);
@@ -173,7 +174,7 @@ export function SourcePicker() {
                     const index = manifest.images.findIndex(item => item.input_name === image.input_name);
                     const selected = batch ? selection.includes(image.input_name) : index >= 0 && index === (manifest.layout === 'single' ? manifest.active_index || 0 : node.__galleryViewIndex || 0);
                     const name = image.title || image.input_name.split('/').pop()!;
-                    return <div className="sp-tile" key={image.input_name}>
+                    return <SourceImageMenu key={image.input_name} image={image}><div className="sp-tile">
                         <button className="sp-image" disabled={busy} aria-label={(index < 0 ? 'Restore ' : 'Select ') + name} aria-pressed={selected}
                             title={(index < 0 ? 'Restore from history: ' : 'Select image: ') + image.input_name} onClick={() => void pick(image)}>
                             <img loading="lazy" src={'/Gallery/source/thumbnail?url=' + encodeURIComponent('/static_gallery/' + image.input_name)} alt="" />
@@ -184,7 +185,7 @@ export function SourcePicker() {
                             try { const state = readSourceManifest(node); const at = state.images.findIndex(item => item.input_name === image.input_name); saveSourceManifest(node, removeSourceImage(state, at)); }
                             catch (reason) { setError(String(reason)); }
                         }}>×</button>}
-                    </div>;
+                    </div></SourceImageMenu>;
                 })}</div>}
         </div>
         <footer><span>{batch ? `${selection.length} selected · connect the batch IMAGE output to send these images` : `${manifest.images.length} in node · ${history.length} in history`}</span>{batch && <button disabled={busy || !selection.length} onClick={applyBatch}>Use batch</button>}<button disabled={busy} onClick={() => file.current?.click()}>{busy ? 'Adding…' : 'Upload'}</button>

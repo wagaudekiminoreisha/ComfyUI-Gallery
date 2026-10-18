@@ -93,7 +93,8 @@ from .image_source_api import register_source_routes
 
 register_gallery_app_routes(PromptServer.instance.routes)
 hydrus_bridge = register_hydrus_routes(PromptServer.instance.routes, get_gallery_static_root,
-                      get_input_root=folder_paths.get_input_directory, get_output_root=folder_paths.get_output_directory)
+                      get_input_root=folder_paths.get_input_directory, get_output_root=folder_paths.get_output_directory,
+                      get_prefix_library_path=lambda request: PromptServer.instance.user_manager.get_request_user_filepath(request,"prompt-library.json"))
 PromptServer.instance.app.on_startup.append(hydrus_bridge.sync.startup)
 PromptServer.instance.app.on_cleanup.append(hydrus_bridge.sync.cleanup)
 register_thumbnail_routes(PromptServer.instance.routes, get_gallery_static_root)

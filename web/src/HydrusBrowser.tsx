@@ -70,7 +70,7 @@ export function HydrusBrowser({ open, source = 'hydrus', searchMode, viewRevisio
     }, [scope]);
     useEffect(() => { if (!open) { requestVersion.current++; cancelCopies.current = true; cancelDownloads.current = true; setBusy(false); } }, [open]);
 
-    useEffect(() => { requestVersion.current++; setBusy(false); }, [viewRevision]);
+    useEffect(() => { requestVersion.current++; setBusy(false);setSelected([]); }, [viewRevision]);
     const localCount = gallery.imagesDetailsList.filter(file => !['divider', 'empty-space'].includes(file.type)).length;
 
 

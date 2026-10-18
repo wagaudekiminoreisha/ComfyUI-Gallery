@@ -1,3 +1,8 @@
+import {TermsEditor} from './PromptBoxEditor';
+import {promptTerms} from './PromptTags';
+import {makeSuggest} from './PromptSuggest';
+import {loadPrefixes,expandPrefix} from './PrefixLibrary';
+import {SourceImageMenu} from './SourceImageMenu';
 import { FloatingPanel } from './FloatingPanel';
 import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
@@ -22,6 +27,7 @@ const cloneManifest = (value: ImageSourceManifest): ImageSourceManifest => ({ ..
 const describe = (name: string) => name.replace(/\\/g, '/').split('/').pop() || name;
 
 export function ImageSourceEditor({ open, manifest, onApply, onClose, onBrowse }: Props) {
+    const suggest=makeSuggest({loadLibrary:loadPrefixes,expandPrefix});
     const [draft, setDraft] = useState(() => cloneManifest(manifest));
     const [selected, setSelected] = useState(0);
     const [dimensions, setDimensions] = useState<Record<string, Dimensions>>({});
@@ -163,29 +169,29 @@ export function ImageSourceEditor({ open, manifest, onApply, onClose, onBrowse }
                 <div>
                     <Typography.Title level={5} style={{ marginTop: 0 }}>Sources in output order</Typography.Title>
                     <div className="gallery-source-list" aria-label="Image source list">
-                        {draft.images.map((image, index) => <div className={`gallery-source-item${selected === index ? ' active' : ''}`} key={`${index}:${image.input_name}`}>
+                        {draft.images.map((image, index) => <SourceImageMenu key={image.input_name+index} image={image} onRemove={()=>remove(index)}><div className={`gallery-source-item${selected === index ? ' active' : ''}`} key={`${index}:${image.input_name}`}>
                             <button className="gallery-source-pick" type="button" aria-pressed={selected === index} aria-label={`Edit image ${index + 1}: ${image.title || describe(image.input_name)}`} onClick={() => { setSelected(index); setDraft(previous => ({ ...previous, active_index: index })); }}>
                                 <img src={`/Gallery/source/thumbnail?url=${encodeURIComponent(`/static_gallery/${image.input_name}`)}`} loading="lazy" alt="" />
                                 <span style={{ overflowWrap: 'anywhere', lineHeight: 1.4 }}><strong>{index + 1}.</strong> {image.title || describe(image.input_name)}{image.crop && <small style={{ display: 'block' }}>Cropped</small>}</span>
                             </button>
                             <Space size={4}><Button size="small" onClick={() => move(index, -1)} disabled={!index} aria-label={`Move image ${index + 1} earlier`}>↑</Button><Button size="small" onClick={() => move(index, 1)} disabled={index === draft.images.length - 1} aria-label={`Move image ${index + 1} later`}>↓</Button><Button size="small" danger onClick={() => remove(index)} aria-label={`Remove image ${index + 1}`}>Remove</Button></Space>
-                        </div>)}
+                        </div></SourceImageMenu>)}
                     </div>
                 </div>
                 <div className="gallery-source-main">
                     {active && <>
                         <Typography.Text strong>Prompt contribution for this image (empty means image only)</Typography.Text>
-                        {(['positive', 'negative'] as const).map(side => <Input.TextArea key={side} aria-label={'Source ' + side + ' prompt'} value={active.prompt?.[side] || ''} onChange={event => setDraft(old => ({ ...old, images: old.images.map((image, index) => index === selected ? { ...image, prompt: { positive: '', negative: '', tags: [], ...image.prompt, [side]: event.target.value } } : image) }))} placeholder={side + ' prompt output'} />)}
+                        {(['positive', 'negative'] as const).map(side => <div key={side}><Typography.Text>{side==='positive'?'Positive':'Negative'} source tags</Typography.Text><TermsEditor value={promptTerms(active.prompt?.[side]||'')} onChange={terms=>setDraft(old=>({...old,images:old.images.map((image,index)=>index===selected?{...image,prompt:{positive:'',negative:'',tags:[],...image.prompt,[side]:terms.join(', ')}}:image)}))} suggest={suggest} placeholder={'Source '+side+' prompt'}/></div>)}
                         <Space wrap style={{ justifyContent: 'space-between', width: '100%' }}><Typography.Title level={5} style={{ margin: 0 }}>Crop image {selected + 1}</Typography.Title>{size && <Typography.Text type="secondary">Original: {size.width} × {size.height}</Typography.Text>}</Space>
                         <Typography.Text type="secondary">Drag a rectangle on the image or enter an exact crop below. Cropping removes pixels from the output.</Typography.Text>
                         <div className="gallery-source-stage">
-                            <div className="gallery-source-crop" onPointerDown={beginCrop} onPointerMove={continueCrop} onPointerUp={finishCrop} onPointerCancel={() => { drag.current = null; setDragCrop(undefined); }}>
+                            <SourceImageMenu image={active} onRemove={()=>remove(selected)}><div className="gallery-source-crop" onPointerDown={beginCrop} onPointerMove={continueCrop} onPointerUp={finishCrop} onPointerCancel={() => { drag.current = null; setDragCrop(undefined); }}>
                                 <img src={sourceImageUrl(active.input_name)} alt={`Crop source ${selected + 1}`} draggable={false} onLoad={event => {
                                     const image = event.currentTarget;
                                     setDimensions(previous => ({ ...previous, [active.input_name]: { width: image.naturalWidth, height: image.naturalHeight } })); setImageError('');
                                 }} onError={() => setImageError('This input image could not be loaded. Re-add it from the gallery if it was moved or deleted.')} />
                                 {size && <div className="gallery-source-rectangle" style={{ left: `${currentCrop.x * 100}%`, top: `${currentCrop.y * 100}%`, width: `${currentCrop.width * 100}%`, height: `${currentCrop.height * 100}%` }} />}
-                            </div>
+                            </div></SourceImageMenu>
                         </div>
                         {imageError && <Alert type="error" message={imageError} showIcon />}
                         <Space wrap><Button onClick={() => setCrop()} disabled={!active.crop}>Reset crop</Button><Button onClick={() => presetCrop(1)} disabled={!size}>Square</Button><Button onClick={() => presetCrop(4 / 3)} disabled={!size}>4:3</Button><Button onClick={() => presetCrop(3 / 2)} disabled={!size}>3:2</Button><Button onClick={() => presetCrop(16 / 9)} disabled={!size}>16:9</Button><Select aria-label="Crop coordinate units" value={units} onChange={setUnits} options={[{ value: 'pixels', label: 'Pixels' }, { value: 'percent', label: 'Percent' }]} style={{ width: 110 }} /></Space>

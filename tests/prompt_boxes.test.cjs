@@ -60,7 +60,8 @@ test('library appends become boxes named after the prefix, otherwise #1, #2', ()
     assert.deepEqual(after.boxes.map(box => box.kind === 'group' ? box.name : 'source'), ['#1', 'source', 'Portrait']);
     assert.equal(B.compileBoxes(after), 'a, ' + M + ', b, c');
     const before = B.insertText(base, 'z', 'before');
-    assert.equal(before.boxes[0].name, '#2');
+    assert.equal(before.boxes[0].name, '#1');
+    assert.equal(before.boxes[1].name,'#2');
     assert.equal(B.compileBoxes(before), 'z, a, ' + M);
     assert.equal(B.compileBoxes(B.insertText(base, 'q', 'replace', 'New')), 'q, ' + M);
     assert.equal(B.insertText(base, ' , ', 'after'), base);
@@ -257,4 +258,11 @@ test('prefix policy inheritance opt-out survives workflow serialization for tag 
  const state=B.parseState({version:1,boxes:[{id:'linked',kind:'group',prefixId:'prefix-test',inheritRules:false,chips:[{kind:'tag',text:'blue hair'}]},{id:'source',kind:'source',inheritRules:false}]});
  const restored=B.parseState(JSON.parse(JSON.stringify(state)));
  assert.equal(restored.boxes[0].inheritRules,false);assert.equal(restored.boxes[1].inheritRules,false);
+});
+
+test('deleting and moving default boxes renumbers their positions without changing identity',()=>{
+ const state={version:1,boxes:Array.from({length:9},(_,index)=>B.emptyGroup('#'+(index+1),B.parsePrompt('tag '+index)))};
+ const last=state.boxes[8].id,next=B.removeBox(state,state.boxes[7].id);
+ assert.equal(next.boxes[7].id,last);assert.equal(next.boxes[7].name,'#8');
+ const moved=B.moveBox(next,last,-1);assert.equal(moved.boxes[6].id,last);assert.equal(moved.boxes[6].name,'#7');
 });

@@ -1,3 +1,4 @@
+import {useGalleryContext} from './GalleryContext';
 import { FloatingPanel } from './FloatingPanel';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Button, Checkbox, Collapse, List, Modal, Progress, Select, Space, Tag, Typography } from 'antd';
@@ -10,6 +11,7 @@ import { extractLocalPrompts } from './LocalImageSearch';
 import { HydrusTagSelect } from './HydrusTagSelect';
 
 export function HydrusExportModal() {
+    const gallery=useGalleryContext();
     const { exportUrls, setExportUrls, settings, setSettingsOpen, imageFiles, mergeItems } = useHydrus();
     const [tags, setTags] = useState<string[]>([]);
     const [sendMetadata, setSendMetadata] = useState(false);
@@ -103,7 +105,7 @@ export function HydrusExportModal() {
                 setActiveUrl(url);
                 let item: HydrusItem;
                 try {
-                    const response = await hydrusRequest<HydrusBatch>('export', { urls: [url], tags: [...tags, ...imageTags(url)], tag_service_key: serviceKey, send_metadata: true });
+                    const response = await hydrusRequest<HydrusBatch>('export', { urls: [url],prefix_root:gallery.settings.relativePath, tags: [...tags, ...imageTags(url)], tag_service_key: serviceKey, send_metadata: true });
                     item = response.items.find(entry => entry.url === url) || { url, success: false, error: 'No result returned for this image.' };
                     mergeItems([item]);
                 } catch (error) {

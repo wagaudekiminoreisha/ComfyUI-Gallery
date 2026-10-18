@@ -122,7 +122,7 @@ async def hydrus(request):
 upstream.router.add_route('*', '/{tail:.*}', hydrus)
 app = web.Application()
 routes = web.RouteTableDef()
-bridge = module.register_hydrus_routes(routes, lambda: str(MEDIA), storage_dir=MEMORY, get_input_root=lambda: str(INPUT))
+bridge = module.register_hydrus_routes(routes, lambda: str(MEDIA), storage_dir=MEMORY, get_input_root=lambda: str(INPUT),get_prefix_library_path=lambda request: MEMORY / "prompt-library.json")
 app.on_startup.append(bridge.sync.startup)
 app.on_cleanup.append(bridge.sync.cleanup)
 thumb_module.register_thumbnail_routes(routes, lambda: str(MEDIA))
