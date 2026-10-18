@@ -1,3 +1,4 @@
+import {hasActiveRuleset,insertRuleBox,patchRuleBox} from './RuleBoxActions';
 import {useState} from 'react';
 import {Modal,Input} from 'antd';
 import {BASE_Z_INDEX} from './ComfyAppApi';
@@ -11,14 +12,14 @@ type HairBox={value:HairPolicy|null;onChange:(value:HairPolicy|null)=>void};
 export function RuleBoxes({value,onChange,definitions,origin='encoder',inherited=[],promote=false,template='',hairPrompting,onEdit}:{value:RuleBox[];onChange:(value:RuleBox[])=>void;definitions:Ruleset[];origin?:RuleBox['origin'];inherited?:RuleBox[];promote?:boolean;template?:string;hairPrompting?:HairBox;onEdit?:(id:string)=>void}){
  const [folded,setFolded]=useState<Record<string,boolean>>({}),[channel,setChannel]=useState<{boxId:string;name:string}>();
  const all=[...inherited,...value],active=new Set(activeRuleBoxes(all));
- const patch=(id:string,changes:Partial<RuleBox>,preference=false)=>onChange(value.map(box=>box.id===id?{...box,...changes,...(promote&&preference?{origin:'encoder' as const,label:'Encoder override'}:{})}:box));
+ const patch=(id:string,changes:Partial<RuleBox>,preference=false)=>onChange(patchRuleBox(value,id,{...changes,...(promote&&preference?{origin:'encoder' as const,label:'Encoder override'}:{})}));
  const move=(index:number,delta:number)=>{const result=[...value];[result[index],result[index+delta]]=[result[index+delta],result[index]];onChange(result);};
  const card=(box:RuleBox,index:number,readOnly=false)=><fieldset className="cg-rule-box" key={(readOnly?'inherited:':'')+box.id} aria-label={'Ruleset box '+box.definition.name} style={{opacity:active.has(box)?1:.65}}>
   <legend><input aria-label={'Use ruleset '+box.definition.name} type="checkbox" disabled={readOnly} checked={box.enabled} onChange={event=>patch(box.id,{enabled:event.target.checked})}/>{box.definition.name} · {box.origin}{!active.has(box)&&box.enabled?' · overridden in this scope':''}</legend>
   <div className="cg-rule-toolbar">
    <button type="button" aria-label={((readOnly?folded[box.id]??box.collapsed:box.collapsed)?'Expand ruleset ':'Collapse ruleset ')+box.definition.name} aria-expanded={!(readOnly?folded[box.id]??box.collapsed:box.collapsed)} title={(readOnly?folded[box.id]??box.collapsed:box.collapsed)?'Expand':'Collapse'} onClick={()=>readOnly?setFolded({...folded,[box.id]:!(folded[box.id]??box.collapsed)}):patch(box.id,{collapsed:!box.collapsed})}>{(readOnly?folded[box.id]??box.collapsed:box.collapsed)?'▸':'▾'}</button>
    {!readOnly&&<><button type="button" aria-label="Move ruleset up" disabled={!index} onClick={()=>move(index,-1)}>▲</button><button type="button" aria-label="Move ruleset down" disabled={index===value.length-1} onClick={()=>move(index,1)}>▼</button><button type="button" aria-label="Remove ruleset box" onClick={()=>onChange(value.filter(item=>item.id!==box.id))}>×</button></>}
-   {readOnly&&<button type="button" onClick={()=>onChange([...value,{...newRuleBox(box.definition),scope:box.scope,preferences:{...box.preferences},label:'Override '+(box.label||'prefix')}])}>Override on encoder</button>}
+   {readOnly&&<button type="button" disabled={hasActiveRuleset(value.filter(item=>item.origin==='encoder'),box.definition.id,box.scope)} onClick={()=>onChange(insertRuleBox(value,{...newRuleBox(box.definition),scope:box.scope,preferences:{...box.preferences},label:'Override '+(box.label||'prefix')},true))}>Override on encoder</button>}
    {!readOnly&&onEdit&&<button type="button" onClick={()=>onEdit(box.id)}>Edit rules</button>}
   </div>
   {!(readOnly?folded[box.id]??box.collapsed:box.collapsed)&&<div>
@@ -39,9 +40,9 @@ export function RuleBoxes({value,onChange,definitions,origin='encoder',inherited
   {inherited.map((box,index)=>card(box,index,true))}{value.map((box,index)=>card(box,index))}
   {hairPrompting?.value&&<HairControls value={hairPrompting.value} template={template} onChange={hairPrompting.onChange} onRemove={()=>hairPrompting.onChange(null)}/>}
   <div className="cg-rule-add"><span aria-hidden="true">＋</span><select aria-label="Add ruleset" value="" onChange={event=>{
-   if(event.target.value==='__hair_prompting__'){hairPrompting?.onChange(cleanHairPolicy(null));return;}
-   const definition=definitions.find(item=>item.id===event.target.value);if(definition)onChange([...value,newRuleBox(definition,origin)]);
-  }}><option value="">Add ruleset…</option>{hairPrompting&&!hairPrompting.value&&<option value="__hair_prompting__">Hair prompting · attribute filter</option>}{definitions.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
+   if(event.target.value==='__hair_prompting__'){if(hairPrompting&&!hairPrompting.value)hairPrompting.onChange(cleanHairPolicy(null));return;}
+   const definition=definitions.find(item=>item.id===event.target.value);if(definition&&!hasActiveRuleset(all,definition.id))onChange(insertRuleBox(value,newRuleBox(definition,origin)));
+  }}><option value="">Add ruleset…</option>{hairPrompting&&!hairPrompting.value&&<option value="__hair_prompting__">Hair prompting · attribute filter</option>}{definitions.filter(item=>!hasActiveRuleset(all,item.id)).map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
   <RuleNotation/>
  </div>;
 }
