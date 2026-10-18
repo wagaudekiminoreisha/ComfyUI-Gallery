@@ -29,3 +29,10 @@ test('hair summary counts recognised template terms rather than deleting saved c
  assert.deepEqual(summary.omitted,['blonde_hair','brown_hair','sidelocks']);
  assert.equal(summary.incomplete,false);
 });
+
+test('removed hair policy stays removed across workflow restore and external prompt edits',()=>{
+ const state={...B.stateFromText('long hair'),hairPolicy:null};
+ assert.equal(B.parseState(JSON.parse(JSON.stringify(state))).hairPolicy,null);
+ assert.equal(B.reconcileText(state,'short hair','boxes',false).hairPolicy,null);
+ assert.equal(filterHairPrompt('long hair',cleanHairPolicy(state.hairPolicy)),'long hair');
+});

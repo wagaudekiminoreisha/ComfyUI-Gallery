@@ -29,6 +29,10 @@ const assert=require('node:assert/strict');
   await page.waitForFunction(()=>window.qaFeedbackA.size[1]<900);
   assert.equal(await page.evaluate(()=>window.qaFeedbackA.size[0]),600);
   const height=await page.evaluate(()=>window.qaFeedbackA.size[1]);await page.waitForTimeout(250);assert.equal(await page.evaluate(()=>window.qaFeedbackA.size[1]),height,'settled size must not oscillate');
+  await a.getByLabel('Add ruleset',{exact:true}).selectOption('__hair_prompting__');await a.getByLabel('Hair mode',{exact:true}).selectOption('minimal');
+  await page.waitForFunction(()=>window.qaFeedbackA.size[1]>1000);
+  await a.getByRole('button',{name:'Remove hair prompting',exact:true}).click();await page.waitForFunction(()=>window.qaFeedbackA.size[1]<900);
+  assert.equal(await page.evaluate(()=>window.qaFeedbackA.size[0]),600,'removing policy preserves node width');
   // In-editor movement, independent-editor copies and cancellation use real pointer input.
   await page.evaluate(()=>window.qaFeedbackA.__galleryPromptBoxes.insert('destination','after','Target'));
   await a.getByRole('button',{name:'Edit alpha',exact:true}).dragTo(a.getByLabel('Tag box Target',{exact:true}));

@@ -1,8 +1,9 @@
+import {RuleStyles} from './RuleOperation';
 import {RuleProtection,useGlobalProtections} from './RuleProtection';
 import {RuleBoxes} from './RuleBoxes';
 import {openRules} from './RulesLibrary';
 import type {RuleBox,Ruleset} from './RuleEngine';
-import { HairControls, HairReview } from './HairControls';
+import { HairReview } from './HairControls';
 import { useBatchTagBlacklist } from './BatchBlacklistEditor';
 import { ClothingReview } from './ClothingReview';
 import { GlobalTagReview } from './GlobalTagReview';
@@ -439,7 +440,7 @@ function GroupView({ box, index, count, state, onChange, suggest, bare, placehol
             <Btn label="Select all chips" disabled={!eligible.length} onClick={() => { setPicked(eligible); setSelected(undefined); setActiveChipId(undefined); }}>Select all</Btn>
         </div>
         <Btn label={box.chipsCollapsed ? 'Expand tag groups' : 'Collapse tag groups'} onClick={() => patch({ chipsCollapsed: !box.chipsCollapsed })}>{box.chipsCollapsed ? '▸' : '▾'} Tag groups ({box.chips.length})</Btn>
-        <small>Batch protections: {blacklist.length} · <button type="button" onClick={()=>openRules()}>Rules &amp; protections</button></small>
+        <small className="cg-rule-controls">Batch protections: {blacklist.length} · <button type="button" onClick={()=>openRules()}>Rules &amp; protections</button></small>
         {eligible.length < box.chips.length && <small style={S.muted}>{box.chips.length - eligible.length} chip(s) excluded from batch selection</small>}
         {!!pickedIds.length && <MergeBar count={selectedCount} onClear={clearSelection}
             onEnabled={enabled => { const next = applyBatchTags(state, box.id, pickedIds, blacklist, enabled ? 'enable' : 'disable'); const ids = new Set(box.chips.map(chip => chip.id)); setPicked(next.boxes.flatMap(item => item.kind === 'group' && item.id === box.id ? item.chips.filter(chip => (!ids.has(chip.id) || pickedIds.includes(chip.id)) && eligibleBatchIds([chip], blacklist).includes(chip.id)).map(chip => chip.id) : [])); onChange(next); }} onRemove={removePicked} />}
@@ -576,18 +577,17 @@ export function PromptBoxEditor({ state, source, preview, suggest, onChange, not
             onPrefix={(item, head) => { const next=addBox(head ? addBox(state, undefined, head) : state,item.label,(item.terms||[]).join(', ')); onChange({...next,boxes:next.boxes.map(box=>box.kind==='group'&&box.name===item.label?{...box,prefixId:item.prefixId}:box)}); }} /></div>
         {notice && <div role="status" style={{ opacity: .8, color: '#d89614' }}>{notice}</div>}
         <details aria-label="Encoder rules" open><summary>Rulesets</summary>
-            <RuleBoxes definitions={ruleDefinitions} value={state.rulesets||[]} inherited={inheritedRules} promote onChange={rulesets=>onChange({...state,rulesets})}/>
-            <button type="button" onClick={()=>openRules()}>Manage rulesets</button> <button type="button" onClick={onReloadRules}>Reload global defaults</button>
+            <RuleBoxes template={unfilteredPreview??preview} hairPrompting={{value:state.hairPolicy??null,onChange:hairPolicy=>onChange({...state,hairPolicy})}} definitions={ruleDefinitions} value={state.rulesets||[]} inherited={inheritedRules} promote onChange={rulesets=>onChange({...state,rulesets})}/>
+            <div className="cg-rule-controls cg-rule-toolbar"><button type="button" onClick={()=>openRules()}>Manage rulesets</button> <button type="button" onClick={onReloadRules}>Reload global defaults</button></div>
             {rulesNotice&&<p role="status">{rulesNotice}</p>}
             {ruleErrors.map(error=><div role="alert" key={error}>{error} Encoding will stop until the rules agree.</div>)}
             <small>Encoder overrides prefix rules, then global defaults, for the same family and scope. Rules run after optional choices. Scope does not create regional conditioning.</small>
         </details>
-        <HairControls template={unfilteredPreview ?? preview} value={state.hairPolicy} onChange={hairPolicy => onChange({ ...state, hairPolicy })} />
-        <HairReview text={preview} policy={state.hairPolicy} />
+        <HairReview text={preview} policy={state.hairPolicy??undefined} />
         <ClothingReview text={preview} />
         <GlobalTagReview text={preview} />
         <CopyablePrompt title="Prompt sent to the encoder" value={preview} />
-        {lastEncodedPrompt !== undefined && <><CopyablePrompt title="Last encoded prompt (after optional choices)" value={lastEncodedPrompt} /><HairReview resolved text={lastEncodedPrompt} policy={state.hairPolicy} /></>}
+        {lastEncodedPrompt !== undefined && <><CopyablePrompt title="Last encoded prompt (after optional choices)" value={lastEncodedPrompt} /><HairReview resolved text={lastEncodedPrompt} policy={state.hairPolicy??undefined} /></>}
     </div></RuleProtection.Provider>;
 }
 
@@ -628,7 +628,7 @@ export function TermsEditor({ value, onChange, suggest, placeholder, clothingRev
     const { token } = theme.useToken();
     const look = { '--comfy-input-bg': token.colorBgContainer, '--comfy-menu-bg': token.colorFillTertiary, '--comfy-menu-hover-bg': token.controlItemBgHover, '--input-text': token.colorText, '--border-color': token.colorBorder,
         '--cg-primary': token.colorPrimary, '--cg-primary-ring': token.controlOutline, '--cg-radius': token.borderRadius + 'px', font: `${token.fontSize}px ${token.fontFamily}`, color: token.colorText } as CSSProperties;
-    return <RuleProtection.Provider value={globalProtection}><div data-prompt-editor={owner} className="cg-terms" style={{ ...S.root, padding: 0, minHeight: 0, ...look }} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
+    return <RuleProtection.Provider value={globalProtection}><RuleStyles/><div data-prompt-editor={owner} className="cg-terms" style={{ ...S.root, padding: 0, minHeight: 0, ...look }} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
         <PromptTrash owner={owner} />
         <style>{TERMS_STYLE}</style>
         <GroupView bare box={box} index={0} count={1} state={state} onChange={change} suggest={suggest} placeholder={placeholder} />

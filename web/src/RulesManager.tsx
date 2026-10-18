@@ -32,7 +32,7 @@ export function RulesManager(){
   {error&&<Alert type="error" message={error}/>}
   <h3>Attach rulesets</h3>
   <Select aria-label="Rules binding target" value={target} onChange={setTarget} style={{width:'100%'}} options={[{value:'global',label:'Global encoder defaults'},...prefixes.prefixes.map(prefix=>({value:prefix.id,label:'Prefix: '+prefix.name}))]}/>
-  <RuleBoxes definitions={library.definitions} origin={target==='global'?'global':'prefix'} value={boxes} onChange={value=>change(target==='global'?{...library,globals:value}:{...library,prefixes:{...library.prefixes,[target]:value}})}/>
+  <RuleBoxes template={test} definitions={library.definitions} origin={target==='global'?'global':'prefix'} value={boxes} onChange={value=>change(target==='global'?{...library,globals:value}:{...library,prefixes:{...library.prefixes,[target]:value}})}/>
   <h3>Ruleset scripts</h3>
   <Space wrap><Select aria-label="Edit ruleset" value={selected||undefined} placeholder="Choose a ruleset" style={{width:240}} options={library.definitions.map(item=>({value:item.id,label:item.name}))} onChange={id=>{if(scriptDirty.current&&!confirm('Discard unapplied script edits?'))return;scriptDirty.current=false;setSelected(id);setScript(JSON.stringify(library.definitions.find(item=>item.id===id),null,2));}}/>
   <Button onClick={()=>{if(scriptDirty.current&&!confirm('Discard unapplied script edits?'))return;scriptDirty.current=true;setDirty(true);setSelected('');setScript(JSON.stringify({version:1,id:'custom-'+Date.now(),name:'New ruleset',family:'custom',rules:[{op:'exclude',tags:['example tag']}],choices:[]},null,2));}}>New ruleset</Button>

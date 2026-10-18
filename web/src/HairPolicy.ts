@@ -15,6 +15,7 @@ export function cleanHairPolicy(value: unknown): HairPolicy {
 const key = (text: string) => text.trim().toLowerCase().replace(/\s+/g, '_');
 const facets = new Map(Object.entries(vocabulary.tags)) as Map<string, HairAttribute>;
 const canonical = (text: string) => (pack.aliases as Record<string, string>)[key(text)] || key(text);
+export const hairAttributeTags = (attribute: HairAttribute) => [...facets].filter(([,facet])=>facet===attribute).map(([tag])=>tag);
 export const hairAttribute = (text: string) => facets.get(canonical(text));
 
 /** Exact known scalp-hair tags only: accessories, body hair and prose stay untouched. */

@@ -67,3 +67,11 @@ The existing broad global congruency dictionary remains advisory. This feature e
 ## Storage and concurrency
 
 `gallery-rulesets.json` lives in the current ComfyUI user's directory, separately from `prompt-library.json`. It stores definitions, global attachments, and prefix-ID bindings. Workflow properties and hidden `rules_state` input carry pinned programs. Saves are atomic and revision checked; a concurrent edit returns a conflict instead of overwriting another user's draft. Library files are limited to 8 MiB. Back up this file alongside the prompt library when moving installations.
+
+## Rule controls and operation display
+
+Hair prompting is an optional encoder box under Rulesets. Add **Hair prompting · attribute filter** from the same selector as other rulesets; its Remove button disables the filter and persists its absence in the workflow. Existing saved filters remain available. New encoders start without this box. Adding it again starts at Specific hairstyle (no filtering).
+
+Each preference displays its operation and matching template tags. `T` means sampled tags, `Tₜ` the template's potential tags, `S` the full operand set, and `B` batch-editable tags. `∖` removes, `∪` adds, and `∩` intersects. Expand S to see every tag covered by a rule. Hair attribute checkboxes show `T′ ∩ S = T ∩ S` when kept and `T′ = T ∖ S` when omitted. Template matches can include optional alternatives; the backend still applies rules after sampling.
+
+The former Global rules panel is now labelled **Compatibility review · advisory**. It remains useful for broad warnings beyond attached rulesets and never enforces additions, exclusions or blocking.

@@ -67,7 +67,8 @@ export function installPromptBoxes(node: any, deps: Deps) {
     let state: BoxState = saved ?? stateFromText(String(widget('text')?.value ?? ''), String(widget('source_mode')?.value ?? 'after'), hasSource());
 
     if (!widget('hair_policy')) node.addWidget?.('text', 'hair_policy', '{}', () => undefined);
-    state = { ...state, hairPolicy: state.hairPolicy || cleanHairPolicy(widget('hair_policy')?.value) };
+    const legacyHair=cleanHairPolicy(widget('hair_policy')?.value);
+    state = { ...state, hairPolicy: state.hairPolicy===null?null:state.hairPolicy||(legacyHair.mode!=='specific'||legacyHair.singleColour?legacyHair:null) };
     if (!widget('rules_state')) node.addWidget?.('text','rules_state','[]',()=>undefined);
     let rulesLibrary:RulesLibrary={version:1,definitions:[],globals:[],prefixes:{}};
     let inheritedRules:RuleBox[]=node.properties?.gallery_inherited_rules||[];
@@ -135,6 +136,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
         const groups = state.boxes.filter(box => box.kind === 'group');
         const tail = groups[groups.length-1];
         const removedTail = !!tail && !next.boxes.some(box=>box.id===tail.id);
+        const removedRule = !!state.hairPolicy&&!next.hairPolicy || (state.rulesets||[]).some(box=>!(next.rulesets||[]).some(candidate=>candidate.id===box.id));
         notice = '';
         if (exclusiveMode() === 'disable') {
             const result = disableConflicts(state, next, conflicts);
@@ -149,7 +151,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
         if (mode && mode.value !== 'boxes') { mode.value = 'boxes'; mode.callback?.('boxes'); }
         node.setDirtyCanvas?.(true, true); node.graph?.change?.();
         render();
-        sizing.request(removedTail);
+        sizing.request(removedTail||removedRule);
         if(JSON.stringify(next.boxes.flatMap(box=>box.kind==='group'?[box.prefixId,box.prefixIds,box.enabled]:[box.enabled]))!==JSON.stringify(inheritedPrefixSignature))void loadRules();
         inheritedPrefixSignature=next.boxes.flatMap(box=>box.kind==='group'?[box.prefixId,box.prefixIds,box.enabled]:[box.enabled]);
     }
