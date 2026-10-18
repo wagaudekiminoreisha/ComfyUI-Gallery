@@ -30,6 +30,18 @@ class SnapshotTests(unittest.TestCase):
   self.assertEqual(self.library['prefixes'],original['prefixes'])
   self.assertEqual(self.library['tags'],original['tags'])
   validate_snapshots(self.library['snapshots'])
+ def test_empty_image_source_prompt_sides_are_not_snapshot_tags(self):
+  self.assertIsNone(capture_snapshot(self.library,{'prefix_id':'p','terms':['short hair','blonde hair',' '],'negative_terms':['']}))
+  identifier=capture_snapshot(self.library,{'prefix_id':'p','terms':['','  '],'negative_terms':['']})
+  snapshot=self.library['snapshots'][identifier]
+  self.assertEqual(snapshot['terms'],[])
+  self.assertEqual(snapshot['negative_terms'],[])
+  validate_snapshots(self.library['snapshots'])
+ def test_optional_branches_survive_empty_outer_term_cleanup(self):
+  identifier=capture_snapshot(self.library,{'prefix_id':'p','terms':[' {blonde hair|} ',''],'negative_terms':[' ']})
+  self.assertEqual(self.library['snapshots'][identifier]['terms'],['{blonde hair|}'])
+  with self.assertRaisesRegex(ValueError,'Invalid snapshot tags'):
+   capture_snapshot(self.library,{'prefix_id':'p','terms':[None]})
  def test_rules_and_negative_and_hair_distinguish_immutable_variants(self):
   data={'prefix_id':'p','terms':['long hair']}
   first=capture_snapshot(self.library,data)

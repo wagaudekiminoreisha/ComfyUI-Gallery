@@ -12,7 +12,8 @@ export async function preparePrefixSnapshots(node:any,state:BoxState,source:{neg
   targets.push({prefixId:id,terms:formatBoxTerms(box.chips.map(compileChip).filter(Boolean),box.format),negative_terms:prefix.negative_terms||[],snapshotId:box.prefixSnapshotId});
  }
  const result:SnapshotReference[]=[];node.properties||={};const cache=node.properties.gallery_snapshot_cache||{};
- for(const target of targets){
+ for(const candidate of targets){
+  const target={...candidate,terms:candidate.terms.map(term=>term.trim()).filter(Boolean),negative_terms:candidate.negative_terms.map(term=>term.trim()).filter(Boolean)};
   const payload={prefix_id:target.prefixId,terms:target.terms,negative_terms:target.negative_terms,rules,hair_policy:state.hairPolicy,image_keys:target.image_keys||[],image_refs:target.image_refs||{}};
   const digest=crypto.subtle?Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify({payload,parent:library.prefixes.find(p=>p.id===target.prefixId),tags:library.tags}))))).map(value=>value.toString(16).padStart(2,'0')).join(''):'';
   const snapshot_id=digest&&Object.prototype.hasOwnProperty.call(cache,digest)?cache[digest]:await capturePrefixSnapshot(payload);if(digest)cache[digest]=snapshot_id;

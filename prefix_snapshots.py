@@ -39,7 +39,11 @@ def capture_snapshot(library,data,baseline_boxes=None):
     if prefix is None:raise ValueError('The parent prefix no longer exists.')
     positive=data.get('terms',[]);negative=data.get('negative_terms',[])
     for values in (positive,negative):
-        if not isinstance(values,list) or len(values)>500 or any(not isinstance(value,str) or not value.strip() or len(value)>32768 for value in values):raise ValueError('Invalid snapshot tags.')
+        if not isinstance(values,list) or len(values)>500 or any(not isinstance(value,str) or len(value)>32768 for value in values):raise ValueError('Invalid snapshot tags.')
+    # Older image-source clients split an empty prompt side into [''].
+    # Remove only empty outer terms; optional choices inside {tag|} are meaningful.
+    positive=[value.strip() for value in positive if value.strip()]
+    negative=[value.strip() for value in negative if value.strip()]
     boxes=validate_boxes(data.get('rules',[]));hair=data.get('hair_policy') or {}
     if not isinstance(hair,dict):raise ValueError('Invalid snapshot hair policy.')
     try:from .hair_policy import clean_policy
