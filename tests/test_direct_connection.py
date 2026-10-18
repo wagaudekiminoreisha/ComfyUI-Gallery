@@ -80,6 +80,8 @@ class DirectConnectionTests(unittest.IsolatedAsyncioTestCase):
         page = await response.json()
         self.assertEqual(len(page['entries']), 2)
         self.assertEqual(len(page['entries'][0]['hash']), 64)
+        self.assertEqual((page['entries'][0]['width'], page['entries'][0]['height']), (2, 2))
+        self.assertGreater(page['entries'][0]['size'], 0)
         Image.new('RGB', (2, 2), 'red').save(self.root/'-new.png')
         response = await self.client.post(PREFIX+'/catalogue', headers=headers, json={'limit': 2, 'offset': 2, 'catalogueId': page['catalogueId']})
         rest = await response.json()

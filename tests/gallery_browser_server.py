@@ -33,6 +33,11 @@ for i, color in enumerate(['#294b65', '#bd8559', '#518978', '#796baa']):
         info.add_text('prompt', json.dumps({'92':{'class_type':'KSampler','inputs':{'positive':['17',0],'negative':['86',0]}},'17':{'class_type':'CLIPTextEncode','inputs':{'text':['azure sky, mountain','autumn forest','ocean sunset','winter snow'][i]}},'86':{'class_type':'CLIPTextEncode','inputs':{'text':['blurry, watermark','bad anatomy','low contrast','overexposed'][i]}}}))
         im.save(p, pnginfo=info)
 
+if os.environ.get('GALLERY_NATIVE_QA') == '1':
+    info = PngImagePlugin.PngInfo()
+    info.add_text('prompt', json.dumps({'1': {'class_type': 'CLIPTextEncode', 'inputs': {'text': 'local only tag, blue eyes'}}, '2': {'class_type': 'KSampler', 'inputs': {'positive': ['1', 0]}}}))
+    Image.new('RGB', (480, 320), 'purple').save(MEDIA/'local-only.png', pnginfo=info)
+
 if os.environ.get('GALLERY_DIRECT_QA') == '1':
     paging = MEDIA / 'direct-paging'
     paging.mkdir()

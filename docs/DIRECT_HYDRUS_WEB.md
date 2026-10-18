@@ -92,3 +92,9 @@ metadata. The shallow `/output` and scoped media-ticket endpoints remain unchang
 Hydrus Web obtains Hydrus records through its own saved API connection, merges copies
 by hash, and offers prefix, snapshot and source-lineage scopes. No companion server
 is needed. Restart ComfyUI after installing this Python update.
+
+Output-directory pages now include compact metadata, real content hashes, dimensions
+and byte sizes for the files on that page. Folder traversal remains shallow. Hydrus
+Web uses these fields to feed its regular gallery/viewer instead of a separate test
+viewer. The regular Browse menu also has an opt-in hybrid provider; no new port or
+additional process is needed.

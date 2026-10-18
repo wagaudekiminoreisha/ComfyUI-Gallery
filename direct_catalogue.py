@@ -5,6 +5,7 @@ import mimetypes
 import json
 import os
 from pathlib import Path
+from PIL import Image
 from .output_browser import output_path, MEDIA_EXTENSIONS
 from .transfer_metadata import read_metadata
 from .catalogue_metadata import compact_metadata
@@ -68,8 +69,12 @@ def catalogue(root, offset=0, limit=100, order='date', rows=None):
             digest = cached_hash(str(path), stat.st_size, stat.st_mtime_ns)
             try: metadata = compact_metadata(read_metadata(path))
             except (OSError, ValueError, TypeError): metadata = {}
+            width = height = 0
+            try:
+                with Image.open(path) as image: width, height = image.size
+            except (OSError, ValueError): pass
             entries.append({'id': relative, 'source': 'comfy', 'name': path.name,
-                            'hash': digest, 'timestamp': timestamp,
+                            'hash': digest, 'timestamp': timestamp, 'width': width, 'height': height, 'size': stat.st_size,
                             'mime': mimetypes.guess_type(path.name)[0] or '',
                             'metadata': metadata})
         except (OSError, ValueError):

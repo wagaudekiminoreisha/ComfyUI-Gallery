@@ -147,9 +147,11 @@ def register_direct_connection(app, routes, get_root, identity, get_settings, ge
             body = await request.json()
             if not isinstance(body, dict): raise ValueError('Expected output folder request.')
             result = await asyncio.to_thread(list_output, get_root(), body.get('folder', ''), body.get('offset', 0), body.get('limit', 48), body.get('order', 'date'))
+            from .direct_catalogue import catalogue
+            media = await asyncio.to_thread(catalogue, get_root(), rows=[(item['path'], item['timestamp']) for item in result['items'] if item['kind'] == 'file'], limit=200)
             return web.json_response({'folder': result['folder'], 'total': result['total'], 'nextOffset': result['nextOffset'],
                                      'folders': [item for item in result['items'] if item['kind'] == 'folder'],
-                                     'entries': [{'id': item['path'], 'source': 'comfy', 'name': item['name'], 'mime': item['mime'], 'timestamp': item['timestamp']} for item in result['items'] if item['kind'] == 'file']})
+                                     'entries': media['entries']})
         if tail == '/ticket' and request.method == 'POST':
             body = await request.json()
             if not isinstance(body, dict): raise ValueError('Expected a media request.')
