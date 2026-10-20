@@ -1,3 +1,4 @@
+import {migrateEncoderWorkflow,registerEncoderConstructor} from './EncoderSerialization';
 import { installSessionOutputs } from './SessionOutputs';
 import { mountGalleryAssetPane } from './GalleryAssetPane';
 import { useGalleryTheme, interactionStyles } from './GalleryTheme';
@@ -35,7 +36,8 @@ if (STANDALONE) {
         document.body.appendChild(box);
         createRoot(box).render(<Main />);
     },
-    beforeRegisterNodeDef(nodeType: any, nodeData: any) { if (nodeData.name === 'GalleryImageSource') registerSourceConstructor(nodeType); },
+    beforeRegisterNodeDef(nodeType: any, nodeData: any) { if (nodeData.name === 'GalleryImageSource') registerSourceConstructor(nodeType);if(nodeData.name==='GalleryPromptEncode')registerEncoderConstructor(nodeType); },
+    beforeConfigureGraph(data:any){migrateEncoderWorkflow(data);},
     afterConfigureGraph() { closeWorkspace(); },
     async nodeCreated(node: any) {
         installSourceWidgets(node);

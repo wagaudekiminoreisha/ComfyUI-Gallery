@@ -1,3 +1,4 @@
+import {installEncoderSerialization,repairEncoderValues,orderEncoderWidgets} from './EncoderSerialization';
 import {bindLegacySourceExclusions,sourceExclusionPayload,filteredSourceText} from './SourceExclusions';
 import {saveSourceManifest} from './ImageSourceBridge';
 import {preparePrefixSnapshots} from './EncoderSnapshots';
@@ -65,6 +66,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
     if (!node.widgets?.some((widget: any) => widget.name === 'source_mode')) node.addWidget?.('combo', 'source_mode', 'after', () => undefined, { values: ['after', 'before', 'replace', 'boxes'] });
     const widget = (name: string) => node.widgets?.find((item: any) => item.name === name);
     const hasSource = () => sourcePromptInfo(node).connected;
+    repairEncoderValues(node);
     const saved = parseState(node.properties?.prompt_boxes);
     let state: BoxState = saved ?? stateFromText(String(widget('text')?.value ?? ''), String(widget('source_mode')?.value ?? 'after'), hasSource());
 
@@ -74,6 +76,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
     if(!widget('source_image_exclusions'))node.addWidget?.('text','source_image_exclusions','{}',()=>undefined);
     if(!widget('prefix_snapshots'))node.addWidget?.('text','prefix_snapshots','[]',()=>undefined);
     if (!widget('rules_state')) node.addWidget?.('text','rules_state','[]',()=>undefined);
+    orderEncoderWidgets(node);installEncoderSerialization(node);
     let rulesLibrary:RulesLibrary={version:1,definitions:[],globals:[],prefixes:{}};
     let inheritedRules:RuleBox[]=node.properties?.gallery_inherited_rules||[];
     let rulesNotice='';let alive=true;let rulesRequestId=0;let rulesPending:Promise<void>=Promise.resolve();
@@ -180,7 +183,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
         const previous = node[key];
         node[key] = function (...args: any[]) {
             const result = previous?.apply(this, args);
-            if (key === 'onConfigure') {state = parseState(node.properties?.prompt_boxes) ?? state;inheritedRules=node.properties?.gallery_inherited_rules||[];syncRules();}
+            if (key === 'onConfigure') {repairEncoderValues(node);state = parseState(node.properties?.prompt_boxes) ?? state;inheritedRules=node.properties?.gallery_inherited_rules||[];syncRules();}
             setTimeout(()=>{refresh();void loadRules();}, 0);
             return result;
         };
