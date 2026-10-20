@@ -44,3 +44,16 @@ test('nested conditions defer optional decisions and respect AND/OR/NOT',()=>{
  assert.equal(conditionPreview(condition,[{tag:'solo',conditions:new Map()},{tag:'hat',conditions:new Map()}]),false);
  assert.equal(conditionPreview(condition,[{tag:'solo',conditions:new Map([[1,0]])}]),undefined);
 });
+const handheldDefinition=require('../data/prompt-rulesets.json').definitions.find(row=>row.id==='stock-handheld-hair-interactions');
+test('handheld filter is opt-in and separates hair actions, props and holding predicates',()=>{
+ const definition=handheldDefinition;
+ const rules={id:'handheld',definition,origin:'encoder',scope:'main',preferences:{},enabled:true,collapsed:false};
+ const text='long hair, hairclip, holding own hair, knife in hair, holding pencil, blue eyes';
+ assert.equal(R.applyRulePreview(text,[rules]).text,text);
+ rules.preferences={'hair-actions':'omit'};
+ const hairOnly=R.applyRulePreview(text,[rules]).text;
+ assert(!hairOnly.includes('holding own hair'));assert(hairOnly.includes('knife in hair'));assert(hairOnly.includes('hairclip'));
+ rules.preferences={'hair-actions':'omit','hair-props':'omit',holding:'omit'};
+ assert.equal(R.applyRulePreview(text,[rules]).text,'long hair, hairclip, blue eyes');
+ assert(R.applyRulePreview('{holding pencil|blue eyes}, long hair',[rules]).text.includes('blue eyes'));
+});

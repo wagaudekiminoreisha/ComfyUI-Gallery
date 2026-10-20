@@ -1,5 +1,6 @@
 import pack from '../../data/global-tag-rules.json';
 import vocabulary from '../../data/hair-prompt-tags.json';
+import handheld from '../../data/handheld-prompt-tags.json';
 import { compileChip, parsePrompt } from './PromptBoxes';
 import { compatibleBranches, promptRuleOccurrences } from './PromptRuleContext';
 
@@ -43,6 +44,9 @@ export function hairWarnings(text: string, policy = DEFAULT_HAIR_POLICY): string
     const family = (tag: string) => canonical(tag).replace(/^(?:light_|dark_)/, '');
     const together = (list: typeof items, qualifies = (_a: typeof items[number], _b: typeof items[number]) => true) => list.some((a, i) => list.slice(i + 1).some(b => family(a.tag) !== family(b.tag) && compatibleBranches(a.conditions, b.conditions) && qualifies(a, b)));
     const warnings: string[] = [];
+    const interactionTags=new Set([...handheld.hairActions,...handheld.hairProps,...handheld.holding]);
+    const interactions=[...new Set(items.map(item=>canonical(item.tag)).filter(tag=>interactionTags.has(tag)))];
+    if(interactions.length)warnings.push('Explicit handling/prop tags: '+interactions.slice(0,8).map(tag=>tag.replace(/_/g,' ')).join(', ')+(interactions.length>8?' …':'')+'. These can request hands, tools or objects; hair attribute filtering leaves them unchanged. Use the Handheld objects and hair interactions ruleset to omit them.');
     if (policy.singleColour && together(colours)) warnings.push('Single-colour look: more than one hair colour can be active in a branch. Choose alternatives or separate subjects; tags stay enabled.');
     if (together(distributions)) warnings.push('Several hair-colour distribution instructions can be active together. Check whether streaks, gradients or split colours are all intended.');
     if (together(colours, (a, b) => items.some(item => /^(?:[2-9]|[1-9]\d+)(?:girls|boys|others)$|^multiple_(?:girls|boys|others)$/.test(item.tag) && compatibleBranches(a.conditions, item.conditions) && compatibleBranches(b.conditions, item.conditions)))) warnings.push('Multiple subjects share flat conditioning: hair colours may transfer between people. Separate boxes alone do not enforce ownership; use regional conditioning for spatial control.');

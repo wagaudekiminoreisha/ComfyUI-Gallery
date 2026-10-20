@@ -36,3 +36,9 @@ test('removed hair policy stays removed across workflow restore and external pro
  assert.equal(B.reconcileText(state,'short hair','boxes',false).hairPolicy,null);
  assert.equal(filterHairPrompt('long hair',cleanHairPolicy(state.hairPolicy)),'long hair');
 });
+test('hair review exposes explicit handling/prop terms without accusing ordinary accessories',()=>{
+ const warnings=hairWarnings('long hair, hairclip, {holding own hair|knife in hair}, holding pencil');
+ assert(warnings.some(message=>message.includes('holding own hair')&&message.includes('knife in hair')));
+ assert(!hairWarnings('long hair, hairclip, hairpin').some(message=>message.startsWith('Explicit handling')));
+ assert.equal(filterHairPrompt('long hair, holding own hair, knife in hair',cleanHairPolicy({mode:'natural'})),'holding own hair, knife in hair');
+});

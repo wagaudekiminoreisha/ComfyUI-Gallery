@@ -43,6 +43,18 @@ const assert=require('node:assert/strict');
    await omitted.dragTo(editor.getByLabel('Tag box Target',{exact:true}));
    await page.waitForFunction(index=>window.qaMerged[index].properties.prompt_boxes.boxes.find(box=>box.name==='Target').chips.some(chip=>chip.kind==='or'&&chip.options.includes('long hair')),index);
   }
+  await page.evaluate(()=>window.qaMerged[0].__galleryPromptBoxes.insert('holding own hair, knife in hair, hairclip','after','Interaction QA'));
+  const first=page.locator('#qa-merged-0');
+  await first.getByLabel('Hair prompt review',{exact:true}).locator('summary').click();
+  await first.getByText(/Explicit handling\/prop tags:/).waitFor();
+  await first.getByLabel('Add ruleset',{exact:true}).selectOption('stock-handheld-hair-interactions');
+  const props=first.getByRole('group',{name:'Ruleset box Handheld objects and hair interactions',exact:true});
+  await props.getByLabel('Hair handling and grooming',{exact:true}).selectOption('omit');
+  await props.getByLabel('Tools and props in hair',{exact:true}).selectOption('omit');
+  const filtered=first.getByLabel('Tag box Interaction QA',{exact:true});
+  await filtered.locator('[data-chip-id][data-rule-omitted="true"]').first().waitFor();
+  assert.equal(await filtered.locator('[data-chip-id][data-rule-omitted="true"]').count(),2);
+  assert.equal(await filtered.getByRole('button',{name:'Edit hairclip',exact:true}).count(),1);
   assert.deepEqual(errors,[]);console.log('PASS merged tags/prompt: positive and negative edit, collapse, logical badges, member removal, dragging and editable rule omissions');
  }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

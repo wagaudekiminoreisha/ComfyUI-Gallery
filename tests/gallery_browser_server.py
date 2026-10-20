@@ -162,8 +162,8 @@ async def images(request):
     entries = {p.name: {'name': p.name, 'url': '/static_gallery/' + p.name, 'timestamp': 1700000000 + n, 'date': '2023-11-14', 'type': 'image',
                          'metadata': {'fileinfo': {'filename': p.name, 'resolution': '640x440', 'date': '2023-11-14', 'size': '3 KB'},
                                       'prompt': {'92': {'class_type': 'KSampler', 'inputs': {'positive': ['17', 0], 'negative': ['86', 0]}},
-                                                 '17': {'class_type': 'CLIPTextEncode', 'inputs': {'text': ['azure sky, mountain', 'autumn forest', 'ocean sunset', 'winter snow'][n]}},
-                                                 '86': {'class_type': 'CLIPTextEncode', 'inputs': {'text': ['blurry, watermark', 'bad anatomy', 'low contrast', 'overexposed'][n]}}}}}
+                                                 '17': {'class_type': 'CLIPTextEncode', 'inputs': {'text': ['azure sky, mountain', 'autumn forest', 'ocean sunset', 'winter snow'][n % 4]}},
+                                                 '86': {'class_type': 'CLIPTextEncode', 'inputs': {'text': ['blurry, watermark', 'bad anatomy', 'low contrast', 'overexposed'][n % 4]}}}}}
                for n, p in enumerate(MEDIA.glob('*.png'))}
     from gallery_qa.catalogue_metadata import compact_metadata
     for entry in entries.values():entry['metadata']=compact_metadata(entry['metadata'])
