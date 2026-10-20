@@ -1,6 +1,7 @@
 import {exclusionsFor,type SourceSegment} from './SourceExclusions';
 import {resolvedTagNames,tagIdentity} from './LocalImageSearch';
-import {RuleImpact,useRuleImpact,promptLeaves,CollapsedTags,tagCount} from './RuleImpact';
+import {RuleImpact,useRuleImpact,promptLeaves,PromptRelations,tagCount} from './RuleImpact';
+import {LogicBadge} from './LogicBadge';
 import {ruleTag} from './RuleEngine';
 import {RuleStyles} from './RuleOperation';
 import {RuleProtection,useGlobalProtections} from './RuleProtection';
@@ -66,16 +67,17 @@ const modeColor = (mode: AddMode) => KIND_COLORS[mode === 'each' ? 'group' : mod
  * With `onItems` the parts are editable in place: × removes one, + adds more (with suggestions).
  */
 function ChipParts({ chip, suggest, onItems,used,onPartSelect,selectedParts }: {selectedParts?:Set<string>;onPartSelect?:(chip:Chip)=>void; used?:(text:string)=>boolean;chip: OrChip; suggest?: (query: string) => Promise<Suggestion[]>; onItems?: (items: string[]) => void }) {
+    const effective=useRuleImpact();
     const [adding, setAdding] = useState(false),[memberMenu,setMemberMenu]=useState<{x:number;y:number;text:string}>();
     const kind = groupingKind(chip), color = KIND_COLORS[kind];
     const parts = chipItems(chip);
-    const separator = kind === 'group' ? ',' : '|';
+    const separator = kind === 'group' ? 'AND' : 'OR';
     return <span style={{ display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: 2, padding: '2px 4px' }}>
         {memberMenu&&createPortal(<div role="menu" style={{position:'fixed',left:memberMenu.x,top:memberMenu.y,zIndex:2147483001,background:'var(--comfy-menu-bg,#333)',color:'var(--input-text,#ddd)',padding:6,border:'1px solid #888',borderRadius:6}} onMouseLeave={()=>setMemberMenu(undefined)}><button type="button" role="menuitem" onClick={event=>{event.stopPropagation();void navigator.clipboard.writeText(memberMenu.text);setMemberMenu(undefined);}}>Copy tag syntax</button></div>,document.body)}
         {parts.map((part, index) => <span key={index + part} style={{ display: 'inline-flex', alignItems: 'center' }}>
-            {index > 0 && <span aria-hidden style={{ color, fontWeight: 700, padding: kind === 'group' ? '0 4px 0 0' : '0 4px' }}>{separator}</span>}
+            {index > 0 && <span aria-hidden style={{ color, fontWeight: 700, padding: kind === 'group' ? '0 4px 0 0' : '0 4px' }}><LogicBadge name={separator}/></span>}
             <span style={onItems ? { display: 'inline-flex', alignItems: 'center', borderRadius: 4, background: '#ffffff12', padding: '0 0 0 4px' } : undefined}>
-                {parsePrompt(part).map((child,childIndex)=>{const text=compileChip(child),active=!used||used(text),transfer:Chip & {memberOf?:{chipId:string;text:string}}={...chip,id:child.id,options:[text],...(onItems?{memberOf:{chipId:chip.id,text}}:{})};return <span data-part-drag key={child.id} role="button" tabIndex={active?0:-1} aria-pressed={selectedParts?.has(compileChip(transfer))||false} onClick={event=>{if(onPartSelect&&active){event.stopPropagation();onPartSelect(transfer);}}} aria-label={'Drag tag '+text} title="Drag this tag to copy it with its group behavior; drag the group header for the whole group" onPointerDown={event=>{event.stopPropagation();if(!active)return;startPromptPointerDrag(event.nativeEvent,event.currentTarget,compileChip(transfer),PROMPT_CHIP_TYPE,JSON.stringify(transfer),onItems?()=>onItems(parts.map(part=>parsePrompt(part).filter(item=>compileChip(item)!==text).map(compileChip).join(', ')).filter(Boolean)):undefined,()=>{dragging={kind:'chip',id:transfer.id,chip:transfer};},()=>{dragging=undefined;});}} onContextMenu={event=>{event.preventDefault();event.stopPropagation();if(active)setMemberMenu({x:event.clientX,y:event.clientY,text:compileChip(transfer)});}} style={{display:'inline-flex',minHeight:24,alignItems:'center',padding:'2px 6px',margin:2,border:'1px solid '+color,outline:selectedParts?.has(compileChip(transfer))?'2px solid '+accent:undefined,borderRadius:7,cursor:active?'grab':'default',opacity:active?1:.4,textDecoration:active?undefined:'line-through'}}>{childIndex>0&&<small style={{marginRight:4}}>AND</small>}{text}</span>;})}
+                {parsePrompt(part).map((child,childIndex)=>{const text=compileChip(child),active=!used||used(text),omitted=!!effective&&promptLeaves(text).every(tag=>!effective.has(ruleTag(tag))),transfer:Chip & {memberOf?:{chipId:string;text:string}}={...chip,id:child.id,options:[text],...(onItems?{memberOf:{chipId:chip.id,text}}:{})};return <span data-part-drag data-rule-omitted={omitted||undefined} key={child.id} role="button" tabIndex={active?0:-1} aria-pressed={selectedParts?.has(compileChip(transfer))||false} onClick={event=>{if(onPartSelect&&active){event.stopPropagation();onPartSelect(transfer);}}} aria-label={'Drag tag '+text} title="Drag this tag to copy it with its group behavior; drag the group header for the whole group" onPointerDown={event=>{event.stopPropagation();if(!active)return;startPromptPointerDrag(event.nativeEvent,event.currentTarget,compileChip(transfer),PROMPT_CHIP_TYPE,JSON.stringify(transfer),onItems?()=>onItems(parts.map(part=>parsePrompt(part).filter(item=>compileChip(item)!==text).map(compileChip).join(', ')).filter(Boolean)):undefined,()=>{dragging={kind:'chip',id:transfer.id,chip:transfer};},()=>{dragging=undefined;});}} onContextMenu={event=>{event.preventDefault();event.stopPropagation();if(active)setMemberMenu({x:event.clientX,y:event.clientY,text:compileChip(transfer)});}} style={{display:'inline-flex',minHeight:24,alignItems:'center',padding:'2px 6px',margin:2,border:'1px solid '+color,outline:selectedParts?.has(compileChip(transfer))?'2px solid '+accent:undefined,borderRadius:7,cursor:active?'grab':'default',opacity:active&&!omitted?1:.4,textDecoration:active&&!omitted?undefined:'line-through'}}>{childIndex>0&&<LogicBadge name="AND"/>}<PromptRelations text={text} enabled={active}/></span>;})}
                 {onItems && <button type="button" aria-label={'Remove ' + part} title={'Remove “' + part + '” from this chip'} onClick={event => { event.stopPropagation(); onItems(parts.filter((_, at) => at !== index)); }} style={{ ...S.x, fontSize: 12, opacity: .7 }}>×</button>}
             </span>
         </span>)}
@@ -132,6 +134,9 @@ function ChipView({ chip, selected, picked, onSelect, onPick, onRemove, onDrop, 
     const [mark, setMark] = useState<'before' | 'after'>();
     const [folded,setFolded]=useState(false),[copyMenu,setCopyMenu]=useState<{x:number;y:number}>();
     const transferable=transferChip||chip;
+    const effective=useRuleImpact();
+    const leaves=promptLeaves(compileChip({...chip,enabled:true}));
+    const omitted=!!effective&&leaves.length>0&&leaves.every(tag=>!effective.has(ruleTag(tag)));
     const weighted = chip.weight !== undefined && chip.weight !== 1;
     const mode = addModeOf(chip), color = modeColor(mode);
     const grouped = chip.kind === 'or';
@@ -144,7 +149,7 @@ function ChipView({ chip, selected, picked, onSelect, onPick, onRemove, onDrop, 
             : <>{chip.emphasis === 'round' && '('}{chip.emphasis === 'square' && '['}{chip.text}{chip.emphasis === 'round' && ')'}{chip.emphasis === 'square' && ']'}</>}
         {weighted && !grouped && <small style={{ opacity: .7 }}> ×{chip.weight}</small>}
     </span>;
-    return <span data-prompt-drop data-chip-id={chip.id} onClick={event => { if (!(event.target as HTMLElement).closest('button,select,input,[role="button"]')) select(event); }} draggable={false} title={onDrop ? 'Click to edit · double-click to remove · Shift/Ctrl-click to pick several · drag to move within this editor or copy to another' : 'Drag to copy' + (onRemove ? ' · double-click to remove' : '')}
+    return <span data-prompt-drop data-rule-omitted={omitted||undefined} data-chip-id={chip.id} onClick={event => { if (!(event.target as HTMLElement).closest('button,select,input,[role="button"]')) select(event); }} draggable={false} title={onDrop ? 'Click to edit · double-click to remove · Shift/Ctrl-click to pick several · drag to move within this editor or copy to another' : 'Drag to copy' + (onRemove ? ' · double-click to remove' : '')}
         onPointerDownCapture={event => {
             if ((event.target as HTMLElement).closest('button,select,input,textarea,[data-part-drag]')||!transferable.enabled) return;
             event.stopPropagation();
@@ -158,7 +163,7 @@ function ChipView({ chip, selected, picked, onSelect, onPick, onRemove, onDrop, 
         onDragOver={event => { if (!onDrop || dragging?.kind !== 'chip') return; event.stopPropagation();if(dragging.chip===chip)return;event.preventDefault();setMark(right(event) ? 'after' : 'before'); }}
         onDragLeave={() => setMark(undefined)}
         onDrop={event => { if (!onDrop || dragging?.kind !== 'chip') return; event.preventDefault(); event.stopPropagation(); const after = right(event), current = dragging; setMark(undefined); if (current.chip !== chip) onDrop(current.chip, after); }}
-        style={{ ...S.chip, borderColor: color, ...(grouped ? { flexDirection: 'column', alignItems: 'stretch', gap: 0, padding: 0, borderRadius: 6, borderColor: color, overflow: 'visible' } : {}), ...(selected ? S.selected : {}), ...(picked ? { outline: `2px dashed ${accent}` } : {}), opacity: transferable.enabled ? 1 : .45, textDecoration: transferable.enabled ? 'none' : 'line-through', userSelect: 'none', touchAction: 'none', cursor: 'grab', boxShadow: mark === 'before' ? `inset 3px 0 0 ${accent}` : mark === 'after' ? `inset -3px 0 0 ${accent}` : undefined }}>
+        style={{ ...S.chip, borderColor: color, ...(grouped ? { flexDirection: 'column', alignItems: 'stretch', gap: 0, padding: 0, borderRadius: 6, borderColor: color, overflow: 'visible' } : {}), ...(selected ? S.selected : {}), ...(picked ? { outline: `2px dashed ${accent}` } : {}), opacity: transferable.enabled&&!omitted ? 1 : .45, textDecoration: transferable.enabled&&!omitted ? 'none' : 'line-through', userSelect: 'none', touchAction: 'none', cursor: 'grab', boxShadow: mark === 'before' ? `inset 3px 0 0 ${accent}` : mark === 'after' ? `inset -3px 0 0 ${accent}` : undefined }}>
         {copyMenu&&createPortal(<div role="menu" style={{position:'fixed',left:copyMenu.x,top:copyMenu.y,zIndex:2147483001,background:'#333',padding:6,border:'1px solid #888',borderRadius:6}} onMouseLeave={()=>setCopyMenu(undefined)}><button role="menuitem" onClick={event=>{event.stopPropagation();void navigator.clipboard.writeText(transferable.enabled?compileChip({...transferable,enabled:true}):'');setCopyMenu(undefined);}}>Copy syntax</button></div>,document.body)}{grouped
             ? <>
                 {/* The header names the grouping (and changes it); the body keeps the separators. */}
@@ -173,7 +178,7 @@ function ChipView({ chip, selected, picked, onSelect, onPick, onRemove, onDrop, 
                     {weighted && <span>×{chip.weight}</span>}
                     {remove}
                 </span>
-                {!folded&&label}
+                {!folded&&<span data-prompt-operator={groupingKind(chip)==='group'?'AND':'OR'}>{chip.optional&&<LogicBadge name="OPTIONAL"/>}{label}{chip.optional&&groupingKind(chip)!=='group'&&<><LogicBadge name="OR"/><span aria-label="Empty option">∅</span></>}</span>}
             </>
             : <>{label}{remove}</>}
     </span>;
@@ -398,7 +403,8 @@ function GroupView({ box, index, count, state, onChange, suggest, bare, placehol
         onChange(convertBoxContents(state, box.id, pickedIds, blacklist, mode));
         clearSelection();
     };
-    const preview = formatBoxTerms(box.chips.map(chip=>compileChip({...chip,enabled:true})).filter(Boolean), box.format).join(', ');
+    const tagsHidden=box.collapsed||box.chipsCollapsed;
+    const relation=box.format==='alternatives'||box.format==='optional'?'OR':'AND';
     const effective=useRuleImpact(),savedCount=tagCount(box.chips),retainedCount=box.enabled?promptLeaves(box.chips.filter(chip=>chip.enabled).map(compileChip).join(', ')).filter(tag=>!effective||effective.has(ruleTag(tag))).length:0;
     return <div data-prompt-drop ref={ref} tabIndex={0} aria-label={bare ? 'Prefix tag box' : 'Tag box ' + box.name}
         onKeyDownCapture={event => {
@@ -449,20 +455,17 @@ function GroupView({ box, index, count, state, onChange, suggest, bare, placehol
             <button type="button" aria-label="Select chips" aria-pressed={selecting} onClick={() => { setSelecting(!selecting); clearSelection(); }} style={S.btn}>Select chips</button>
             <Btn label="Select all chips" disabled={!eligible.length} onClick={() => { setPicked(eligible); setSelected(undefined); setActiveChipId(undefined); }}>Select all</Btn>
         </div>
-        <Btn label={box.chipsCollapsed ? 'Expand tag groups' : 'Collapse tag groups'} onClick={() => patch({ chipsCollapsed: !box.chipsCollapsed,collapsed:false })}>{box.chipsCollapsed ? '▸' : '▾'} Tag groups ({savedCount} tags · {box.chips.filter(chip=>chip.kind==='or').length} groups)</Btn>
+        <Btn label={tagsHidden ? 'Expand tag groups' : 'Collapse tag groups'} onClick={() => patch({ chipsCollapsed: !tagsHidden,collapsed:false })}>{tagsHidden ? '▸' : '▾'} Tags &amp; prompt ({savedCount} tags · {box.chips.filter(chip=>chip.kind==='or').length} groups)</Btn>
         <small className="cg-rule-controls">Batch protections: {blacklist.length} · <button type="button" onClick={()=>openRules()}>Rules &amp; protections</button></small>
         {eligible.length < box.chips.length && <small style={S.muted}>{box.chips.length - eligible.length} chip(s) excluded from batch selection</small>}
         {!!pickedIds.length && <MergeBar count={selectedCount} onClear={clearSelection}
             onEnabled={enabled => { const next = applyBatchTags(state, box.id, pickedIds, blacklist, enabled ? 'enable' : 'disable'); const ids = new Set(box.chips.map(chip => chip.id)); setPicked(next.boxes.flatMap(item => item.kind === 'group' && item.id === box.id ? item.chips.filter(chip => (!ids.has(chip.id) || pickedIds.includes(chip.id)) && eligibleBatchIds([chip], blacklist).includes(chip.id)).map(chip => chip.id) : [])); onChange(next); }} onRemove={removePicked} />}
-        {box.collapsed
-            ? !!preview && <CollapsedTags text={preview} enabled={box.enabled}/>
-            : <div style={S.body}>
-                {box.chipsCollapsed&&<CollapsedTags text={preview} enabled={box.enabled}/>}
-                <div data-tag-surface style={{ ...S.chips, minHeight: 48, alignItems: 'flex-start', cursor: 'text' }}><span hidden={box.chipsCollapsed} style={{ display: box.chipsCollapsed ? 'none' : 'contents' }}>{box.chips.map(item => <ChipView key={item.id} chip={item} selected={item.id === selected || item.id === activeChipId} picked={picked.includes(item.id)} onSelect={() => { if (selecting) { pick(item.id); return; } setSelected(item.id); setActiveChipId(item.id); }} onRemove={() => remove(item.id)}
+        {!box.collapsed&&<div style={S.body}>
+                <div data-tag-surface style={{ ...S.chips, minHeight: 48, alignItems: 'flex-start', cursor: 'text' }}><span data-prompt-operator={relation} hidden={tagsHidden} style={{ display: tagsHidden ? 'none' : 'contents' }}>{(box.format==='group'||box.format==='optional')&&<LogicBadge name="OPTIONAL"/>}{box.chips.map((item,at) => <span key={item.id} style={{display:'contents'}}>{at>0&&<LogicBadge name={relation}/>}{box.format==='each'&&addModeOf(item)!=='each'&&<LogicBadge name="OPTIONAL"/>}<ChipView chip={item} selected={item.id === selected || item.id === activeChipId} picked={picked.includes(item.id)} onSelect={() => { if (selecting) { pick(item.id); return; } setSelected(item.id); setActiveChipId(item.id); }} onRemove={() => remove(item.id)}
                     onPick={range => pick(item.id, range)}
                     onDrop={(sourceChip, after) => onChange(dropPromptChip(state, sourceChip, box.id, { chipId: item.id, after }))}
                     onKind={mode => onChange(convertChip(state, box.id, item.id, mode))} suggest={suggest}
-                    onItems={items => { const next = withItems(item, items); onChange(editChips(state, box.id, chips => next ? chips.map(other => other.id === item.id ? next : other) : chips.filter(other => other.id !== item.id))); }} />)}</span>
+                    onItems={items => { const next = withItems(item, items); onChange(editChips(state, box.id, chips => next ? chips.map(other => other.id === item.id ? next : other) : chips.filter(other => other.id !== item.id))); }} /></span>)}{box.format==='optional'&&<><LogicBadge name="OR"/><span aria-label="Empty option">∅</span></>}</span>
                 {target&&<Btn label="Start separate tag group" onClick={()=>{setActiveChipId(undefined);setSelected(undefined);focusInput();}}>＋ Separate group</Btn>}<AddInput onBackspace={() => { if (pickedIds.length) { removePicked(); return; } const id = activeChipId || box.chips[box.chips.length - 1]?.id; if (id) remove(id); }} target={target} onTargetMode={mode => { if (target) onChange(convertChip(state, box.id, target.id, mode)); }} placeholder={placeholder} suggest={query => query.startsWith('-') ? Promise.resolve(availableBatchTags(box.chips).filter(tag => tag.includes(query.slice(1).toLowerCase())).map(tag => ({ label: '-' + tag, kind: 'tag' as const }))) : suggest(query)} onText={text => text.startsWith('-') ? onChange(editChips(state, box.id, chips => chips.map(chip => target && chip.id !== target.id ? chip : removeTagsFromChip(chip, [text.slice(1).trim()])).filter((chip): chip is Chip => !!chip))) : target ? append(parseTyped(text).flatMap(chipTerms)) : onChange(addChips(state, box.id, text))}
                     onGroup={(mode, tags) => { if (target) { append(tags); return; } const made = groupChips(mode, tags); if (made.length) onChange(editChips(state, box.id, chips => [...chips, ...made])); }}
                     onPrefix={(item, head) => target ? append([...parseTyped(head).flatMap(chipTerms), ...(item.terms || [])]) : onChange(addChips(state, box.id, [head, (item.terms || []).join(', ')].filter(Boolean).join(', ')))} />
@@ -520,7 +523,6 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
             <Btn label="Move source box up" disabled={index === 0} onClick={() => onChange(moveBox(state, box.id, -1))}>▲</Btn>
             <Btn label="Move source box down" disabled={index === count - 1} onClick={() => onChange(moveBox(state, box.id, 1))}>▼</Btn>
         </div>
-        {box.collapsed&&<CollapsedTags text={kept.join(', ')} enabled={box.enabled}/>}
         {!box.collapsed && <>
             {!!source.segments?.length&&<div style={S.body}><label>Source image <select aria-label="Source image for tag exclusions" value={segment?.key||''} onChange={event=>setSourceKeySelected(event.target.value)} style={S.input}>{source.segments.map(row=><option key={row.key} value={row.key}>{row.name}</option>)}</select></label><small style={S.muted}>Left out tags belong to this image only.</small></div>}
             {!!source.prefixes?.length && <div style={S.body}>
@@ -536,7 +538,7 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
                 ? <div style={S.muted}>Connect a text output (for example a Gallery Image Source prompt) to <code>source_text</code>. Its tags appear here and are placed where this box sits.</div>
                 : !sourceText
                     ? <div style={S.muted}>{source.note || 'Connected prompt will be shown after execution.'}</div>
-                    : <div style={{ ...S.body, ...S.chips, padding: '0 6px 6px' }}>{kept.map((part, at) => { const chip = parsePrompt(part)[0]; return chip && <ChipView key={at + part} chip={chip} selected={false} onSelect={() => undefined} onRemove={() => setExcluded([...excluded, part])} />; })}</div>}
+                    : <div style={{ ...S.body, ...S.chips, padding: '0 6px 6px' }}>{kept.map((part, at) => { const chip = parsePrompt(part)[0]; return chip && <span key={at + part} style={{display:'contents'}}>{at>0&&<LogicBadge name="AND"/>}<ChipView chip={chip} selected={false} onSelect={() => undefined} onRemove={() => setExcluded([...excluded, part])} /></span>; })}</div>}
             {!!excluded.length && <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, padding: '0 6px 6px' }} aria-label="Source tags left out">
                 <small style={{ opacity: .65 }} title="Removed here only: the source and the image lineage are unchanged">Left out:</small>
                 {excluded.map(tag => <button key={tag} type="button" title="Put this source tag back" aria-label={'Restore ' + tag} onClick={() => setExcluded(excluded.filter(item => item !== tag))}
