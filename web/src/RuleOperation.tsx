@@ -1,8 +1,19 @@
 import {LogicBadge,RuleTagChips} from './LogicBadge';
+import {useState} from 'react';
 import type {Rule,RuleCondition} from './RuleEngine';
 import {describeRule} from './RulePresentation';
 import ruleControlsCss from './RuleControls.css?inline';
 export function RuleStyles(){return <style>{ruleControlsCss}</style>;}
+
+/** Large compatibility packs stay inspectable without filling the encoder. */
+export function RuleOperations({rules,template='',inactive=false}:{rules:Rule[];template?:string;inactive?:boolean}){
+ const [open,setOpen]=useState(false);
+ const operations=()=>rules.map((rule,index)=><RuleOperation key={index} rule={rule} template={template} inactive={inactive}/>);
+ if(rules.length<=8)return <>{operations()}</>;
+ return <details aria-label="Rule checks" onToggle={event=>setOpen(event.currentTarget.open)}>
+  <summary>{rules.length} rule checks</summary>{open&&operations()}
+ </details>;
+}
 
 function TagSet({label,tags}:{label:string;tags:string[]}){
  return <div className="cg-rule-set">{label.includes("∩")?<LogicBadge name="IN BOTH"/>:<small>{label}</small>} <RuleTagChips tags={tags}/></div>;

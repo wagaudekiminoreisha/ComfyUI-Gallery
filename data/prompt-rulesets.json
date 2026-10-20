@@ -6291,6 +6291,2590 @@
           ]
         }
       ]
+    },
+    {
+      "version": 1,
+      "id": "stock-attire-styling",
+      "name": "Attire and styling",
+      "family": "attire-styling",
+      "rules": [],
+      "choices": [
+        {
+          "id": "bottoms",
+          "label": "Bottoms and layering",
+          "default": "single",
+          "options": [
+            {
+              "id": "single",
+              "label": "One primary bottom · check supplied",
+              "rules": [
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pants",
+                    "shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pants",
+                    "short_shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pants",
+                    "denim_shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pants",
+                    "skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pants",
+                    "pleated_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pants",
+                    "miniskirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pants",
+                    "long_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pants",
+                    "pencil_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pants",
+                    "dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pants",
+                    "sundress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pants",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pants",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "track_pants"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "sweatpants"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "cargo_pants"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "short_shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "denim_shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "pleated_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "miniskirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "long_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "pencil_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "leggings"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "sundress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "track_pants",
+                    "cargo_pants"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sweatpants",
+                    "cargo_pants"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "track_pants",
+                    "shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "track_pants",
+                    "short_shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "track_pants",
+                    "denim_shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sweatpants",
+                    "shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sweatpants",
+                    "short_shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sweatpants",
+                    "denim_shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "track_pants",
+                    "skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "track_pants",
+                    "pleated_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "track_pants",
+                    "miniskirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "track_pants",
+                    "long_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "track_pants",
+                    "pencil_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sweatpants",
+                    "skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sweatpants",
+                    "pleated_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sweatpants",
+                    "miniskirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sweatpants",
+                    "long_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sweatpants",
+                    "pencil_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "track_pants",
+                    "leggings"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sweatpants",
+                    "leggings"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "track_pants",
+                    "dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "track_pants",
+                    "sundress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "track_pants",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sweatpants",
+                    "dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sweatpants",
+                    "sundress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sweatpants",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "track_pants",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sweatpants",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "cargo_pants",
+                    "shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "cargo_pants",
+                    "short_shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "cargo_pants",
+                    "denim_shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "cargo_pants",
+                    "skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "cargo_pants",
+                    "pleated_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "cargo_pants",
+                    "miniskirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "cargo_pants",
+                    "long_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "cargo_pants",
+                    "pencil_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "cargo_pants",
+                    "leggings"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "cargo_pants",
+                    "dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "cargo_pants",
+                    "sundress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "cargo_pants",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "cargo_pants",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "shorts",
+                    "skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "shorts",
+                    "pleated_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "shorts",
+                    "miniskirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "shorts",
+                    "long_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "shorts",
+                    "pencil_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "short_shorts",
+                    "skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "short_shorts",
+                    "pleated_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "short_shorts",
+                    "miniskirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "short_shorts",
+                    "long_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "short_shorts",
+                    "pencil_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "denim_shorts",
+                    "skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "denim_shorts",
+                    "pleated_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "denim_shorts",
+                    "miniskirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "denim_shorts",
+                    "long_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "denim_shorts",
+                    "pencil_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "shorts",
+                    "leggings"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "short_shorts",
+                    "leggings"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "denim_shorts",
+                    "leggings"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "shorts",
+                    "dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "shorts",
+                    "sundress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "shorts",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "short_shorts",
+                    "dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "short_shorts",
+                    "sundress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "short_shorts",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "denim_shorts",
+                    "dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "denim_shorts",
+                    "sundress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "denim_shorts",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "shorts",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "short_shorts",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "denim_shorts",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "skirt",
+                    "leggings"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pleated_skirt",
+                    "leggings"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "miniskirt",
+                    "leggings"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "long_skirt",
+                    "leggings"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pencil_skirt",
+                    "leggings"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "skirt",
+                    "dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "skirt",
+                    "sundress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "skirt",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pleated_skirt",
+                    "dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pleated_skirt",
+                    "sundress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pleated_skirt",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "miniskirt",
+                    "dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "miniskirt",
+                    "sundress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "miniskirt",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "long_skirt",
+                    "dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "long_skirt",
+                    "sundress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "long_skirt",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pencil_skirt",
+                    "dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pencil_skirt",
+                    "sundress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pencil_skirt",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "skirt",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pleated_skirt",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "miniskirt",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "long_skirt",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pencil_skirt",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "leggings",
+                    "dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "leggings",
+                    "sundress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "leggings",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "leggings",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "dress",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sundress",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sweater_dress",
+                    "jumpsuit"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "layered",
+              "label": "Allow skirt/dress over trousers · check supplied",
+              "rules": [
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pants",
+                    "shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pants",
+                    "short_shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pants",
+                    "denim_shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pants",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "track_pants"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "sweatpants"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "cargo_pants"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "short_shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "denim_shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "leggings"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "jeans",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "track_pants",
+                    "cargo_pants"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sweatpants",
+                    "cargo_pants"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "track_pants",
+                    "shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "track_pants",
+                    "short_shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "track_pants",
+                    "denim_shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sweatpants",
+                    "shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sweatpants",
+                    "short_shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sweatpants",
+                    "denim_shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "track_pants",
+                    "leggings"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sweatpants",
+                    "leggings"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "track_pants",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sweatpants",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "cargo_pants",
+                    "shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "cargo_pants",
+                    "short_shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "cargo_pants",
+                    "denim_shorts"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "cargo_pants",
+                    "leggings"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "cargo_pants",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "shorts",
+                    "skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "shorts",
+                    "pleated_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "shorts",
+                    "miniskirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "shorts",
+                    "long_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "shorts",
+                    "pencil_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "short_shorts",
+                    "skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "short_shorts",
+                    "pleated_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "short_shorts",
+                    "miniskirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "short_shorts",
+                    "long_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "short_shorts",
+                    "pencil_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "denim_shorts",
+                    "skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "denim_shorts",
+                    "pleated_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "denim_shorts",
+                    "miniskirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "denim_shorts",
+                    "long_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "denim_shorts",
+                    "pencil_skirt"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "shorts",
+                    "leggings"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "short_shorts",
+                    "leggings"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "denim_shorts",
+                    "leggings"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "shorts",
+                    "dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "shorts",
+                    "sundress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "shorts",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "short_shorts",
+                    "dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "short_shorts",
+                    "sundress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "short_shorts",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "denim_shorts",
+                    "dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "denim_shorts",
+                    "sundress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "denim_shorts",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "shorts",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "short_shorts",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "denim_shorts",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "skirt",
+                    "dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "skirt",
+                    "sundress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "skirt",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pleated_skirt",
+                    "dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pleated_skirt",
+                    "sundress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pleated_skirt",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "miniskirt",
+                    "dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "miniskirt",
+                    "sundress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "miniskirt",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "long_skirt",
+                    "dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "long_skirt",
+                    "sundress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "long_skirt",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pencil_skirt",
+                    "dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pencil_skirt",
+                    "sundress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pencil_skirt",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "skirt",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pleated_skirt",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "miniskirt",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "long_skirt",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "pencil_skirt",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "leggings",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "dress",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sundress",
+                    "jumpsuit"
+                  ]
+                },
+                {
+                  "op": "exclusive",
+                  "tags": [
+                    "sweater_dress",
+                    "jumpsuit"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "multiple",
+              "label": "Allow multiple garments · no bottom conflicts",
+              "rules": []
+            },
+            {
+              "id": "jeans",
+              "label": "Jeans",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "cargo_pants",
+                    "denim_shorts",
+                    "dress",
+                    "jumpsuit",
+                    "leggings",
+                    "long_skirt",
+                    "miniskirt",
+                    "pencil_skirt",
+                    "pleated_skirt",
+                    "short_shorts",
+                    "shorts",
+                    "skirt",
+                    "sundress",
+                    "sweater_dress",
+                    "sweatpants",
+                    "track_pants"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "jeans"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "track",
+              "label": "Track pants",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "cargo_pants",
+                    "denim_shorts",
+                    "dress",
+                    "jeans",
+                    "jumpsuit",
+                    "leggings",
+                    "long_skirt",
+                    "miniskirt",
+                    "pencil_skirt",
+                    "pleated_skirt",
+                    "short_shorts",
+                    "shorts",
+                    "skirt",
+                    "sundress",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "track_pants"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "shorts",
+              "label": "Shorts",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "cargo_pants",
+                    "dress",
+                    "jeans",
+                    "jumpsuit",
+                    "leggings",
+                    "long_skirt",
+                    "miniskirt",
+                    "pants",
+                    "pencil_skirt",
+                    "pleated_skirt",
+                    "skirt",
+                    "sundress",
+                    "sweater_dress",
+                    "sweatpants",
+                    "track_pants"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "shorts"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "skirt",
+              "label": "Skirt",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "cargo_pants",
+                    "denim_shorts",
+                    "dress",
+                    "jeans",
+                    "jumpsuit",
+                    "leggings",
+                    "pants",
+                    "short_shorts",
+                    "shorts",
+                    "sundress",
+                    "sweater_dress",
+                    "sweatpants",
+                    "track_pants"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "skirt"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "leggings",
+              "label": "Leggings",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "cargo_pants",
+                    "denim_shorts",
+                    "dress",
+                    "jeans",
+                    "jumpsuit",
+                    "long_skirt",
+                    "miniskirt",
+                    "pencil_skirt",
+                    "pleated_skirt",
+                    "short_shorts",
+                    "shorts",
+                    "skirt",
+                    "sundress",
+                    "sweater_dress",
+                    "sweatpants",
+                    "track_pants"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "leggings"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "dress",
+              "label": "Dress",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "cargo_pants",
+                    "denim_shorts",
+                    "jeans",
+                    "jumpsuit",
+                    "leggings",
+                    "long_skirt",
+                    "miniskirt",
+                    "pants",
+                    "pencil_skirt",
+                    "pleated_skirt",
+                    "short_shorts",
+                    "shorts",
+                    "skirt",
+                    "sweatpants",
+                    "track_pants"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "dress"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "jumpsuit",
+              "label": "Jumpsuit",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "cargo_pants",
+                    "denim_shorts",
+                    "dress",
+                    "jeans",
+                    "leggings",
+                    "long_skirt",
+                    "miniskirt",
+                    "pants",
+                    "pencil_skirt",
+                    "pleated_skirt",
+                    "short_shorts",
+                    "shorts",
+                    "skirt",
+                    "sundress",
+                    "sweater_dress",
+                    "sweatpants",
+                    "track_pants"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "jumpsuit"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "skirt-jeans",
+              "label": "Skirt over jeans",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "cargo_pants",
+                    "denim_shorts",
+                    "dress",
+                    "jumpsuit",
+                    "leggings",
+                    "short_shorts",
+                    "shorts",
+                    "sundress",
+                    "sweater_dress",
+                    "sweatpants",
+                    "track_pants"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "skirt",
+                    "jeans"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "skirt-track",
+              "label": "Skirt over track pants",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "cargo_pants",
+                    "denim_shorts",
+                    "dress",
+                    "jeans",
+                    "jumpsuit",
+                    "leggings",
+                    "short_shorts",
+                    "shorts",
+                    "sundress",
+                    "sweater_dress"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "skirt",
+                    "track_pants"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "skirt-leggings",
+              "label": "Skirt over leggings",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "cargo_pants",
+                    "denim_shorts",
+                    "dress",
+                    "jeans",
+                    "jumpsuit",
+                    "short_shorts",
+                    "shorts",
+                    "sundress",
+                    "sweater_dress",
+                    "sweatpants",
+                    "track_pants"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "skirt",
+                    "leggings"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "dress-jeans",
+              "label": "Dress over jeans",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "cargo_pants",
+                    "denim_shorts",
+                    "jumpsuit",
+                    "leggings",
+                    "long_skirt",
+                    "miniskirt",
+                    "pencil_skirt",
+                    "pleated_skirt",
+                    "short_shorts",
+                    "shorts",
+                    "skirt",
+                    "sweatpants",
+                    "track_pants"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "dress",
+                    "jeans"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "base",
+          "label": "Upper base",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit these garments/accessories",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "blouse",
+                    "shirt",
+                    "t-shirt",
+                    "tank_top"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "shirt",
+              "label": "Choose shirt",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "blouse",
+                    "t-shirt",
+                    "tank_top"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "shirt"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "t-shirt",
+              "label": "Choose t-shirt",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "blouse",
+                    "shirt",
+                    "tank_top"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "t-shirt"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "blouse",
+              "label": "Choose blouse",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "shirt",
+                    "t-shirt",
+                    "tank_top"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "blouse"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "tank_top",
+              "label": "Choose tank top",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "blouse",
+                    "shirt",
+                    "t-shirt"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "tank_top"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "outer",
+          "label": "Outer layer",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit these garments/accessories",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "cardigan",
+                    "coat",
+                    "hoodie",
+                    "jacket"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "jacket",
+              "label": "Choose jacket",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "cardigan",
+                    "coat",
+                    "hoodie"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "jacket"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "coat",
+              "label": "Choose coat",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "cardigan",
+                    "hoodie",
+                    "jacket"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "coat"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "cardigan",
+              "label": "Choose cardigan",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "coat",
+                    "hoodie",
+                    "jacket"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "cardigan"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "hoodie",
+              "label": "Choose hoodie",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "cardigan",
+                    "coat",
+                    "jacket"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "hoodie"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "headwear",
+          "label": "Headwear",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit these garments/accessories",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "baseball_cap",
+                    "beret",
+                    "hat",
+                    "hood"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "hat",
+              "label": "Choose hat",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "baseball_cap",
+                    "beret",
+                    "hood"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "hat"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "beret",
+              "label": "Choose beret",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "baseball_cap",
+                    "hat",
+                    "hood"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "beret"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "baseball_cap",
+              "label": "Choose baseball cap",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "beret",
+                    "hat",
+                    "hood"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "baseball_cap"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "hood",
+              "label": "Choose hood",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "baseball_cap",
+                    "beret",
+                    "hat"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "hood"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hair-accessories",
+          "label": "Worn hair accessories",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit these garments/accessories",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "hair_bow",
+                    "hair_flower",
+                    "hair_ribbon",
+                    "hairband",
+                    "hairclip",
+                    "hairpin"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "hairpin",
+              "label": "Choose hairpin",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "hair_bow",
+                    "hair_flower",
+                    "hair_ribbon",
+                    "hairband",
+                    "hairclip"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "hairpin"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "hairclip",
+              "label": "Choose hairclip",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "hair_bow",
+                    "hair_flower",
+                    "hair_ribbon",
+                    "hairband",
+                    "hairpin"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "hairclip"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "hair_ribbon",
+              "label": "Choose hair ribbon",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "hair_bow",
+                    "hair_flower",
+                    "hairband",
+                    "hairclip",
+                    "hairpin"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "hair_ribbon"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "hair_bow",
+              "label": "Choose hair bow",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "hair_flower",
+                    "hair_ribbon",
+                    "hairband",
+                    "hairclip",
+                    "hairpin"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "hair_bow"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "hairband",
+              "label": "Choose hairband",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "hair_bow",
+                    "hair_flower",
+                    "hair_ribbon",
+                    "hairclip",
+                    "hairpin"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "hairband"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "hair_flower",
+              "label": "Choose hair flower",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "hair_bow",
+                    "hair_ribbon",
+                    "hairband",
+                    "hairclip",
+                    "hairpin"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "hair_flower"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "pins-ribbon",
+              "label": "Hairpins and ribbon",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "hair_bow",
+                    "hair_flower",
+                    "hairband",
+                    "hairclip"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "hairpin",
+                    "hair_ribbon"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "pins-flower",
+              "label": "Hairpins and flower",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "hair_bow",
+                    "hair_ribbon",
+                    "hairband",
+                    "hairclip"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "hairpin",
+                    "hair_flower"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "eyewear",
+          "label": "Eyewear",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit these garments/accessories",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "glasses",
+                    "goggles",
+                    "sunglasses"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "glasses",
+              "label": "Choose glasses",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "goggles",
+                    "sunglasses"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "glasses"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "sunglasses",
+              "label": "Choose sunglasses",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "glasses",
+                    "goggles"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "sunglasses"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "goggles",
+              "label": "Choose goggles",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "glasses",
+                    "sunglasses"
+                  ]
+                },
+                {
+                  "op": "require",
+                  "tags": [
+                    "goggles"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hair-interactions",
+          "label": "Hair actions and routing",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "handling",
+              "label": "Omit hair handling and tool props",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "brushing_another's_hair",
+                    "brushing_hair",
+                    "brushing_own_hair",
+                    "grabbing_another's_hair",
+                    "grabbing_own_hair",
+                    "hair_brush",
+                    "hair_dryer",
+                    "holding_another's_hair",
+                    "holding_hair_brush",
+                    "holding_hair_dryer",
+                    "holding_hair_ornament",
+                    "holding_hair_tie",
+                    "holding_hairband",
+                    "holding_hairpin",
+                    "holding_own_hair",
+                    "knife_hair_ornament",
+                    "knife_in_hair",
+                    "paintbrush_hair_ornament"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "routing",
+              "label": "Omit hair wrapping/routing/effect instructions",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "hair_as_food",
+                    "hair_between_horns",
+                    "hair_bondage",
+                    "hair_in_another's_mouth",
+                    "hair_in_own_mouth",
+                    "hair_on_horn",
+                    "hair_through_headwear",
+                    "hair_through_hood",
+                    "prehensile_hair",
+                    "tentacle_hair"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "both",
+              "label": "Omit handling, props and unusual routing",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "brushing_another's_hair",
+                    "brushing_hair",
+                    "brushing_own_hair",
+                    "grabbing_another's_hair",
+                    "grabbing_own_hair",
+                    "hair_as_food",
+                    "hair_between_horns",
+                    "hair_bondage",
+                    "hair_brush",
+                    "hair_dryer",
+                    "hair_in_another's_mouth",
+                    "hair_in_own_mouth",
+                    "hair_on_horn",
+                    "hair_through_headwear",
+                    "hair_through_hood",
+                    "holding_another's_hair",
+                    "holding_hair_brush",
+                    "holding_hair_dryer",
+                    "holding_hair_ornament",
+                    "holding_hair_tie",
+                    "holding_hairband",
+                    "holding_hairpin",
+                    "holding_own_hair",
+                    "knife_hair_ornament",
+                    "knife_in_hair",
+                    "paintbrush_hair_ornament",
+                    "prehensile_hair",
+                    "tentacle_hair"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "globals": [],

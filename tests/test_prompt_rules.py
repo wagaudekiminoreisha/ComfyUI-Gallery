@@ -47,6 +47,26 @@ class RulesTests(unittest.TestCase):
   trace=metadata['gallery_prompts']['7'];self.assertEqual(trace['resolved'],'short hair');self.assertEqual(trace['rules_program'],rows);self.assertEqual(trace['rules_applied']['added_tags'],['short hair'])
   with self.assertRaisesRegex(ValueError,'required and excluded'):
    GalleryPromptEncode().encode(clip,'blue eyes',rules_state=json.dumps([box([select('long hair')]),box([select('short hair')])]))
+class AttireTests(unittest.TestCase):
+ def test_branch_sampling_layering_recipes_and_accessories(self):
+  definition=next(row for row in json.loads((ROOT/'data/prompt-rulesets.json').read_text(encoding='utf-8'))['definitions'] if row['id']=='stock-attire-styling')
+  def attire(**preferences):return dict(id='attire',definition=definition,origin='encoder',scope='main',preferences=preferences,enabled=True,collapsed=False)
+  self.assertEqual(apply_rules('jeans, hairpin',[attire()])[0],'jeans, hairpin')
+  self.assertEqual(apply_rules('pants, jeans',[attire()])[0],'pants, jeans')
+  with self.assertRaisesRegex(ValueError,'conflict'):apply_rules('jeans, track pants',[attire()])
+  with self.assertRaisesRegex(ValueError,'conflict'):apply_rules('jeans, track pants, skirt',[attire(bottoms='layered')])
+  self.assertEqual(apply_rules('jeans, skirt',[attire(bottoms='layered')])[0],'jeans, skirt')
+  self.assertEqual(apply_rules('jeans, track pants',[attire(bottoms='multiple')])[0],'jeans, track pants')
+  self.assertEqual(apply_rules('track pants, hairpin',[attire(bottoms='skirt-jeans')])[0],'hairpin, skirt, jeans')
+  self.assertEqual(apply_rules('long hair, hairpin, knife in hair, holding own hair, prehensile hair',[attire(**{'hair-interactions':'both'})])[0],'long hair, hairpin')
+  class Clip:
+   def tokenize(self,text):return text
+   def encode_from_tokens_scheduled(self,value):return value
+  for pick in (0,-1):
+   with patch('random.choice',side_effect=lambda options:options[pick]):
+    result=GalleryPromptEncode().encode(Clip(),'{jeans, hairpin|track pants, hair ribbon}',rules_state=json.dumps([attire()]))
+   self.assertIn(result['result'][1],['jeans, hairpin','track pants, hair ribbon'])
+
 class LibraryTests(unittest.IsolatedAsyncioTestCase):
  async def test_cas_user_isolation_invalid_script_and_origin(self):
   with tempfile.TemporaryDirectory() as temp:

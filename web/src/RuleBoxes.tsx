@@ -4,7 +4,7 @@ import {Modal,Input} from 'antd';
 import {BASE_Z_INDEX} from './ComfyAppApi';
 import {newRuleBox} from './RulesLibrary';
 import {activeRuleBoxes,type RuleBox,type Ruleset} from './RuleEngine';
-import {RuleOperation,RuleNotation,RuleStyles} from './RuleOperation';
+import {RuleOperations,RuleNotation,RuleStyles} from './RuleOperation';
 import {HairControls} from './HairControls';
 import {cleanHairPolicy,type HairPolicy} from './HairPolicy';
 
@@ -25,12 +25,12 @@ export function RuleBoxes({value,onChange,definitions,origin='encoder',inherited
   {!(readOnly?folded[box.id]??box.collapsed:box.collapsed)&&<div>
    <small>{box.label||box.definition.family} · pinned ruleset snapshot</small>
    <label style={{display:'block',marginTop:6}}>Policy channel <select aria-label="Ruleset scope" disabled={readOnly} value={box.scope} onChange={event=>event.target.value==='__separate__'?setChannel({boxId:box.id,name:''}):patch(box.id,{scope:event.target.value})}><option value="main">Main · inherit and override</option>{[...new Set(all.map(row=>row.scope))].filter(scope=>scope!=='main').map((scope,index)=><option key={scope} value={scope}>Additional channel {index+1}{!scope.startsWith('channel-')?' · '+scope:''}</option>)}<option value="__separate__">Create independent channel…</option></select></label><small>Same family + channel: encoder overrides snapshot, prefix and global defaults. Independent channels combine; they do not bind subjects or regions.</small>
-   {box.definition.rules.map((rule,index)=><RuleOperation key={index} rule={rule} template={template} inactive={!active.has(box)}/>)}
+   <RuleOperations rules={box.definition.rules} template={template} inactive={!active.has(box)}/>
    {box.definition.choices.map(choice=>{
     const option=choice.options.find(option=>option.id===(box.preferences[choice.id]??choice.default));
     return <div className="cg-rule-preference" key={choice.id} aria-label={'Rule preference '+choice.label}>
      <label>{choice.label} <select aria-label={choice.label} disabled={readOnly} value={option?.id} onChange={event=>patch(box.id,{preferences:{...box.preferences,[choice.id]:event.target.value}},true)}>{choice.options.map(option=><option key={option.id} value={option.id}>{option.label}</option>)}</select></label>
-     {option?.rules.length?option.rules.map((rule,index)=><RuleOperation key={index} rule={rule} template={template} inactive={!active.has(box)}/>):<code className="cg-rule-operation">T′ = T</code>}
+     {option?.rules.length?<RuleOperations key={option.id} rules={option.rules} template={template} inactive={!active.has(box)}/>:<code className="cg-rule-operation">T′ = T</code>}
     </div>;
    })}
   </div>}
