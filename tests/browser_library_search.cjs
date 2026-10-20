@@ -63,7 +63,7 @@ const path = require('node:path');
   await quick.fill('');await quick.press('Escape');
   await page.getByRole('button',{name:'Clear selection',exact:true}).click();
   await page.getByAltText('study-1.png',{exact:true}).click({button:'right'});
-  await page.getByRole('menuitem',{name:'Export local selection to Hydrus',exact:true}).click();
+  await page.getByRole('menuitem',{name:'Export this image to Hydrus',exact:true}).click();
   const exporter=page.getByRole('dialog',{name:/Export to Hydrus/});
   await exporter.getByRole('checkbox',{name:'Only recognized Danbooru tags from positive prompts',exact:true}).check();
   await exporter.getByText('Review and edit prompt tags per image',{exact:true}).click();

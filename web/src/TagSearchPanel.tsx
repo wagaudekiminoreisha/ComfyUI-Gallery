@@ -328,7 +328,8 @@ export function ImageSearchPanel() {
         { key: 'search', label: 'Find related images' },
         { type: 'divider' as const },
         { key: 'info', label: 'Metadata' }, { key: 'prefix', label: `Prefix associations… (${targets(file.url).length})` }, ...prefixActions(file.url),
-        { key: 'source', label: `Append to Image Source (${targets(file.url).length})` }, { key: 'export', label: `Export to Hydrus (${targets(file.url).length})` },
+        { key: 'source', label: `Append to Image Source (${targets(file.url).length})` }, { key: 'export', label: 'Export this image to Hydrus' },
+        ...(targets(file.url).length>1?[{key:'export-selected',label:`Export selected images to Hydrus (${targets(file.url).length})`}]:[]),
         { key: 'open', label: 'Open original in a new tab' },
     ], onClick: ({ key }) => {
         if (key === 'view') openInViewer(file.url); if (key === 'select') toggle(file.url);
@@ -336,7 +337,8 @@ export function ImageSearchPanel() {
         if (key === 'info') openImageInfo({ url: file.url }); if (key === 'prefix') openSourcePrefix(targets(file.url));
         if (key.startsWith('pair:')) void pair(key.slice(5), targets(file.url));
         if (key === 'source') { void appendLocalImages(targets(file.url)).then(text => message.success(text)).catch(reason => message.error(String(reason))); }
-        if (key === 'export') hydrus.requestExport(targets(file.url));
+        if (key === 'export') hydrus.requestExport([file.url]);
+        if (key === 'export-selected') hydrus.requestExport(targets(file.url));
         if (key === 'open') window.open(BASE_PATH + file.url, '_blank');
     } }}>
         <div role="group" aria-label={file.name} draggable title={file.name + ' · click: open in gallery view · Ctrl/Shift-click: select · drag into the search bar to add it'}

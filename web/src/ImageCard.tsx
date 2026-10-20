@@ -168,7 +168,8 @@ const ImageCardView = memo(function ImageCardView({
         onOpenChange={open => { if (open) setTargetCount(getTargets().length); }}
         menu={{ items: [
             { key: 'source', label: `Append to Image Source (${targetCount})` },
-            { key: 'export', label: `Export to Hydrus (${targetCount})` },
+            { key: 'export', label: 'Export this image to Hydrus' },
+            ...(targetCount>1?[{key:'export-selected',label:`Export selected images to Hydrus (${targetCount})`}]:[]),
             { key: 'refresh', label: `Refresh Hydrus status (${targetCount})` },
             { key: 'info', label: 'Metadata' },
             { key: 'prefix', label: `Prefix associations… (${targetCount})` },
@@ -181,7 +182,8 @@ const ImageCardView = memo(function ImageCardView({
                 const done = message.loading('Copying images to input…', 0);
                 try { message.success(await appendLocalImages(targets)); } catch (error) { message.error(error instanceof Error ? error.message : String(error)); } finally { done(); }
             }
-            if (key === 'export') requestExport(targets);
+            if (key === 'export') requestExport([image.url]);
+            if (key === 'export-selected') requestExport(targets);
             if (key === 'info') openImageInfo({ url: image.url });
             if (key === 'prefix') openSourcePrefix(targets);
             if (key === 'imagesearch') openImageSearch({ chips: [{ kind: 'image', url: image.url, name: image.name }] });

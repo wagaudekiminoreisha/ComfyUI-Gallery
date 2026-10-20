@@ -174,6 +174,8 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
     const targets = (entry?: GalleryEntry) => entry && !selected.has(entry.id) ? [entry] : shownSelected;
     const act = async (key: string, entry?: GalleryEntry) => {
         if (entry?.source === 'node' && !['download'].includes(key)) return;
+        if (key === 'export' && entry) { hydrus.requestExport(entry.local?.type === 'image' ? [entry.local.url] : []); return; }
+        if (key === 'export-selected') { hydrus.requestExport(shownSelected.flatMap(item => item.local?.type === 'image' ? [item.local.url] : [])); return; }
         const list = targets(entry);
         const local = list.flatMap(item => item.local?.type === 'image' ? [item.local.url] : []);
         const hashes = list.flatMap(item => item.remote && (key === 'download' || isImage(item)) ? [item.remote.hash] : []);
@@ -254,7 +256,7 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
         { key: 'imagesearch', label: 'Find related images' },
         { key: 'download', disabled:working,label: 'Download original(s)' },
         ...(entry.remote?[{key:'send',label:'Send to',children:[...Object.keys(gallery.data?.folders||{}).filter(folder=>folder.split('/').length>1).map(folder=>({key:'send:'+folder.split('/').slice(1).join('/'),label:folder})),{key:'send:',label:'Choose / create folder…'}]}]:[]),
-        ...(entry.local ? [{ key: 'export', label: 'Export local selection to Hydrus' }, { key: 'refresh', label: 'Refresh Hydrus status' }] : []),
+        ...(entry.local?.type === 'image' ? [{ key: 'export', label: 'Export this image to Hydrus' }, ...(shownSelected.filter(item=>item.local?.type==='image').length>1?[{key:'export-selected',label:`Export selected images to Hydrus (${shownSelected.filter(item=>item.local?.type==='image').length})`}]:[]), { key: 'refresh', label: 'Refresh Hydrus status' }] : []),
         ...(targets(entry).some(item => item.local?.url.startsWith('/static_gallery/')) ? [{ key: 'archive', label: gallery.archiveView ? 'Restore local media' : 'Archive local media' }] : []),
         ...(targets(entry).some(item => item.remote) ? [{ key: 'trash', danger: true, label: `Delete from Hydrus — send to trash (${targets(entry).filter(item => item.remote).length})` }] : []),
         ...(targets(entry).some(item => item.local) ? [{ key: 'delete', danger: true, label: `Delete local file(s) (${targets(entry).filter(item => item.local).length})` }] : []),

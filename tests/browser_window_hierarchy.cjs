@@ -25,7 +25,7 @@ const assert=require('node:assert/strict');
   await page.locator('[data-panel-key="source-prefix"]').getByRole('button',{name:'Close',exact:true}).first().click();
   for(let i=0;i<2;i++) {
     await viewer.focus();await viewer.getByAltText('Viewing study-4.png',{exact:true}).click({button:'right'});
-    await page.getByRole('menuitem',{name:'Export local selection to Hydrus',exact:true}).click();await above('hydrus-export');
+    await page.getByRole('menuitem',{name:'Export this image to Hydrus',exact:true}).click();await above('hydrus-export');
   }
   await page.locator('[data-panel-key="hydrus-export"]').getByRole('button',{name:'Close',exact:true}).first().click();
   await viewer.focus();await viewer.getByRole('button',{name:'Delete',exact:true}).click();

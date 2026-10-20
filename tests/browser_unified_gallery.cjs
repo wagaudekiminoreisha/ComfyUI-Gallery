@@ -19,7 +19,7 @@ const assert = require('node:assert/strict');
   await page.getByRole('menuitem',{name:'Deselect image',exact:true}).click();
   assert.equal(await viewer.getByRole('checkbox',{name:'Selected',exact:true}).isChecked(),false);
   await viewer.getByAltText('Viewing study-4.png').click({button:'right'});
-  await page.getByRole('menuitem',{name:'Export local selection to Hydrus',exact:true}).click();
+  await page.getByRole('menuitem',{name:'Export this image to Hydrus',exact:true}).click();
   const exporter=page.getByRole('dialog',{name:/Export to Hydrus/});
   await exporter.getByRole('button',{name:'Close',exact:true}).click();
   await viewer.getByRole('button',{name:'Next image',exact:true}).click();
