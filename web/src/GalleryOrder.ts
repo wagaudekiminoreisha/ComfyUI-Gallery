@@ -21,6 +21,17 @@ export function orderGallery(entries: GalleryEntry[], order: GalleryOrder, ascen
     });
 }
 
+/** Keep loaded random positions; shuffle only new arrivals at the end. */
+export function extendRandomGallery(entries: GalleryEntry[], seed: number, previousIDs: readonly string[] = []): GalleryEntry[] {
+    const byID = new Map(entries.map(entry => [entry.id, entry]));
+    const retained: GalleryEntry[] = [];
+    for (const id of previousIDs) {
+        const entry = byID.get(id);
+        if (entry) { retained.push(entry); byID.delete(id); }
+    }
+    return [...retained, ...orderGallery([...byID.values()], 'random', false, seed)];
+}
+
 /** Shared copies use their cached Hydrus import time; unlinked locals use file time. */
 export function galleryDate(metadata: any, fallback?: number): number | undefined {
     const times = [metadata?.time_imported, ...Object.values(metadata?.file_services?.current || {}).map((service: any) => service.time_imported)]

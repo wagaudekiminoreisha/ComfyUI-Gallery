@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const ts = require('../web/node_modules/typescript');
-const source = ts.transpileModule(fs.readFileSync(require('node:path').join(__dirname, '../web/src/GalleryOrder.ts'), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+const source = ts.transpileModule(fs.readFileSync(require('node:path').join(__dirname, '../web/src/GalleryOrder.ts'), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
 const compiled = { exports: {} };
 vm.runInThisContext(`(function(exports,module){${source}\n})`)(compiled.exports, compiled);
 const { orderGallery } = compiled.exports;
@@ -19,4 +19,24 @@ test('matching copies share Hydrus import time, unlinked files fall back to file
  assert.equal(galleryDate({time_imported:80,file_services:{current:{local:{time_imported:100}}}}),100);
  assert.equal(galleryDate({},200),200);
  assert.equal(galleryDate({time_imported:NaN}),undefined);
+});
+
+test('paginated random order appends new shuffled files without moving existing positions',()=>{
+ const {extendRandomGallery}=compiled.exports;
+ const rows=Array.from({length:300},(_,i)=>({id:'hydrus:'+i,date:i}));
+ const first=extendRandomGallery(rows.slice(0,100),8);
+ const second=extendRandomGallery(rows.slice(0,200),8,first.map(row=>row.id));
+ const third=extendRandomGallery(rows,8,second.map(row=>row.id));
+ assert.deepEqual(second.slice(0,100),first);assert.deepEqual(third.slice(0,200),second);
+ assert.equal(new Set(third.map(row=>row.id)).size,300);
+ assert.notDeepEqual(second.slice(100),rows.slice(100,200),'incoming batch is shuffled too');
+ assert.notDeepEqual(extendRandomGallery(rows,9),third,'a fresh seed reshuffles all loaded files');
+});
+test('random extension refreshes metadata and drops removed files without rearranging survivors',()=>{
+ const {extendRandomGallery}=compiled.exports;
+ const old=extendRandomGallery(entries,8),removed=old[1].id;
+ const updated=entries.filter(row=>row.id!==removed).map(row=>({...row,date:500}));
+ const next=extendRandomGallery(updated,8,old.map(row=>row.id));
+ assert.deepEqual(next.map(row=>row.id),old.filter(row=>row.id!==removed).map(row=>row.id));
+ assert(next.every(row=>row.date===500));
 });

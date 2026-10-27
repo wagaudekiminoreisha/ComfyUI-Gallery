@@ -26,7 +26,7 @@ import { ModelViewer } from './ModelViewer';
 import { use3DThumbnail } from './GlobalModelRenderer';
 import type { FileDetails } from './types';
 import type { RemoteImage } from './HydrusBrowser';
-import { galleryDate, orderGallery, type GalleryEntry, type GalleryOrder } from './GalleryOrder';
+import { extendRandomGallery, galleryDate, orderGallery, type GalleryEntry, type GalleryOrder } from './GalleryOrder';
 
 function ModelThumbnail({ file }: { file: FileDetails }) {
     const thumbnail = use3DThumbnail(BASE_PATH + file.url, file.name.split('.').pop()?.toLowerCase() || '');
@@ -72,13 +72,19 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
         id: 'local:' + file.url, local: file, name: file.name, date: galleryDate(hydrus.items[file.url]?.metadata, file.timestamp), hash: hydrus.items[file.url]?.hash,
         mime: file.name.split('.').pop()?.toLowerCase().replace('jpeg', 'jpg'), source: file.url.startsWith('/view?') ? 'node' : 'local',
     });
+    const randomSequences = useRef(new Map<string, { seed: number; ids: string[] }>());
     const entries = useMemo(() => {
         const local: GalleryEntry[] = source === 'hydrus' ? [] : gallery.imagesDetailsList.filter(file => !['divider', 'empty-space'].includes(file.type)).map(localEntry);
         const library: GalleryEntry[] = source === 'local' ? [] : remote.map(file => ({ id: 'hydrus:' + file.hash, remote: file, name: '#' + file.file_id,
             date: galleryDate(file),
             hash: file.hash, mime: file.mime?.split('/')[1]?.replace('jpeg', 'jpg'), source: 'hydrus' }));
-        return orderGallery([...local, ...library], order, ascending, seed);
-    }, [source, gallery.imagesDetailsList, hydrus.items, remote, order, ascending, seed]);
+        const loaded = [...local, ...library];
+        if (order !== 'random') return orderGallery(loaded, order, ascending, seed);
+        const previous = randomSequences.current.get(viewKey);
+        const sorted = extendRandomGallery(loaded, seed, previous?.seed === seed ? previous.ids : []);
+        randomSequences.current.set(viewKey, { seed, ids: sorted.map(entry => entry.id) });
+        return sorted;
+    }, [source, gallery.imagesDetailsList, hydrus.items, remote, order, ascending, seed, viewKey]);
     const appliedSort = useRef<Record<string, number>>({});
     useEffect(() => {
         if (!sortRequest || appliedSort.current[viewKey] === sortRequest.revision) return;
