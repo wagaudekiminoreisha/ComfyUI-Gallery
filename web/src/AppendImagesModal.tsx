@@ -2,6 +2,8 @@ import {TermsEditor} from './PromptBoxEditor';
 import {makeSuggest} from './PromptSuggest';
 import {expandPrefix} from './PrefixLibrary';
 import {imageSnapshotIds,imagePrefixIds} from './PrefixLineage';
+import { associationPrefixIds } from './PrefixAssociations';
+import { mergeSourcePrefixTerms, sourcePrefixMetadata, sourcePrefixRecipe, sourcePrefixRefs, type SourcePrefix } from './SourcePrefixes';
 import {loadLocalMetadata} from './LocalMetadata';
 import { promptTerms } from './PromptTags';
 import { FloatingPanel } from './FloatingPanel';
@@ -20,7 +22,16 @@ import { useHydrus } from './HydrusContext';
 import type { GalleryEntry } from './GalleryOrder';
 import type { ImageSourceImage, PromptApply } from './ImageSourceGeometry';
 
-type Row = { entry: GalleryEntry; metadata: any; positive: string[]; negative: string[]; usePositive: boolean; useNegative: boolean; useTags: boolean; tags: string[]; sync: boolean; prefixId?: string;snapshotId?:string;associatedIds?:string[] };
+type Row = { entry: GalleryEntry; metadata: any; positive: string[]; negative: string[]; usePositive: boolean; useNegative: boolean; useTags: boolean; tags: string[]; sync: boolean; prefixes: SourcePrefix[]; associatedIds: string[] };
+
+function selectPrefixes(row: Row, prefixes: SourcePrefix[]): Row {
+    const positive = mergeSourcePrefixTerms(row.usePositive ? row.positive : [], row.prefixes, prefixes, 'positive');
+    const negative = mergeSourcePrefixTerms(row.useNegative ? row.negative : [], row.prefixes, prefixes, 'negative');
+    return { ...row, prefixes,
+        positive: !row.usePositive && !positive.length ? row.positive : positive,
+        negative: !row.useNegative && !negative.length ? row.negative : negative,
+        usePositive: !!positive.length, useNegative: !!negative.length };
+}
 export function AppendImagesModal({ entries, onClose,snapshotId }: { entries: GalleryEntry[]; onClose: () => void;snapshotId?:string }) {
     const hydrus = useHydrus();
     const gallery = useGalleryContext();
@@ -43,33 +54,45 @@ export function AppendImagesModal({ entries, onClose,snapshotId }: { entries: Ga
         const initial: Row[] = entries.map(entry => {
             const metadata = entry.local ? { ...entry.local.metadata, hydrus: hydrus.items[entry.local.url]?.metadata || (entry.local.metadata as any)?.hydrus } : { hydrus: entry.remote };
             const prompts = extractLocalPrompts(metadata,true);
-            return { entry, metadata, positive: promptTerms(prompts.positive), negative: promptTerms(prompts.negative), usePositive: false, useNegative: false, useTags: false, tags: extractHydrusTags(metadata), sync: false };
+            return { entry, metadata, positive: promptTerms(prompts.positive), negative: promptTerms(prompts.negative), usePositive: false, useNegative: false, useTags: false, tags: extractHydrusTags(metadata), sync: false, prefixes: [], associatedIds: [] };
         });
         setRows([]);
         void loadPrefixes().then(library => { if (live){setLibrary(library); setRows(initial.map(row => {
-            const association = imagePrefixKeys(row.entry, gallery.settings.relativePath).map(key => library.associations?.[key]).find(Boolean);
-            const keys=imagePrefixKeys(row.entry,gallery.settings.relativePath),associatedIds=imagePrefixIds(library,keys,row.metadata);
-            const variant=library.snapshots?.[snapshotId||row.metadata?.gallery_prefix?.snapshot_id||imageSnapshotIds(library,keys,row.metadata)[0]];if(variant)return {...row,associatedIds,positive:variant.terms,negative:variant.negative_terms,prefixId:variant.prefix_id,snapshotId:variant.id,usePositive:true,useNegative:!!variant.negative_terms.length};
-            return association ? { ...row,associatedIds, positive: association.terms, usePositive: association.terms.length > 0, negative: association.negative_terms || row.negative, useNegative: !!association.negative_terms?.length, prefixId: association.prefix_id } : {...row,associatedIds};
+            const keys = imagePrefixKeys(row.entry, gallery.settings.relativePath);
+            const direct = [...new Set(keys.flatMap(key => associationPrefixIds(library.associations?.[key])))];
+            const variantId = snapshotId || sourcePrefixRefs(row.metadata).find(ref => ref.snapshot_id)?.snapshot_id || imageSnapshotIds(library, keys, row.metadata)[0];
+            const variant = variantId ? library.snapshots?.[variantId] : undefined;
+            const selected = [...new Set([...direct, ...(variant ? [variant.prefix_id] : [])])];
+            const associatedIds = [...new Set([...selected, ...imagePrefixIds(library, keys, row.metadata)])];
+            const prefixes = selected.flatMap(id => {
+                const recipe = sourcePrefixRecipe(library, id, variant?.prefix_id === id ? variant.id : undefined);
+                return recipe ? [recipe] : [];
+            });
+            return prefixes.length ? selectPrefixes({ ...row, associatedIds }, prefixes) : { ...row, associatedIds };
         }));} }).catch(reason => { if (live) { setRows(initial); setError('Could not load image-prefix associations: ' + String(reason)); } });
         void getPromptTargets().then(setTargets).catch(reason => setError(String(reason)));
         return () => { live = false; };
     }, [entries]);
     const update = (index: number, values: Partial<Row>) => setRows(old => old.map((row, i) => i === index ? { ...row, ...values } : row));
+    const changePrefixes = (index: number, change: (row: Row) => SourcePrefix[]) =>
+        setRows(old => old.map((row, at) => at === index ? selectPrefixes(row, change(row)) : row));
     const append = async () => {
         setBusy(true); setError(''); setNotice('');
         try {
             const images: ImageSourceImage[] = [];
             for (const row of rows) {
                 let copied: any;
+                const prefixMetadata = sourcePrefixMetadata(row.prefixes.map(ref => ({
+                    ...ref, positive_enabled: row.usePositive, negative_enabled: row.useNegative,
+                })));
                 if (row.entry.local) {
                     const originalMetadata=await loadLocalMetadata(row.entry.local,gallery.settings.relativePath);
-                    const response = await fetch('/Gallery/source/local', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: row.entry.local.url, metadata: { ...originalMetadata,hydrus:row.metadata.hydrus, ...(row.prefixId ? { gallery_prefix: { id: row.prefixId,snapshot_id:row.snapshotId, positive: row.positive, negative: row.negative, tags: row.tags } } : {}) } }) });
+                    const response = await fetch('/Gallery/source/local', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: row.entry.local.url, metadata: { ...originalMetadata, hydrus: row.metadata.hydrus, ...prefixMetadata } }) });
                     copied = await response.json();
                     if (!response.ok) throw new Error(copied.error || 'Local image copy failed');
                 } else copied = await hydrusRequest('import', { hash: row.entry.hash });
                 if (copied.warning) throw new Error(copied.warning + ' Retry after checking Hydrus permissions; workflow was not changed.');
-                const metadata = { ...row.metadata, ...copied.metadata, gallery_prefix: row.prefixId ? { id: row.prefixId,snapshot_id:row.snapshotId, positive: row.positive, negative: row.negative, tags: row.tags, positive_enabled: row.usePositive, negative_enabled: row.useNegative } : undefined, hydrus: copied.metadata?.hydrus || row.metadata.hydrus };
+                const metadata = { ...row.metadata, ...copied.metadata, ...prefixMetadata, hydrus: copied.metadata?.hydrus || row.metadata.hydrus };
                 images.push({ input_name: copied.input_name, title: row.entry.name, metadata, prompt: { positive: (await formatPromptTerms(Array.from(new Set([...(row.usePositive ? row.positive : []), ...(row.useTags ? row.tags : [])])), spaces)).join(', '), negative: row.useNegative ? (await formatPromptTerms(row.negative, spaces)).join(', ') : '', tags: row.tags } });
             }
             // Append first so a missing workflow target cannot silently become a copy-only action.
@@ -101,13 +124,56 @@ export function AppendImagesModal({ entries, onClose,snapshotId }: { entries: Ga
         <Button onClick={()=>setPaletteOpen(true)}>All tags…</Button>
         <FloatingPanel panelKey="append-vocabulary" title="All tags" open={paletteOpen} onCancel={()=>setPaletteOpen(false)} width={850} zIndex={3060}>
         <Space wrap align="center" style={{display:"flex"}}><Select style={{minWidth:240}} aria-label="Vocabulary image" value={paletteImage} onChange={setPaletteImage} options={rows.map((row, value) => ({ value, label: row.entry.name }))} /><Select aria-label="Vocabulary destination" value={paletteSide} onChange={setPaletteSide} options={[{value:'positive',label:'Positive prompt'},{value:'negative',label:'Negative prompt'},{value:'tags',label:'Hydrus tags'}]} /></Space>
-        <PromptPalette onAppend={async (groups, options) => { const row = rows[paletteImage]; if (!row) throw new Error('Choose an image first.'); const text = await prepareInsertion(groups, options);const terms=promptTerms(text); setRows(old => old.map((item, index) => index !== paletteImage ? item : { ...item, [paletteSide]: options.position === 'before' ? [...terms, ...item[paletteSide]] : [...item[paletteSide], ...terms], ...(paletteSide === 'positive' ? {usePositive:true} : paletteSide === 'negative' ? {useNegative:true} : {}) })); }} onChoose={(terms, prefixId, negatives) => { const row = rows[paletteImage]; if (row) update(paletteImage, { [paletteSide]: Array.from(new Set([...row[paletteSide], ...terms])), ...(paletteSide === 'positive' ? {usePositive:true, prefixId:prefixId || row.prefixId, ...(negatives?.length ? {negative: Array.from(new Set([...row.negative, ...negatives])), useNegative:true} : {})} : paletteSide === 'negative' ? {useNegative:true} : {} ) }); }} />
+        <PromptPalette onAppend={async (groups, options) => {
+            if (!rows[paletteImage]) throw new Error('Choose an image first.');
+            const terms = promptTerms(await prepareInsertion(groups, options));
+            setRows(old => old.map((row, index) => index !== paletteImage ? row : {
+                ...row, [paletteSide]: options.position === 'before' ? [...terms, ...row[paletteSide]] : [...row[paletteSide], ...terms],
+                ...(paletteSide === 'positive' ? { usePositive: true } : paletteSide === 'negative' ? { useNegative: true } : {}),
+            }));
+        }} onChoose={(terms, prefixId, negatives) => {
+            const row = rows[paletteImage];
+            if (!row) return;
+            if (paletteSide === 'positive' && prefixId) {
+                changePrefixes(paletteImage, current => current.prefixes.some(ref => ref.id === prefixId) ? current.prefixes :
+                    [...current.prefixes, { id: prefixId, positive: terms, negative: negatives || [] }]);
+                return;
+            }
+            update(paletteImage, { [paletteSide]: [...new Set([...row[paletteSide], ...terms])],
+                ...(paletteSide === 'positive' ? { usePositive: true } : paletteSide === 'negative' ? { useNegative: true } : {}) });
+        }} />
         </FloatingPanel>
         <Collapse defaultActiveKey={['0']} items={rows.map((row, index) => ({ key: String(index), label: row.entry.name, children: <Space direction="vertical" align="start" style={{ width: '100%' }}>
-            <Button onClick={() => openPrefixManager({name:library.prefixes.find(prefix=>prefix.id===row.prefixId)?.name,snapshotId:row.snapshotId, positive: row.positive, negative: row.negative, hydrus: row.tags, imageKeys: imagePrefixKeys(row.entry, gallery.settings.relativePath), imageRefs: imagePrefixRefs(row.entry, gallery.settings.relativePath), onSaved: (terms, prefixId, negativeTerms) => update(index, { positive: terms, usePositive: !!terms.length, negative: negativeTerms, useNegative: !!negativeTerms.length, prefixId }) })}>Prefix associations…</Button>
-            {!!row.associatedIds?.length&&<Select aria-label={'Associated prefix '+index} value={row.prefixId} style={{width:'100%'}} options={row.associatedIds.map(id=>({value:id,label:'@'+(library.prefixes.find(prefix=>prefix.id===id)?.name||id)}))} onChange={prefixId=>{const prefix=library.prefixes.find(prefix=>prefix.id===prefixId);update(index,{prefixId,snapshotId:undefined,positive:prefix?.tags.map(id=>library.tags.find(tag=>tag.id===id)?.text||'').filter(Boolean)||[],negative:prefix?.negative_terms||[],usePositive:true,useNegative:!!prefix?.negative_terms?.length});}}/>}
-            {row.prefixId&&<Select aria-label={'Reference snapshot '+index} style={{width:'100%'}} value={row.snapshotId||''} options={[{value:'',label:'Parent prefix tags'},...Object.values(library.snapshots||{}).filter(variant=>variant.prefix_id===row.prefixId).map(variant=>({value:variant.id,label:(variant.name||'Snapshot')+' · '+variant.id.slice(0,8)}))]} onChange={id=>{const variant=library.snapshots?.[id],parent=library.prefixes.find(p=>p.id===row.prefixId);update(index,{snapshotId:id||undefined,positive:variant?.terms||(parent?parent.tags.map(id=>library.tags.find(tag=>tag.id===id)?.text||'').filter(Boolean):row.positive),negative:variant?.negative_terms||parent?.negative_terms||[],usePositive:true,useNegative:!!(variant?.negative_terms||parent?.negative_terms||[]).length});}}/>}
-            {row.prefixId && <Typography.Text type="success">@{library.prefixes.find(prefix=>prefix.id===row.prefixId)?.name} · {row.snapshotId?"snapshot":"shared tags"}</Typography.Text>}<Button size="small" onClick={()=>update(index,{usePositive:true,useNegative:true})}>Load both prompts</Button>
+            <Button onClick={() => {
+                const first = row.prefixes[0];
+                openPrefixManager({ name: first?.name, snapshotId: first?.snapshot_id,
+                    positive: row.prefixes.length > 1 ? first.positive : row.positive,
+                    negative: row.prefixes.length > 1 ? first.negative : row.negative,
+                    hydrus: row.tags, imageKeys: imagePrefixKeys(row.entry, gallery.settings.relativePath),
+                    imageRefs: imagePrefixRefs(row.entry, gallery.settings.relativePath),
+                    onSaved: (positive, id, negative) => {
+                        const recipe = { id, positive, negative };
+                        changePrefixes(index, current => current.prefixes.some(ref => ref.id === id)
+                            ? current.prefixes.map(ref => ref.id === id ? recipe : ref) : [...current.prefixes, recipe]);
+                        void loadPrefixes().then(setLibrary).catch(reason => setError(String(reason)));
+                    },
+                });
+            }}>Prefix associations…</Button>
+            {!!(row.associatedIds.length || row.prefixes.length) && <Select mode="multiple" aria-label={'Associated prefix '+index}
+                placeholder="Choose associated prefixes" value={row.prefixes.map(ref => ref.id)} style={{ minWidth: 280 }}
+                options={[...new Set([...row.associatedIds, ...row.prefixes.map(ref => ref.id)])].map(id => ({ value: id, label: '@' + (library.prefixes.find(prefix => prefix.id === id)?.name || id) }))}
+                onChange={ids => changePrefixes(index, current => ids.flatMap(id => {
+                    const recipe = current.prefixes.find(ref => ref.id === id) || sourcePrefixRecipe(library, id);
+                    return recipe ? [recipe] : [];
+                }))} />}
+            {row.prefixes.map((ref, refIndex) => <Space key={ref.id} wrap>
+                <Typography.Text type="success">@{library.prefixes.find(prefix => prefix.id === ref.id)?.name || ref.name || ref.id}</Typography.Text>
+                <Select aria-label={'Reference snapshot ' + index + (refIndex ? ' · ' + ref.id : '')} style={{ minWidth: 230 }} value={ref.snapshot_id || ''}
+                    options={[{ value: '', label: 'Parent prefix tags' }, ...Object.values(library.snapshots || {}).filter(variant => variant.prefix_id === ref.id)
+                        .map(variant => ({ value: variant.id, label: (variant.name || 'Snapshot') + ' · ' + variant.id.slice(0, 8) }))]}
+                    onChange={id => changePrefixes(index, current => current.prefixes.map(item => item.id === ref.id ? sourcePrefixRecipe(library, ref.id, id || undefined) || item : item))} />
+            </Space>)}
+            <Button size="small" onClick={()=>update(index,{usePositive:true,useNegative:true})}>Load both prompts</Button>
             <Checkbox checked={row.usePositive} onChange={event => update(index, { usePositive: event.target.checked })}>Load positive prompt</Checkbox>
             <TermsEditor value={row.positive} onChange={positive=>update(index,{positive})} suggest={suggest} placeholder={'Positive terms '+index}/>
             <Checkbox checked={row.useNegative} onChange={event => update(index, { useNegative: event.target.checked })}>Load negative prompt</Checkbox>

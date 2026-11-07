@@ -5,6 +5,8 @@ import { useGalleryContext } from './GalleryContext';
 import { SOURCE_BROWSE_EVENT, SOURCE_EDITOR_EVENT, editSourceTarget, getSourceTargets, readSourceManifest, saveSourceManifest, setSourceTarget } from './ImageSourceBridge';
 import type { ImageSourceManifest } from './ImageSourceGeometry';
 import { STANDALONE } from './ComfyAppApi';
+import { latestPrefixLibrary } from './PrefixLibrary';
+import { refreshSourcePrefix } from './SourcePrefixes';
 
 export function ImageSourceHost() {
     const { setOpen } = useGalleryContext();
@@ -22,7 +24,15 @@ export function ImageSourceHost() {
         return () => { window.removeEventListener(SOURCE_EDITOR_EVENT, edit); window.removeEventListener(SOURCE_BROWSE_EVENT, browse); };
     }, [setOpen]);
     return <ImageSourceEditor open={!!node} manifest={manifest} onClose={() => setNode(undefined)}
-        onApply={value => { try { saveSourceManifest(node, value); setManifest(value); return true; } catch (error) { message.error(String(error)); return false; } }}
+        onApply={value => {
+            try {
+                const library = latestPrefixLibrary();
+                const refreshed = library ? { ...value, images: value.images.map(image => refreshSourcePrefix(image, library)) } : value;
+                saveSourceManifest(node, refreshed);
+                setManifest(readSourceManifest(node));
+                return true;
+            } catch (error) { message.error(String(error)); return false; }
+        }}
         onBrowse={() => { setNode(undefined); setOpen(true); }} />;
 }
 

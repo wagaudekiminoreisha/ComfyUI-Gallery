@@ -141,8 +141,8 @@ export function LocalPromptSearch({ onLocalSearch, managerOnly = false }: { onLo
         drafts.markSaved({ name: prefix.name, positive: expandPrefix(shared, '@' + prefix.name), negative: prefix.negative_terms || [] });
         setPrefixName(prefix.name); setPrefixTags(expandPrefix(shared, '@' + prefix.name)); setNegativeTags(prefix.negative_terms || []); setEditorOpen(true);
     };
-    const unpair = async (keys: string[]) => {
-        try { await dissociateImages(keys, shared.revision); await load(); message.success('Image unpaired from the prefix'); } catch (error) { message.error(String(error)); }
+    const unpair = async (keys: string[], prefixId: string) => {
+        try { await dissociateImages(keys, shared.revision, prefixId); await load(); message.success('Image unpaired from the prefix'); } catch (error) { message.error(String(error)); }
     };
     useEffect(()=>{const refresh=()=>{void load();};window.addEventListener('gallery-prefix-snapshots-changed',refresh);return()=>window.removeEventListener('gallery-prefix-snapshots-changed',refresh);},[]);
     const draftLabel = prefixName.trim() || 'unnamed prefix';
@@ -203,7 +203,7 @@ export function LocalPromptSearch({ onLocalSearch, managerOnly = false }: { onLo
             <PrefixEditor onLoad={drafts.markSaved} shared={shared} seed={seed} active={editorOpen} name={prefixName} setName={setPrefixName} positive={prefixTags} setPositive={setPrefixTags} negative={negativeTags} setNegative={setNegativeTags}
                 saving={saving} onSave={() => void save()} onDelete={removePrefix} onAppendToNode={seed.node ? id => void appendPrefixToNode(id) : undefined}
                 onOpenLibrarySearch={() => setLibraryOpen(true)} onOpenPrompts={() => setOpen(true)}
-                onUnpair={image => void unpair(image.keys || [])} />
+                onUnpair={(image, id) => void unpair(image.keys || [], id)} />
         </FloatingPanel>
         <LibrarySearchPanel open={libraryOpen} onClose={() => setLibraryOpen(false)} pool={libraryPool} shared={shared} status={status} indexedCount={indexed.length} canAppendToNode={!!seed.node}
             onRefresh={() => void load()} onSearch={(terms, field, prefixId) => { const prefix = shared.prefixes.find(item => item.id === prefixId); openTagSearch(terms, field, prefix ? { id: prefix.id, name: prefix.name, terms } : undefined); }} onAddToDraft={addToDraft} onEditPrefix={editPrefix} onDeletePrefix={removePrefix} onAppendToNode={id => void appendPrefixToNode(id)} />

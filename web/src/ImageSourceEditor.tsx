@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
 import { Alert, Button, Empty, Input, InputNumber, Modal, Select, Space, Spin, Tag, Typography } from 'antd';
 import { BASE_Z_INDEX } from './ComfyAppApi';
-import { clampCrop, cropFromPoints, emptyImageSourceManifest, sourceImageUrl } from './ImageSourceGeometry';
+import { batchSourceIndices, clampCrop, cropFromPoints, emptyImageSourceManifest, removeSourceImage, sourceImageUrl } from './ImageSourceGeometry';
 import type { ImageSourceCrop, ImageSourceManifest } from './ImageSourceGeometry';
 
 export { emptyImageSourceManifest };
@@ -90,12 +90,13 @@ export function ImageSourceEditor({ open, manifest, onApply, onClose, onBrowse }
             const images = previous.images.slice();
             [images[index], images[destination]] = [images[destination], images[index]];
             const active = previous.active_index || 0;
-            return { ...previous, images, active_index: active === index ? destination : active === destination ? index : active };
+            const moveIndex = (at: number) => at === index ? destination : at === destination ? index : at;
+            return { ...previous, images, active_index: moveIndex(active), batch_indices: previous.batch_indices?.map(moveIndex) };
         });
         setSelected(previous => previous === index ? destination : previous === destination ? index : previous);
     };
     const remove = (index: number) => {
-        setDraft(previous => ({ ...previous, images: previous.images.filter((_, at) => at !== index), active_index: Math.max(0, (previous.active_index || 0) > index ? (previous.active_index || 0) - 1 : Math.min(previous.active_index || 0, previous.images.length - 2)) }));
+        setDraft(previous => removeSourceImage(previous, index));
         setSelected(previous => Math.max(0, previous > index ? previous - 1 : Math.min(previous, draft.images.length - 2)));
     };
     const point = (event: PointerEvent<HTMLDivElement>) => {
@@ -163,7 +164,7 @@ export function ImageSourceEditor({ open, manifest, onApply, onClose, onBrowse }
             @media (max-width: 760px) { .gallery-source-editor .gallery-source-layout { grid-template-columns: 1fr; } .gallery-source-editor .gallery-source-list { max-height: 225px; } }
         `}</style>
         <div className="gallery-source-editor">
-            <Typography.Paragraph style={{ marginBottom: 8 }}>Add images from the gallery, crop each source, then choose how to combine them. Connect this node’s <strong>IMAGE</strong> output to <strong>VAE Encode</strong> for img2img.</Typography.Paragraph>
+            <Typography.Paragraph style={{ marginBottom: 8 }}>Connect <strong>image</strong> to VAE Encode for the active image or stitch. Wire the numbered image outputs to <strong>Batch Images</strong> to route sources separately.</Typography.Paragraph>
             <Space wrap><Button onClick={browse} disabled={draft.images.length >= 32}>Browse / append images</Button><Tag>{draft.images.length} / 32 images</Tag>{dirty && <Tag color="gold">Unsaved changes</Tag>}</Space>
             {!draft.images.length ? <Empty style={{ margin: '36px 0' }} description="Append local or Hydrus images from the gallery to start." /> : <div className="gallery-source-layout">
                 <div>
@@ -172,7 +173,7 @@ export function ImageSourceEditor({ open, manifest, onApply, onClose, onBrowse }
                         {draft.images.map((image, index) => <SourceImageMenu key={image.input_name+index} image={image} onRemove={()=>remove(index)}><div className={`gallery-source-item${selected === index ? ' active' : ''}`} key={`${index}:${image.input_name}`}>
                             <button className="gallery-source-pick" type="button" aria-pressed={selected === index} aria-label={`Edit image ${index + 1}: ${image.title || describe(image.input_name)}`} onClick={() => { setSelected(index); setDraft(previous => ({ ...previous, active_index: index })); }}>
                                 <img src={`/Gallery/source/thumbnail?url=${encodeURIComponent(`/static_gallery/${image.input_name}`)}`} loading="lazy" alt="" />
-                                <span style={{ overflowWrap: 'anywhere', lineHeight: 1.4 }}><strong>{index + 1}.</strong> {image.title || describe(image.input_name)}{image.crop && <small style={{ display: 'block' }}>Cropped</small>}</span>
+                                <span style={{ overflowWrap: 'anywhere', lineHeight: 1.4 }}><strong>{index + 1}.</strong> {image.title || describe(image.input_name)}{batchSourceIndices(draft).includes(index) && image.output_slot !== undefined && <Tag color="green">Image {image.output_slot + 1}</Tag>}{image.crop && <small style={{ display: 'block' }}>Cropped</small>}</span>
                             </button>
                             <Space size={4}><Button size="small" onClick={() => move(index, -1)} disabled={!index} aria-label={`Move image ${index + 1} earlier`}>↑</Button><Button size="small" onClick={() => move(index, 1)} disabled={index === draft.images.length - 1} aria-label={`Move image ${index + 1} later`}>↓</Button><Button size="small" danger onClick={() => remove(index)} aria-label={`Remove image ${index + 1}`}>Remove</Button></Space>
                         </div></SourceImageMenu>)}

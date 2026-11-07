@@ -8,7 +8,8 @@
  */
 import type { FileDetails } from './types';
 import type { PrefixLibrary } from './PrefixLibrary';
-import { collectPrefixImages } from './PrefixAssociations';
+import { associationPrefixIds, collectPrefixImages } from './PrefixAssociations';
+import { sourcePrefixRefs } from './SourcePrefixes';
 import { metadataSources } from './PromptResolution';
 import { extractHydrusTags, extractLocalPrompts } from './LocalImageSearch';
 import { stripUnresolved } from './PromptResolution';
@@ -22,27 +23,41 @@ function object(value: unknown): Record<string, any> {
 
 export type SourceLinks = { hashes: string[]; prefixIds: string[] };
 
-/** The images a generation was made from: every Gallery Image Source in its prompt (or workflow). */
-export function sourceLinks(metadata: unknown): SourceLinks {
+function usedSources(metadata: unknown) {
     const sources = metadataSources(metadata);
-    const manifests: Record<string, any>[] = [];
-    for (const node of Object.values(object(sources.prompt))) {
-        if (node && typeof node === 'object' && (node as any).class_type === 'GalleryImageSource') manifests.push(object((node as any).inputs?.sources));
-    }
-    if (!manifests.length) {
-        const workflow = object(sources.workflow);
-        for (const node of Array.isArray(workflow.nodes) ? workflow.nodes : []) if (node?.type === 'GalleryImageSource') manifests.push(object(node.widgets_values?.[0]));
-    }
-    const hashes = new Set<string>(), prefixIds = new Set<string>();
-    for (const manifest of manifests) {
-        const images: any[] = Array.isArray(manifest.images) ? manifest.images : [];
-        const used = manifest.layout === 'single' ? images.slice(manifest.active_index || 0, (manifest.active_index || 0) + 1) : images;
-        for (const image of used) {
-            const match = HASH.exec(String(image?.input_name || ''));
-            if (match) hashes.add(match[1].toLowerCase());
-            const prefix = object(image?.metadata).gallery_prefix;
-            if (typeof prefix?.id === 'string') prefixIds.add(prefix.id);
+    const prompt = object(sources.prompt);
+    const slots = new Map<string, Set<number>>();
+    for (const node of Object.values(prompt)) {
+        for (const input of Object.values(object(node?.inputs))) {
+            if (!Array.isArray(input) || input.length !== 2 || typeof input[1] !== 'number') continue;
+            const id = String(input[0]);
+            if (prompt[id]?.class_type !== 'GalleryImageSource') continue;
+            if (!slots.has(id)) slots.set(id, new Set());
+            slots.get(id)!.add(input[1]);
         }
+    }
+    const select = (manifest: Record<string, any>, wired?: Set<number>) => {
+        const images: any[] = Array.isArray(manifest.images) ? manifest.images : [];
+        const batch: number[] = Array.isArray(manifest.batch_indices) ? manifest.batch_indices : images.map((_, index) => index);
+        const active = manifest.active_index || 0;
+        const composition = !wired || [...wired].some(slot => slot < 7);
+        return images.filter((image, index) => (composition && (manifest.layout !== 'single' || index === active)) ||
+            (batch.includes(index) && (wired?.has(7) || wired?.has(8 + (image?.output_slot ?? index)))));
+    };
+    const manifests = Object.entries(prompt).filter(([, node]) => node?.class_type === 'GalleryImageSource');
+    if (manifests.length) return manifests.flatMap(([id, node]) => select(object(node.inputs?.sources), slots.get(id)));
+    const workflow = object(sources.workflow);
+    return (Array.isArray(workflow.nodes) ? workflow.nodes : []).flatMap(node =>
+        node?.type === 'GalleryImageSource' ? select(object(node.widgets_values?.[0])) : []);
+}
+
+/** The Gallery Image Source images used by a saved generation. */
+export function sourceLinks(metadata: unknown): SourceLinks {
+    const hashes = new Set<string>(), prefixIds = new Set<string>();
+    for (const image of usedSources(metadata)) {
+        const match = HASH.exec(String(image?.input_name || ''));
+        if (match) hashes.add(match[1].toLowerCase());
+        sourcePrefixRefs(object(image?.metadata)).forEach(prefix => prefixIds.add(prefix.id));
     }
     for(const record of Object.values(object(object(metadata).gallery_prompts)))for(const ref of Array.isArray((record as any)?.prefix_snapshots)?(record as any).prefix_snapshots:[])if(typeof ref.prefix_id==='string')prefixIds.add(ref.prefix_id);
     return { hashes: [...hashes], prefixIds: [...prefixIds] };
@@ -180,16 +195,10 @@ export async function findLineage(files: FileDetails[], library: PrefixLibrary, 
 
 /** The input images a generation was made from (the copies Gallery Image Source keeps in the input folder). */
 export function madeFrom(metadata: unknown): { input_name: string; hash?: string; title?: string; metadata?: unknown }[] {
-    const sources = metadataSources(metadata);
-    const result: { input_name: string; hash?: string; title?: string; metadata?: unknown }[] = [];
-    const add = (manifest: Record<string, any>) => {
-        const images: any[] = Array.isArray(manifest.images) ? manifest.images : [];
-        const used = manifest.layout === 'single' ? images.slice(manifest.active_index || 0, (manifest.active_index || 0) + 1) : images;
-        for (const image of used) if (typeof image?.input_name === 'string') result.push({ input_name: image.input_name, hash: HASH.exec(image.input_name)?.[1]?.toLowerCase(), title: typeof image.title === 'string' ? image.title : undefined, metadata: image.metadata });
-    };
-    for (const node of Object.values(object(sources.prompt))) if ((node as any)?.class_type === 'GalleryImageSource') add(object((node as any).inputs?.sources));
-    if (!result.length) { const workflow = object(sources.workflow); for (const node of Array.isArray(workflow.nodes) ? workflow.nodes : []) if (node?.type === 'GalleryImageSource') add(object(node.widgets_values?.[0])); }
-    return result;
+    return usedSources(metadata).flatMap(image => typeof image?.input_name === 'string' ? [{
+        input_name: image.input_name, hash: HASH.exec(image.input_name)?.[1]?.toLowerCase(),
+        title: typeof image.title === 'string' ? image.title : undefined, metadata: image.metadata,
+    }] : []);
 }
 
 /** Everything an image descends from: the source hashes and prefix ids of its inputs, their inputs, and so on (input copies keep their metadata). */
@@ -214,7 +223,7 @@ export function ancestry(metadata: unknown, maxDepth = 6): { hashes: Set<string>
  */
 export function imagePrefixIds(library: PrefixLibrary, keys: string[], metadata: unknown, pairedHashes: Map<string, Set<string>> = new Map()): string[] {
     const ids = new Set<string>();
-    for (const key of keys) { const id = library.associations?.[key]?.prefix_id; if (id) ids.add(id); }
+    for (const key of keys) associationPrefixIds(library.associations?.[key]).forEach(id => ids.add(id));
     imageSnapshotIds(library,keys,metadata).forEach(id=>{const parent=library.snapshots?.[id]?.prefix_id;if(parent)ids.add(parent);});
     for(const row of metadataSources(metadata).gallery_associations||[])if(typeof row?.prefix_id==='string')ids.add(row.prefix_id);
     const { hashes, prefixIds } = ancestry(metadata);
@@ -229,10 +238,12 @@ export async function pairedHashIndex(library: PrefixLibrary, hashOf: HashLookup
     const add = (hash: string, id: string) => { const key = hash.toLowerCase(); if (!index.has(key)) index.set(key, new Set()); index.get(key)!.add(id); };
     const locals: [string, string][] = [];
     for (const [key, item] of Object.entries(library.associations || {})) {
-        if (key.startsWith('sha256:')) add(key.slice(7), item.prefix_id);
-        if (item.image?.hash) add(item.image.hash, item.prefix_id);
         const at = key.startsWith('local:') ? key.lastIndexOf(':/static_gallery/') : -1;
-        if (at > 0) locals.push([key.slice(at + 1), item.prefix_id]);
+        for (const id of associationPrefixIds(item)) {
+            if (key.startsWith('sha256:')) add(key.slice(7), id);
+            if (item.image?.hash) add(item.image.hash, id);
+            if (at > 0) locals.push([key.slice(at + 1), id]);
+        }
     }
     const hashes = await hashOf(locals.map(([url]) => url));
     for (const [url, id] of locals) if (hashes[url]) add(hashes[url], id);
@@ -284,15 +295,12 @@ export function requiredTerms(terms: string[]): string[] {
 
 /** Snapshot identity comes from recorded encoder provenance or explicit image membership. */
 export function imageSnapshotIds(library:PrefixLibrary,keys:string[],metadata:unknown):string[]{
- const ids=new Set<string>();const value=object(metadata),prefix=object(value.gallery_prefix);
- if(typeof prefix.snapshot_id==='string')ids.add(prefix.snapshot_id);
+ const ids=new Set<string>();const value=object(metadata);
+ for(const prefix of sourcePrefixRefs(value))if(typeof prefix.snapshot_id==='string')ids.add(prefix.snapshot_id);
  for(const record of Object.values(object(value.gallery_prompts)))for(const ref of Array.isArray((record as any)?.prefix_snapshots)?(record as any).prefix_snapshots:[])if(typeof ref.snapshot_id==='string')ids.add(ref.snapshot_id);
  const sources=metadataSources(metadata);
  for(const row of Array.isArray(sources.gallery_associations)?sources.gallery_associations:[])if(typeof row?.snapshot_id==='string')ids.add(row.snapshot_id);
- for(const node of Object.values(object(sources.prompt)))if((node as any)?.class_type==='GalleryImageSource'){
-  const manifest=object((node as any).inputs?.sources),images=Array.isArray(manifest.images)?manifest.images:[],used=manifest.layout==='single'?images.slice(manifest.active_index||0,(manifest.active_index||0)+1):images;
-  for(const image of used){const id=object(image?.metadata).gallery_prefix?.snapshot_id;if(typeof id==='string')ids.add(id);}
- }
+ for(const image of usedSources(metadata))for(const prefix of sourcePrefixRefs(object(image?.metadata)))if(typeof prefix.snapshot_id==='string')ids.add(prefix.snapshot_id);
  for(const row of Object.values(library.snapshots||{}))if(keys.some(key=>Object.prototype.hasOwnProperty.call(row.members,key)||Object.values(row.members).some(ref=>ref.local_url&&key.endsWith(':'+ref.local_url))))ids.add(row.id);
  return [...ids];
 }

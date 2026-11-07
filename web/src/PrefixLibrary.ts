@@ -6,7 +6,8 @@ import { splitTop } from './PromptBoxes';
 export { effectiveSourceText } from './EncoderNode';
 export type PrefixImage = { input_name?:string; name?: string; local_url?: string; root?: string; hash?: string; /** Association keys this image is stored under (filled in when listing). */ keys?: string[] };
 export type PrefixSnapshot={id:string;prefix_id:string;name:string;terms:string[];negative_terms:string[];rules:import('./RuleEngine').RuleBox[];hair_policy?:import('./HairPolicy').HairPolicy;members:Record<string,PrefixImage>;created_at:number};
-export type PrefixLibrary = { snapshots?:Record<string,PrefixSnapshot>;version: number; associations?: Record<string, { prefix_id: string; terms: string[]; negative_terms?: string[]; image?: PrefixImage }>; tags: { id: string; name: string; text: string }[]; prefixes: { id: string; name: string; tags: string[]; negative_terms?: string[] }[] };
+export type PrefixAssociation = { prefix_id: string; prefix_ids?: string[]; terms: string[]; negative_terms?: string[]; image?: PrefixImage };
+export type PrefixLibrary = { snapshots?:Record<string,PrefixSnapshot>;version: number; associations?: Record<string, PrefixAssociation>; tags: { id: string; name: string; text: string }[]; prefixes: { id: string; name: string; tags: string[]; negative_terms?: string[] }[] };
 async function api() {
     const current = (window as any).comfyAPI?.api?.api || getComfyApp()?.api;
     if (current?.fetchApi) return current;
@@ -18,6 +19,9 @@ export const PREFIX_EDITOR_EVENT = 'gallery-prefix-editor';
 export type PrefixSeed = {snapshotId?:string; name?: string; positive?: string[]; negative?: string[]; hydrus?: string[]; node?: any; imageKeys?: string[]; imageRefs?: Record<string, PrefixImage>; onSaved?: (terms: string[], prefixId: string, negativeTerms: string[]) => void };
 export function openPrefixManager(seed: PrefixSeed = {}) { window.dispatchEvent(new CustomEvent(PREFIX_MANAGER_EVENT, { detail: seed })); }
 export type SharedLibrary = PrefixLibrary & { revision?: string };
+let latestLibrary: SharedLibrary | undefined;
+let libraryGeneration = 0;
+export const latestPrefixLibrary = () => latestLibrary;
 async function request(body?: unknown): Promise<{ library: PrefixLibrary; revision: string;snapshot_id?:string|null }> {
     const service = await api();
     const options = body === undefined ? undefined : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
@@ -50,21 +54,26 @@ function syncSources(library: PrefixLibrary) {
     }
     if (changed) { graph?.change?.(); window.dispatchEvent(new Event('gallery-source-changed')); }
 }
-function changed(library?: PrefixLibrary) {
-    if (library) syncSources(library);
+function changed(result: { library: PrefixLibrary; revision: string }) {
+    libraryGeneration++;
+    latestLibrary = { ...result.library, revision: result.revision };
+    syncSources(latestLibrary);
     window.dispatchEvent(new Event('gallery-prefix-library-changed'));
     channel?.postMessage('changed');
 }
 export async function loadPrefixes(): Promise<SharedLibrary> {
+    const generation = libraryGeneration;
     const result = await request();
-    syncSources(result.library);
-    return { ...result.library, revision: result.revision };
+    if (generation !== libraryGeneration && latestLibrary) return latestLibrary;
+    latestLibrary = { ...result.library, revision: result.revision };
+    syncSources(latestLibrary);
+    return latestLibrary;
 }
 export async function migrateBrowserPrefixes(revision: string) {
     const raw = localStorage.getItem('comfy.prompt-library.v2') || localStorage.getItem('comfy.tag-prefix-library.v1');
     if (!raw) throw new Error('No legacy browser library found.');
     const result = await request({ action: 'migrate', revision, library: JSON.parse(raw) });
-    changed(result.library);
+    changed(result);
 }
 /** Prefix terms in a text: comma or line separated, but a comma inside a group stays (`{(a, b)|}` is one term). */
 const termsOfText = (text: string) => text.split(/\n+/).flatMap(line => splitTop(line, ','));
@@ -87,20 +96,20 @@ export function expandSearchTerms(library: PrefixLibrary, value: string): string
 export async function savePrefix(name: string, values: string[], revision?: string, imageKeys?: string[], negativeTerms?: string[], imageRefs?: Record<string, PrefixImage>) {
     const result = await request({ action: 'save', name, terms: values, image_keys: imageKeys || [], negative_terms: negativeTerms, image_refs: imageRefs || {}, revision: revision || (await loadPrefixes()).revision });
     localStorage.setItem('comfy.prompt-library.v2', JSON.stringify(result.library));
-    changed(result.library);
+    changed(result);
     return 'Saved to shared Prompt Library';
 }
 /** Pair images with an existing prefix without changing its terms. */
 export async function associateImages(prefixId: string, imageKeys: string[], imageRefs: Record<string, PrefixImage> = {}, revision?: string) {
     const result = await request({ action: 'associate', prefix_id: prefixId, image_keys: imageKeys, image_refs: imageRefs, revision: revision || (await loadPrefixes()).revision });
     localStorage.setItem('comfy.prompt-library.v2', JSON.stringify(result.library));
-    changed(result.library);
+    changed(result);
 }
 /** Remove image pairings (the prefix itself is kept). */
-export async function dissociateImages(imageKeys: string[], revision?: string) {
-    const result = await request({ action: 'dissociate', image_keys: imageKeys, revision: revision || (await loadPrefixes()).revision });
+export async function dissociateImages(imageKeys: string[], revision?: string, prefixId?: string) {
+    const result = await request({ action: 'dissociate', image_keys: imageKeys, prefix_id: prefixId, revision: revision || (await loadPrefixes()).revision });
     localStorage.setItem('comfy.prompt-library.v2', JSON.stringify(result.library));
-    changed(result.library);
+    changed(result);
 }
 export type PrefixPolarity = 'all' | 'positive' | 'negative' | 'both';
 /** Which sides a prefix has terms on: positive only, negative only, or both. */
@@ -115,7 +124,7 @@ export const POLARITY_OPTIONS: { value: PrefixPolarity; label: string }[] = [{ v
 export async function deletePrefix(id: string, revision: string) {
     const result = await request({ action: 'delete', id, revision });
     localStorage.setItem('comfy.prompt-library.v2', JSON.stringify(result.library));
-    changed(result.library);
+    changed(result);
 }
 const isPrefixNode = (node: any) => ['TagPrefixPromptLibrary', 'GalleryPromptLibrary', 'GalleryPromptEncode'].includes(node?.comfyClass || node?.type || node?.constructor?.comfyClass);
 export function applyLibraryPrefix(node: any, library: PrefixLibrary, id: string, text?: string) {

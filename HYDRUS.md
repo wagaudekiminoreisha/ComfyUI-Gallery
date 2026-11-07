@@ -177,6 +177,7 @@ Text inputs and menus keep their normal keyboard controls, including text select
 3. Click **Edit images / crop / stitch** in Gallery or on the node. Select a source, drag a crop rectangle or enter pixel/percentage coordinates. Reset crop and common aspect ratios are available. Reorder or remove sources in the list.
 4. Choose Single, horizontal stitch, vertical stitch, or grid. Single uses the first source; stitch modes include every source. Set the gap, grid columns, and background color, then **Save to node**. **Browse / append images** saves your current draft and returns to Gallery.
 5. Connect the node's **IMAGE** output to **VAE Encode** or another image input. The node also outputs **MASK**, **width**, and **height**. No generation is queued automatically.
+6. To route sources separately, connect **Image 1**, **Image 2**, and other numbered outputs to the inputs on ComfyUI's **Batch Images** node. The same numbers appear on the source thumbnails. **Pick images → Select batch images** controls which images are available on those sockets and the combined **batch** output. Both use the first selected image's dimensions.
 
 Crops remove pixels. Stitching preserves each crop's original resolution and aligns it to the top-left of its cell without stretching. Source alpha is preserved; MASK is inverted alpha, with opaque background in gaps and unused cells. EXIF orientation is applied before cropping. Animated sources use the first frame. The editor preview is reduced to at most 1024 pixels; node output remains full size. Source-list thumbnails are cached at 512 pixels.
 
@@ -469,6 +470,8 @@ new positive, negative and source_metadata STRING outputs follow them. Connect
 IMAGE to your VAE Encode or ControlNet image input; the gallery does not guess
 which arbitrary graph connection should be replaced. The editor can change each
 image's prompt output later. Direct prompt-target writes happen on append only.
+
+An image can be paired with several saved prefixes, such as a pose and a character look. **Append images and prompts** lets you choose which recipes to load, including an optional snapshot for each. Saving edits to a shared prefix refreshes the source's enabled prompt terms and any Gallery Prompt Encode connected to its positive or negative output. Snapshot recipes stay frozen.
 
 Image Hydrus-tag controls start with all known tags. **Load selected Hydrus tags into the positive prompt** independently enables tag-to-prompt loading. Remove individual tags, add
 vocabulary terms, or expand prefixes. The optional sync checkbox **adds** selected

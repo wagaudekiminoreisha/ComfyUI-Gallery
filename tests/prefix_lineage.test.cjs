@@ -15,6 +15,19 @@ test('generations are linked to their source images by hash, and by the prefix i
     assert.deepEqual(L.sourceLinks({ workflow: { nodes: [{ type: 'GalleryImageSource', widgets_values: [JSON.stringify(manifest)] }] } }).hashes, [h('d')]);
 });
 
+test('numbered wires identify the actual images and every selected prefix in saved lineage', () => {
+    const images = [
+        { input_name: h('a') + '.png', output_slot: 0 },
+        { input_name: h('b') + '.png', output_slot: 4, metadata: { gallery_prefixes: [{ id: 'pose' }, { id: 'look' }] } },
+        { input_name: h('c') + '.png', output_slot: 1 },
+    ];
+    const metadata = { prompt: {
+        '1': { class_type: 'GalleryImageSource', inputs: { sources: JSON.stringify({ layout: 'single', images }) } },
+        '2': { class_type: 'BatchImagesNode', inputs: { 'images.image0': ['1', 12], 'images.image1': ['1', 9] } },
+    } };
+    assert.deepEqual(L.sourceLinks(metadata), { hashes: [h('b'), h('c')], prefixIds: ['pose', 'look'] });
+});
+
 test('find images follows paired images through several generations, whatever the prompt', async () => {
     const files = [
         file('/static_gallery/paired.png', {}),

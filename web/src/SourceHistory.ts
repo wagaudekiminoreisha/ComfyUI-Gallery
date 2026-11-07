@@ -8,7 +8,8 @@ export function mergeSourceHistory(previous: unknown, images: ImageSourceImage[]
     const entries = new Map<string, ImageSourceImage>();
     for (const image of [...(Array.isArray(previous) ? previous : []), ...images]) {
         if (!image || typeof image.input_name !== 'string' || !image.input_name) continue;
-        entries.set(image.input_name, stampOrigin(image));
+        const { output_slot: _slot, ...entry } = image;
+        entries.set(image.input_name, stampOrigin(entry));
     }
     return [...entries.values()].slice(-SOURCE_HISTORY_LIMIT);
 }

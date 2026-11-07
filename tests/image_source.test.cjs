@@ -41,7 +41,7 @@ function bridgeFixture() {
         comfyClass: 'GalleryImageSource', widgets: [{ name: 'sources', type: 'customtext', value: JSON.stringify(geometry.emptyImageSourceManifest()) }],
         addWidget(type, name, value, callback, options) { this.widgets.push({ type, name, value, callback, options }); },
     }; } } };
-    const bridge = compile('ImageSourceBridge', { window, CustomEvent: class { constructor(type, detail) { this.type=type;this.detail=detail; } } }, { './SourceHistory': sourceHistory, './ComfyAppApi': { getComfyApp: () => app, STANDALONE: false }, './ImageSourceGeometry': geometry, './NodeWidgets': compile('NodeWidgets') });
+    const bridge = compile('ImageSourceBridge', { window, CustomEvent: class { constructor(type, detail) { this.type=type;this.detail=detail; } } }, { './SourceHistory': sourceHistory, './ComfyAppApi': { getComfyApp: () => app, STANDALONE: false }, './ImageSourceGeometry': geometry, './NodeWidgets': compile('NodeWidgets'), './PrefixLibrary': { loadPrefixes: async () => { throw new Error('No library in this fixture'); } } });
     return { bridge, graph, app };
 }
 test('append creates one dedicated node and keeps serialized crop/layout across later appends', async () => {
@@ -111,4 +111,27 @@ test('source history survives removing an image and workflow serialization, inde
     await bridge.appendToImageSource([{ input_name: 'only-second.png' }]);
     assert.deepEqual(plain(bridge.readSourceHistory(graph._nodes[1])).map(image => image.input_name), ['only-second.png']);
     assert.deepEqual(plain(bridge.readSourceHistory(first)).map(image => image.input_name), ['a.png', 'b.png']);
+});
+
+test('numbered output sockets keep their image and wire after reorder, removal and reload', async () => {
+    const { bridge, graph } = bridgeFixture();
+    await bridge.appendToImageSource([{ input_name: 'pose.png' }, { input_name: 'look.png' }]);
+    const node = graph._nodes[0];
+    Object.assign(node, {
+        outputs: Array.from({ length: 8 }, () => ({})),
+        addOutput(name, type) { this.outputs.push({ name, type }); },
+        removeOutput(index) { this.outputs.splice(index, 1); },
+        disconnectOutput(index) { this.outputs[index].links = []; },
+    });
+    node.onConfigure();
+    node.outputs[9].links = [42];
+    const initial = bridge.readSourceManifest(node);
+    bridge.saveSourceManifest(node, { ...initial, images: [...initial.images].reverse() });
+    assert.equal(node.outputs[9].label, 'Image 2 · look.png');
+    assert.deepEqual(node.outputs[9].links, [42]);
+    bridge.saveSourceManifest(node, geometry.removeSourceImage(bridge.readSourceManifest(node), 1));
+    node.onConfigure();
+    assert.equal(node.outputs[8].label, 'Image 1 · unused');
+    assert.equal(node.outputs[9].label, 'Image 2 · look.png');
+    assert.deepEqual(node.outputs[9].links, [42]);
 });

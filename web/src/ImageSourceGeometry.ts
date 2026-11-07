@@ -1,5 +1,5 @@
 export type ImageSourceCrop = { x: number; y: number; width: number; height: number };
-export type ImageSourceImage = { input_name: string; title?: string; crop?: ImageSourceCrop; metadata?: Record<string, any>; prompt?: { positive: string; negative: string; tags: string[] } };
+export type ImageSourceImage = { input_name: string; output_slot?: number; title?: string; crop?: ImageSourceCrop; metadata?: Record<string, any>; prompt?: { positive: string; negative: string; tags: string[] } };
 export type ImageOrigin = 'gallery' | 'hydrus' | 'external';
 export const ORIGIN_STYLE = {
     gallery: { label: 'Gallery', color: '#4096ff' },
@@ -32,6 +32,28 @@ export type ImageSourceManifest = {
 
 export function emptyImageSourceManifest(): ImageSourceManifest {
     return { version: 1, images: [], layout: 'single', columns: 2, gap: 0, background: '#000000' };
+}
+
+export const batchSourceIndices = (manifest: ImageSourceManifest) =>
+    manifest.batch_indices ?? manifest.images.map((_, index) => index);
+
+/** Keep wire indices attached to the same images through reorders and removals. */
+export function assignImageOutputs(manifest: ImageSourceManifest): ImageSourceManifest {
+    if (manifest.images.length > 32) throw new Error('Gallery Image Source supports up to 32 images.');
+    const assigned = new Set<number>();
+    for (const { output_slot: slot } of manifest.images) {
+        if (slot === undefined) continue;
+        if (!Number.isInteger(slot) || slot < 0 || slot >= 32 || assigned.has(slot)) {
+            throw new Error('Each source must have a unique image output from 1 to 32.');
+        }
+        assigned.add(slot);
+    }
+    let next = 0;
+    return { ...manifest, images: manifest.images.map(image => {
+        if (image.output_slot !== undefined) return image;
+        while (assigned.has(next)) next++;
+        return { ...image, output_slot: next++ };
+    }) };
 }
 
 /** Preserve the selected image when an earlier entry is removed. */

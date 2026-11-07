@@ -1,4 +1,5 @@
 import {SnapshotRail} from './SnapshotRail';
+import { associationPrefixIds } from './PrefixAssociations';
 import {PrefixRulesEditor} from './PrefixRulesEditor';
 import {capturePrefixSnapshot} from './PrefixLibrary';
 import {rulesRequest} from './RulesLibrary';
@@ -270,13 +271,13 @@ export function SourcePrefixPanel() {
     }, [prefixId, entries]);
     const keys = entries.flatMap(entry => imagePrefixKeys(entry, root));
     const refs = Object.assign({}, ...entries.map(entry => imagePrefixRefs(entry, root)));
-    const pairedWith = [...new Set(keys.map(key => library.associations?.[key]?.prefix_id).filter(Boolean))] as string[];
+    const pairedWith = [...new Set(keys.flatMap(key => associationPrefixIds(library.associations?.[key])))];
     const drafts = useUnsavedPrefix({ name, positive, negative }, value => { setName(value.name); setPositive(value.positive); setNegative(value.negative); }, () => save());
     const close = () => { if (!busy) drafts.guard(() => setEntries([])); };
     const run = async (action: () => Promise<void>) => { setBusy(true); try { await action(); } catch (reason) { message.error(String(reason)); } finally { setBusy(false); } };
     const pair = () => run(async () => { if (!prefix) return; await associateImages(prefix.id, keys, refs, library.revision); message.success(`Paired ${entries.length} image(s) with “${prefix.name}”`); await reload(); });
-    const unpair = (id: string) => run(async () => { await dissociateImages(keys.filter(key => library.associations?.[key]?.prefix_id === id), library.revision); await reload(); });
-    const unpairImage = (image: PrefixImage) => run(async () => { await dissociateImages(image.keys || [], library.revision); await reload(); });
+    const unpair = (id: string) => run(async () => { await dissociateImages(keys.filter(key => associationPrefixIds(library.associations?.[key]).includes(id)), library.revision, id); await reload(); });
+    const unpairImage = (image: PrefixImage) => run(async () => { await dissociateImages(image.keys || [], library.revision, prefix?.id); await reload(); });
     const save = async (asSnapshot=false) => {
         setBusy(true);
         try {

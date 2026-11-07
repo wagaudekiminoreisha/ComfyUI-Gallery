@@ -6,6 +6,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from prefix_library import read, update, GalleryPromptLibrary, GalleryPromptEncode, resolve_dynamic, RESOLVED_KEY
+from prefix_export import image_associations
 from tag_dictionary import format_terms, prompt_tags, browse_vocabulary, term_aliases
 
 
@@ -51,6 +52,24 @@ class LibraryTests(unittest.TestCase):
         self.save('Hair', ['long_hair'])
         self.assertEqual(read(self.path)[0]['associations']['sha256:example'], pair)
         self.assertEqual(read(self.path)[0]['associations']['local:./:/output/example.png'], pair)
+
+    def test_multiple_prefixes_can_be_paired_exported_and_removed_independently(self):
+        digest = 'a' * 64
+        key = 'sha256:' + digest
+
+        def change(action, **values):
+            return update(self.path, {'action': action, 'revision': read(self.path)[1], **values})['library']
+
+        pose = change('save', name='Pose', terms=['standing'], image_keys=[key])['prefixes'][0]['id']
+        look = change('save', name='Look', terms=['red dress'])['prefixes'][1]['id']
+        change('associate', prefix_id=look, image_keys=[key])
+        change('save', name='Look', terms=['blue dress'], image_keys=[key])
+        paired = read(self.path)[0]
+        self.assertEqual(paired['associations'][key]['prefix_ids'], [pose, look])
+        self.assertEqual([(row['prefix_id'], row['terms']) for row in image_associations(paired, digest, '')],
+                         [(pose, ['standing']), (look, ['blue dress'])])
+        self.assertEqual(change('dissociate', prefix_id=pose, image_keys=[key])['associations'][key]['prefix_id'], look)
+        self.assertFalse(change('delete', id=look)['associations'])
 
     def test_bad_image_pairing_does_not_write_library(self):
         self.save('Existing', ['standing'])

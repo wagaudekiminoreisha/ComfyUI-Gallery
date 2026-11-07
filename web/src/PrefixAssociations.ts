@@ -1,4 +1,6 @@
-import type { PrefixImage, PrefixLibrary } from './PrefixLibrary';
+import type { PrefixAssociation, PrefixImage, PrefixLibrary } from './PrefixLibrary';
+
+export const associationPrefixIds = (item?: PrefixAssociation) => item ? item.prefix_ids ?? [item.prefix_id] : [];
 
 /** Broad prefix associations include original pairings and all snapshot memberships. */
 export function collectPrefixImages(library: PrefixLibrary, prefixId: string): PrefixImage[] {
@@ -11,7 +13,7 @@ export function collectPrefixImages(library: PrefixLibrary, prefixId: string): P
   const id=image.hash||(image.root||'')+(image.local_url||image.input_name||key),known=images.get(id);
   images.set(id,{...known,...image,keys:[...(known?.keys||[]),...(paired?[key]:[])]});
  };
- for(const [key,item]of Object.entries(library.associations||{}))if(item.prefix_id===prefixId)add(key,item.image,true);
+ for(const [key,item]of Object.entries(library.associations||{}))if(associationPrefixIds(item).includes(prefixId))add(key,item.image,true);
  for(const row of Object.values(library.snapshots||{}))if(row.prefix_id===prefixId)for(const [key,ref]of Object.entries(row.members))add(key,Object.keys(ref).length?ref:undefined,false);
  return [...images.values()];
 }

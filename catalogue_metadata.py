@@ -22,7 +22,11 @@ def project(value, depth=0):
     if isinstance(value, dict):
         result={key:project(item,depth+1) for key,item in value.items() if key not in DROP}
         metadata=value.get('metadata')
-        if isinstance(metadata,dict) and isinstance(metadata.get('gallery_prefix'),dict):result['metadata']={'gallery_prefix':project(metadata['gallery_prefix'],depth+1)}
+        if isinstance(metadata, dict):
+            prefixes = {key: project(metadata[key], depth + 1) for key, kind in
+                        (('gallery_prefix', dict), ('gallery_prefixes', list)) if isinstance(metadata.get(key), kind)}
+            if prefixes:
+                result['metadata'] = prefixes
         return result
     return value
 
@@ -40,9 +44,17 @@ def compact_metadata(metadata):
     graph=object_value(metadata.get('prompt'))
     api=any(isinstance(node,dict) and 'inputs' in node for node in graph.values())
     if api:
-        # Only conditioning/text edges participate in prompt extraction. Model settings,
-        # UI geometry and embedded reference histories are not catalogue data.
-        result['prompt']={key:{'class_type':node.get('class_type',''),'_meta':{'title':object_value(node.get('_meta')).get('title','')},'inputs':{name:project(value) for name,value in object_value(node.get('inputs')).items() if PROMPT_INPUT.match(name)}} for key,node in graph.items() if isinstance(node,dict) and any(PROMPT_INPUT.match(name) for name in object_value(node.get('inputs')))}
+        sources = {key for key, node in graph.items() if isinstance(node, dict) and node.get('class_type') == 'GalleryImageSource'}
+        result['prompt'] = {}
+        for key, node in graph.items():
+            if not isinstance(node, dict):
+                continue
+            inputs = {name: project(value) for name, value in object_value(node.get('inputs')).items()
+                      if PROMPT_INPUT.match(name) or isinstance(value, list) and len(value) == 2
+                      and isinstance(value[0], (str, int)) and str(value[0]) in sources and type(value[1]) is int}
+            if inputs:
+                result['prompt'][key] = {'class_type': node.get('class_type', ''),
+                                         '_meta': {'title': object_value(node.get('_meta')).get('title', '')}, 'inputs': inputs}
     elif graph:result['prompt']=project(graph)
     workflow=object_value(metadata.get('workflow'))
     nodes=workflow.get('nodes',[])

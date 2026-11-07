@@ -25,6 +25,28 @@ test('association by original URL adds current prefix and persists provenance', 
     assert.equal(result.prompt.positive, 'new_tag');
     assert.equal(result.metadata.gallery_url, '/static_gallery/example.png');
 });
+test('selected live recipes update independently and preserve shared terms, omissions and a frozen recipe', () => {
+    const { sourcePrefixRefs } = load('SourcePrefixes');
+    const image = {
+        input_name: 'pose.png',
+        metadata: { gallery_prefixes: [
+            { id: 'p', positive: ['standing', 'silhouette', 'omit'], negative: ['old negative'] },
+            { id: 'look', snapshot_id: 'frozen', positive: ['silhouette', 'red dress'], negative: ['frozen negative'] },
+        ] },
+        prompt: { positive: 'custom, standing, silhouette, red dress', negative: 'old negative, frozen negative', tags: [] },
+    };
+    const edited = {
+        ...library,
+        tags: [...library.tags, { id: 'omit', text: 'omit' }, { id: 'blue', text: 'blue dress' }],
+        prefixes: [{ ...library.prefixes[0], tags: ['t', 'omit'] }, { id: 'look', name: 'Look', tags: ['blue'] }],
+        snapshots: { frozen: { prefix_id: 'look', terms: ['silhouette', 'red dress'], negative_terms: ['frozen negative'] } },
+    };
+    const updated = refreshSourcePrefix(image, edited);
+    assert.equal(updated.prompt.positive, 'custom, silhouette, red dress, new_tag');
+    assert.equal(updated.prompt.negative, 'frozen negative, new_negative');
+    assert.deepEqual(sourcePrefixRefs(updated.metadata).map(ref => ref.id), ['p', 'look']);
+    assert.deepEqual(refreshSourcePrefix(updated, edited), updated);
+});
 test('removal remaps batch selection to the same surviving images', () => {
     const state = { ...emptyImageSourceManifest(), images: ['a', 'b', 'c'].map(input_name => ({ input_name })), batch_indices: [2, 1] };
     const result = removeSourceImage(state, 0);

@@ -1,6 +1,7 @@
 import {installEncoderSerialization,repairEncoderValues,orderEncoderWidgets} from './EncoderSerialization';
 import {bindLegacySourceExclusions,sourceExclusionPayload,filteredSourceText} from './SourceExclusions';
-import {saveSourceManifest} from './ImageSourceBridge';
+import {sourcePrefixRefs, sourcePrefixTerms} from './SourcePrefixes';
+import {readSourceManifest, saveSourceManifest} from './ImageSourceBridge';
 import {preparePrefixSnapshots} from './EncoderSnapshots';
 import {rulesRequest,RULES_CHANGED} from './RulesLibrary';
 import {applyRulePreview,type RuleBox,type RulesLibrary} from './RuleEngine';
@@ -14,7 +15,7 @@ import { hideWidget } from './NodeWidgets';
 import { compileBoxes, composeWithSource, compileChip, splitTop, parsePrompt, insertText, parseState, reconcileText, stateFromText, type BoxState } from './PromptBoxes';
 import { getComfyApp } from './ComfyAppApi';
 import { sourcePrompt, type ImageSourceManifest } from './ImageSourceGeometry';
-import { loadPrefixes,openPrefixManager, type SharedLibrary } from './PrefixLibrary';
+import { openPrefixManager } from './PrefixLibrary';
 
 /** What the connected `source_text` provides: known at edit time for Gallery Image Source, otherwise after a run. */
 export function sourcePromptInfo(node: any): SourceInfo {
@@ -25,20 +26,44 @@ export function sourcePromptInfo(node: any): SourceInfo {
     const source = graph?.getNodeById?.(link?.origin_id) || graph?._nodes?.find((value: any) => value.id === link?.origin_id);
     if ((source?.comfyClass || source?.type) === 'GalleryImageSource' && [4, 5].includes(link?.origin_slot)) {
         try {
-            const manifest: ImageSourceManifest = JSON.parse(source.widgets.find((value: any) => value.name === 'sources').value);
+            const manifest = readSourceManifest(source);
             const side = link.origin_slot === 4 ? 'positive' : 'negative';
-            const images = manifest.layout === 'single' ? manifest.images.slice(manifest.active_index || 0, (manifest.active_index || 0) + 1) : manifest.images;
-            const ids = [...new Set(images.map(image => image.metadata?.gallery_prefix?.id).filter((id): id is string => typeof id === 'string'))];
-            return { connected: true, negative:side==='negative', text: sourcePrompt(manifest, side),segments:images.map(image=>({key:image.input_name+':'+side,name:image.input_name.split('/').pop()||image.input_name,text:image.prompt?.[side]||''})), snapshotTargets:images.flatMap(image=>{const prefix=image.metadata?.gallery_prefix;if(!prefix?.id)return [];const hash=/([a-f0-9]{64})/i.exec(image.input_name)?.[1]?.toLowerCase();const key=hash?'sha256:'+hash:'';return [{sourceKey:image.input_name+':positive',prefixId:prefix.id,terms:splitTop(image.prompt?.positive||'',','),negative_terms:splitTop(image.prompt?.negative||'',','),snapshotId:prefix.snapshot_id,image_keys:key?[key]:[],image_refs:key?{[key]:{hash:hash!,input_name:image.input_name,...(image.metadata?.gallery_url?{local_url:image.metadata.gallery_url}:{})}}:{}}];}), prefixes: ids.map(id => ({ id, name: images.find(image => image.metadata?.gallery_prefix?.id === id)?.metadata?.gallery_prefix?.name || id })),
+            const usedImages = (state: ImageSourceManifest) => state.layout === 'single'
+                ? state.images.slice(state.active_index || 0, (state.active_index || 0) + 1) : state.images;
+            const images = usedImages(manifest);
+            const refs = (image: typeof images[number]) => sourcePrefixRefs(image.metadata);
+            const prefixes = new Map(images.flatMap(image => refs(image)
+                .filter(ref => side === 'negative' || ref.positive_enabled !== false)
+                .map(ref => [ref.id, { id: ref.id, name: ref.name || ref.id }] as const)));
+            return {
+                connected: true,
+                negative: side === 'negative',
+                text: sourcePrompt(manifest, side),
+                segments: images.map(image => ({ key: image.input_name + ':' + side, name: image.title || image.input_name.split('/').pop() || image.input_name, text: image.prompt?.[side] || '' })),
+                snapshotTargets: images.flatMap(image => {
+                    const hash = /([a-f0-9]{64})/i.exec(image.input_name)?.[1]?.toLowerCase();
+                    const key = hash ? 'sha256:' + hash : '';
+                    return refs(image).filter(ref => ref.positive_enabled !== false || ref.snapshot_id).map(ref => ({
+                        sourceKey: image.input_name + ':positive', prefixId: ref.id, snapshotId: ref.snapshot_id,
+                        terms: sourcePrefixTerms(image, ref, 'positive'), negative_terms: sourcePrefixTerms(image, ref, 'negative'),
+                        image_keys: key ? [key] : [],
+                        image_refs: key ? { [key]: { hash, input_name: image.input_name, ...(image.metadata?.gallery_url ? { local_url: image.metadata.gallery_url } : {}) } } : {},
+                    }));
+                }),
+                prefixes: [...prefixes.values()],
                 append: async (id, text) => {
-                    const next={...manifest,images:manifest.images.map(image=>{
-                        if(!images.includes(image)||image.metadata?.gallery_prefix?.id!==id)return image;
-                        const current=splitTop(image.prompt?.[side]||'',',');
-                        const terms=text.trim().startsWith('-')?current.flatMap(term=>parsePrompt(term).map(chip=>removeTagsFromChip(chip,[text.trim().slice(1)])).filter((chip):chip is NonNullable<typeof chip>=>!!chip).map(compileChip)):[...new Set([...current,text])];
-                        return {...image,prompt:{...image.prompt!,[side]:terms.join(', ')}};
-                    })};
-                    saveSourceManifest(source,next);
-                } };
+                    const current = readSourceManifest(source), active = usedImages(current);
+                    const updated = current.images.map(image => {
+                        if (!active.includes(image) || !refs(image).some(ref => ref.id === id)) return image;
+                        const currentTerms = splitTop(image.prompt?.[side] || '', ',');
+                        const terms = text.trim().startsWith('-')
+                            ? currentTerms.flatMap(term => parsePrompt(term).map(chip => removeTagsFromChip(chip, [text.trim().slice(1)])).filter((chip): chip is NonNullable<typeof chip> => !!chip).map(compileChip))
+                            : [...new Set([...currentTerms, text])];
+                        return { ...image, prompt: { positive: '', negative: '', tags: [], ...image.prompt, [side]: terms.join(', ') } };
+                    });
+                    saveSourceManifest(source, { ...current, images: updated });
+                },
+            };
         }
         catch { return { connected: true, note: 'Source settings unavailable' }; }
     }

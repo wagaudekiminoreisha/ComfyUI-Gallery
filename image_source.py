@@ -82,6 +82,12 @@ def parse_manifest(value):
         if not isinstance(indices, list) or not indices or len(indices) > len(images):
             raise ImageSourceError('Select at least one image for the batch output.')
         result['batch_indices'] = list(dict.fromkeys(_integer(index, 'Batch image', 0, len(images) - 1) for index in indices))
+    slots = [_integer(item["output_slot"], "Image output", 0, MAX_IMAGES - 1)
+             for item in images if isinstance(item, dict) and "output_slot" in item]
+    reserved = set(slots)
+    if len(reserved) != len(slots):
+        raise ImageSourceError("Each source must have its own image output.")
+    available = (slot for slot in range(MAX_IMAGES) if slot not in reserved)
     for raw in images:
         if not isinstance(raw, dict):
             raise ImageSourceError("Each source must identify an input image.")
@@ -89,6 +95,8 @@ def parse_manifest(value):
         if not isinstance(name, str) or not name or len(name) > 2048:
             raise ImageSourceError("Each source must identify an input image.")
         item = {"input_name": name}
+        if reserved:
+            item["output_slot"] = raw["output_slot"] if "output_slot" in raw else next(available)
         if "title" in raw:
             if not isinstance(raw["title"], str) or len(raw["title"]) > 512:
                 raise ImageSourceError("Image titles must be at most 512 characters.")
@@ -287,11 +295,12 @@ def source_prompts(manifest):
 
 class GalleryImageSource:
     CATEGORY = "image/gallery"
-    # `batch` is last so links to the older outputs keep their slots.
-    RETURN_TYPES = ("IMAGE", "MASK", "INT", "INT", "STRING", "STRING", "STRING", "IMAGE")
-    RETURN_NAMES = ("image", "mask", "width", "height", "positive", "negative", "source_metadata", "batch")
+    # Keep all original sockets at the same indices for saved workflows.
+    RETURN_TYPES = ("IMAGE", "MASK", "INT", "INT", "STRING", "STRING", "STRING", "IMAGE") + ("IMAGE",) * MAX_IMAGES
+    RETURN_NAMES = ("image", "mask", "width", "height", "positive", "negative", "source_metadata", "batch") + tuple(
+        f"Image {index + 1}" for index in range(MAX_IMAGES))
     FUNCTION = "compose"
-    DESCRIPTION = "Choose local or Hydrus images in Gallery, crop them, and join them without rescaling. `batch` holds the images selected in Pick images (all by default), sized to the first selected image."
+    DESCRIPTION = "Crop and stitch Gallery sources, or wire the numbered image outputs to Batch Images. The batch and numbered outputs use the images selected in Pick images (all by default), sized to the first selected image."
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -331,13 +340,18 @@ class GalleryImageSource:
             pixels = np.asarray(image, dtype=np.float32) / 255.0
             rgb = torch.from_numpy(pixels[:, :, :3].copy()).unsqueeze(0)
             mask = torch.from_numpy(1.0 - pixels[:, :, 3]).unsqueeze(0)
-            manifest = parse_manifest(sources)
+            manifest = plan.manifest
             positive, negative = source_prompts(manifest)
             frames = render_batch(manifest, self._input_root())
             try:
                 batch = torch.from_numpy(np.stack([np.asarray(frame, dtype=np.float32) / 255.0 for frame in frames]))
             finally:
                 for frame in frames: frame.close()
-            return rgb, mask, plan.width, plan.height, positive, negative, json.dumps(manifest['images'], ensure_ascii=False), batch
+            individual = [None] * MAX_IMAGES
+            for frame, index in enumerate(manifest.get('batch_indices', range(len(manifest['images'])))):
+                slot = manifest['images'][index].get('output_slot', index)
+                individual[slot] = batch[frame:frame + 1]
+            return (rgb, mask, plan.width, plan.height, positive, negative,
+                    json.dumps(manifest['images'], ensure_ascii=False), batch, *individual)
         finally:
             image.close()

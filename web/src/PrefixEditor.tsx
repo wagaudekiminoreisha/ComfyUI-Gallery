@@ -29,7 +29,7 @@ export function PrefixEditor({ onLoad, shared, seed, active, name, setName, posi
     negative: string[]; setNegative: Dispatch<SetStateAction<string[]>>;
     saving: boolean; onSave: () => void; onDelete: (id: string) => Promise<void>;
     onAppendToNode?: (id: string) => void; onOpenLibrarySearch: () => void;
-    onOpenPrompts?: () => void; onUnpair?: (image: PrefixImage) => void;
+    onOpenPrompts?: () => void; onUnpair?: (image: PrefixImage, prefixId: string) => void;
 }) {
     const [snapshot,setSnapshot]=useState<string|undefined>(seed.snapshotId);
     const existing = shared.prefixes.find(prefix => prefix.name.toLowerCase() === name.trim().toLowerCase());
@@ -81,7 +81,7 @@ export function PrefixEditor({ onLoad, shared, seed, active, name, setName, posi
                 <Typography.Text strong>{sources.length ? 'Source image' + (sources.length > 1 ? 's' : '') : 'Source image'}</Typography.Text>
                 {sources.length ? <PrefixImageGrid images={sources} /> : <Typography.Text type="secondary" style={{ display: 'block' }}>None attached. Open this editor from an image in the viewer to pair the image with the prefix.</Typography.Text>}
                 {existing&&snapshot&&<PrefixImageGrid images={Object.values(shared.snapshots?.[snapshot]?.members||{})}/>}
-                {existing&&!snapshot && <PrefixImages library={shared} prefixId={existing.id} defaultOpen onRemove={onUnpair} />}
+                {existing&&!snapshot && <PrefixImages library={shared} prefixId={existing.id} defaultOpen onRemove={onUnpair && (image => onUnpair(image, existing.id))} />}
             </div>
         </div>
     </div></div></div>;

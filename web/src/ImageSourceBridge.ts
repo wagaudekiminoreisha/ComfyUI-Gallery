@@ -1,7 +1,7 @@
 import { refreshSourcePrefix } from './SourcePrefixes';
 import { mergeSourceHistory, type PickerRect } from './SourceHistory';
 import { getComfyApp, STANDALONE } from './ComfyAppApi';
-import { imageOrigin, ORIGIN_STYLE, stampOrigin, removeSourceImage, sourceImageUrl, emptyImageSourceManifest, mergePrompt } from './ImageSourceGeometry';
+import { assignImageOutputs, batchSourceIndices, imageOrigin, ORIGIN_STYLE, stampOrigin, removeSourceImage, sourceImageUrl, emptyImageSourceManifest, mergePrompt } from './ImageSourceGeometry';
 import type { ImageSourceImage, ImageSourceManifest, PromptApply } from './ImageSourceGeometry';
 import { loadPrefixes, type SharedLibrary } from './PrefixLibrary';
 import { hideWidget } from './NodeWidgets';
@@ -31,7 +31,32 @@ export function readSourceManifest(node: any): ImageSourceManifest {
     if (!raw) return emptyImageSourceManifest();
     const value = JSON.parse(raw);
     if (value.version !== 1 || !Array.isArray(value.images)) throw new Error('This node has invalid image source settings.');
-    return value;
+    return assignImageOutputs(value);
+}
+
+const FIRST_IMAGE_OUTPUT = 8;
+
+/** ComfyUI declares fixed return slots. Only show the slots needed by this workflow. */
+export function syncImageOutputs(node: any, manifest: ImageSourceManifest, previous?: ImageSourceManifest) {
+    if (!node.addOutput || !node.removeOutput || !node.outputs || node.outputs.length < FIRST_IMAGE_OUTPUT - 1) return;
+    if (node.outputs.length === FIRST_IMAGE_OUTPUT - 1) node.addOutput('batch', 'IMAGE');
+    const selected = new Map(batchSourceIndices(manifest).flatMap(index => {
+        const image = manifest.images[index];
+        return image ? [[image.output_slot!, image] as const] : [];
+    }));
+    const last = Math.max(-1, ...selected.keys());
+    const old = new Map(previous?.images.map(image => [image.output_slot, image.input_name]));
+    for (let slot = 0; slot <= last; slot++) {
+        const index = FIRST_IMAGE_OUTPUT + slot, name = 'Image ' + (slot + 1);
+        if (!node.outputs[index]) node.addOutput(name, 'IMAGE');
+        const output = node.outputs[index], image = selected.get(slot);
+        if (output.links?.length && (!image || old.has(slot) && old.get(slot) !== image.input_name)) node.disconnectOutput?.(index);
+        output.galleryUnused = !image;
+        const title = image?.title || image?.input_name.split('/').pop() || '';
+        output.label = output.localized_name = image ? name + ' · ' + title.slice(0, 30) : name + ' · unused';
+        output.tooltip = image ? name + ' · ' + title : 'Choose an image for this output in Pick images.';
+    }
+    while (node.outputs.length > FIRST_IMAGE_OUTPUT + last + 1) node.removeOutput(node.outputs.length - 1);
 }
 
 /** Persist repaired provenance without replacing current prompts, crops, or prefix choices. */
@@ -53,13 +78,27 @@ export function saveSourceManifest(node: any, manifest: ImageSourceManifest, rec
     const graph = graphNow();
     if (!graph || !nodes().includes(node)) throw new Error('The target node is no longer in the active workflow.');
     const widget = node.widgets?.find((item: any) => item.name === 'sources');
+    const connect = node.onConnectOutput;
+    node.onConnectOutput = function (slot: number, ...args: any[]) {
+        if (this.outputs?.[slot]?.galleryUnused) return false;
+        return connect?.call(this, slot, ...args);
+    };
+    const connections = node.onConnectionsChange;
+    node.onConnectionsChange = function (...args: any[]) {
+        const result = connections?.apply(this, args);
+        if (args[0] === 2 && args[1] >= FIRST_IMAGE_OUTPUT) this.__galleryRefreshPreview?.();
+        return result;
+    };
     if (!widget) throw new Error('Restart ComfyUI to register Gallery Image Source.');
     if (recordChange) graph.beforeChange?.();
     try {
+        const previous = readSourceManifest(node);
+        manifest = assignImageOutputs(manifest);
         const history = mergeSourceHistory(readSourceHistory(node), manifest.images);
         widget.value = JSON.stringify(manifest); widget.callback?.(widget.value);
         if (readSourceManifest(node).images.length !== manifest.images.length) throw new Error('ComfyUI did not retain the appended sources. Check this node’s sources input.');
         node.properties ||= {}; node.properties.gallery_source_history = history;
+        syncImageOutputs(node, manifest, previous);
         node.__galleryRefreshPreview?.(); window.dispatchEvent(new CustomEvent('gallery-source-changed')); node.setDirtyCanvas?.(true, true);
     }
     finally { if (recordChange) graph.afterChange?.(); }
@@ -94,6 +133,15 @@ export function installSourceWidgets(node: any) {
     node.__gallerySourceInstalled = true;
     // Keep the STRING widget serialized, but present the visual editor instead.
     const widget = node.widgets?.find((item: any) => item.name === 'sources');
+    const configure = node.onConfigure;
+    node.onConfigure = function (...args: any[]) {
+        const result = configure?.apply(this, args);
+        try { syncImageOutputs(this, readSourceManifest(this)); } catch { /* The editor reports invalid manifests. */ }
+        this.__galleryRefreshPreview?.();
+        void loadPrefixes().catch(() => {});
+        return result;
+    };
+    try { syncImageOutputs(node, readSourceManifest(node)); } catch { /* The editor reports invalid manifests. */ }
     // Preserve the native STRING/DOM widget type and serializer. Changing its
     // type can break frontend extensions that own the widget's backing value.
     hideWidget(widget);
@@ -191,6 +239,18 @@ export function installSourceWidgets(node: any) {
             try {
                 const manifest = readSourceManifest(node), images = manifest.images, single = manifest.layout === 'single';
                 const active = manifest.active_index || 0;
+                const selected = new Set(batchSourceIndices(manifest));
+                const outputBadge = (index: number) => {
+                    const slot = images[index].output_slot!;
+                    const label = 'Image ' + (slot + 1);
+                    const wired = !!node.outputs?.[FIRST_IMAGE_OUTPUT + slot]?.links?.length;
+                    const badge = document.createElement('span');
+                    badge.textContent = wired ? '● ' + label : label;
+                    badge.title = label + (wired ? ' · connected' : ' · available to connect');
+                    badge.style.cssText = 'position:absolute;top:1px;right:1px;padding:1px 4px;border-radius:3px;color:#142d20;font:bold 10px system-ui';
+                    badge.style.background = wired ? '#8be3b1' : '#d3ddd7';
+                    return badge;
+                };
                 if (!images.length) {
                     const empty = document.createElement('div');
                     empty.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;text-align:center;border:1px dashed #8886;border-radius:6px;padding:8px;opacity:.75';
@@ -210,6 +270,7 @@ export function installSourceWidgets(node: any) {
                 img.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain';
                 img.onerror = () => { img.replaceWith(Object.assign(document.createElement('span'), { textContent: 'Preview unavailable: ' + (images[view].title || images[view].input_name) })); };
                 stage.append(img); badge(stage, images[view]);
+                if (selected.has(view)) stage.append(outputBadge(view));
                 stage.oncontextmenu = event => menu(event, view);
                 if (images.length > 1) {
                     stage.append(button('‹', 'Previous image', () => go(view - 1), 'position:absolute;left:3px;top:50%;transform:translateY(-50%);width:22px;height:34px;font-size:18px'));
@@ -219,7 +280,6 @@ export function installSourceWidgets(node: any) {
                 caption.style.cssText = 'position:absolute;left:0;right:0;bottom:0;padding:2px 6px;background:#000a;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
                 caption.textContent = `${view + 1} / ${images.length} · ${manifest.layout}${single ? ' · output image' : ''} · ${images[view].title || images[view].input_name}${note ? ' · ' + note : ''}`;
                 stage.append(caption);
-                const chevron = document.createElement('span'); chevron.textContent = '▾'; chevron.style.cssText = 'position:absolute;right:6px;top:3px;color:white;text-shadow:0 1px 3px #000;font-size:16px'; stage.append(chevron);
                 preview.append(stage);
                 if (images.length > 1) {
                     const strip = document.createElement('div');
@@ -228,10 +288,11 @@ export function installSourceWidgets(node: any) {
                     strip.onscroll = () => { stripScroll = strip.scrollLeft; };
                     for (let index = 0; index < images.length; index++) {
                         const image = images[index];
-                        const tile = button('', `${single ? 'Use' : 'Show'} image ${index + 1}: ${image.title || image.input_name}`, () => { clearTimeout(clickTimer); clickTimer = window.setTimeout(() => go(index), 280); }, `flex:0 0 64px;width:64px;min-width:64px;max-width:64px;overflow:hidden;height:42px;padding:0;background:transparent;outline:2px solid ${index === view ? '#1677ff' : 'transparent'};outline-offset:-2px;opacity:${index === view ? 1 : .7}`);
+                        const tile = button('', `${single ? 'Use' : 'Show'} image ${index + 1}: ${image.title || image.input_name}`, () => { clearTimeout(clickTimer); clickTimer = window.setTimeout(() => go(index), 280); }, `position:relative;flex:0 0 64px;width:64px;min-width:64px;max-width:64px;overflow:hidden;height:42px;padding:0;background:transparent;outline:2px solid ${index === view ? '#1677ff' : 'transparent'};outline-offset:-2px;opacity:${index === view ? 1 : .7}`);
                         tile.setAttribute('aria-pressed', String(index === view));
                         const small = document.createElement('img'); small.src = thumb(image); small.alt = ''; small.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:3px';
                         tile.append(small);
+                        if (selected.has(index)) tile.append(outputBadge(index));
                         tile.ondblclick = event => { event.preventDefault(); event.stopPropagation(); galleryViewer(index); };
                         tile.oncontextmenu = event => menu(event, index); strip.append(tile);
                     }
@@ -261,8 +322,6 @@ export function installSourceWidgets(node: any) {
         node.onDragDrop = (event: DragEvent) => { if (!accepts(event.dataTransfer)) return false; void drop(event.dataTransfer!); return true; };
         const dom = node.addDOMWidget('gallery_source_preview', 'gallery_source_preview', preview, { serialize: false, hideOnZoom: false, getHeight: () => 230, getMinHeight: () => 230, getMaxHeight: () => 230 });
         if (dom) { dom.serialize = false; dom.computeSize = () => [320, 230]; }
-        const configure = node.onConfigure;
-        node.onConfigure = function (...args: any[]) { const result = configure?.apply(this, args); refresh(); void loadPrefixes().catch(() => {}); return result; };
         refresh(); void loadPrefixes().catch(() => {});
     }
     node.setSize?.([320, Math.max(180, node.computeSize?.()[1] || 180)]);

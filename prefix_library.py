@@ -13,6 +13,39 @@ from aiohttp import web
 LOCK = threading.RLock()
 
 
+def association_ids(item):
+    return item.get('prefix_ids', [item['prefix_id']])
+
+
+def set_association(library, key, ids, reference=None):
+    associations = library.setdefault('associations', {})
+    prefixes = {row['id']: row for row in library['prefixes']}
+    ids = [id for id in ids if id in prefixes]
+    if not ids:
+        associations.pop(key, None)
+        return
+    existing = associations.get(key, {})
+    prefix = prefixes[ids[0]]
+    if existing.get('prefix_id') == prefix['id']:
+        terms = existing['terms']
+    else:
+        texts = {tag['id']: tag['text'] for tag in library['tags']}
+        terms = [texts[tag] for tag in prefix['tags']]
+    image = existing.get('image') if reference is None else reference
+    associations[key] = {
+        'prefix_id': prefix['id'], 'terms': terms,
+        'negative_terms': prefix.get('negative_terms', []),
+        **({'prefix_ids': ids} if len(ids) > 1 else {}),
+        **({'image': image} if image is not None else {}),
+    }
+
+
+def add_association(library, key, prefix_id, reference=None):
+    item = library.get('associations', {}).get(key)
+    ids = list(dict.fromkeys([*(association_ids(item) if item else []), prefix_id]))
+    set_association(library, key, ids, reference)
+
+
 def validate(value):
     if not isinstance(value, dict) or value.get('version') not in (1, 2):
         raise ValueError('Unsupported Prompt Library format.')
@@ -41,6 +74,10 @@ def validate(value):
     for key, item in associations.items():
         if not isinstance(key, str) or len(key) > 4096 or not isinstance(item, dict) or not isinstance(item.get('prefix_id'), str) or not isinstance(item.get('terms'), list) or len(item['terms']) > 500 or any(not isinstance(term, str) or len(term) > 1024 for term in item['terms']):
             raise ValueError('Invalid image association.')
+        ids = association_ids(item)
+        if (not isinstance(ids, list) or not ids or ids[0] != item['prefix_id']
+                or any(not isinstance(id, str) or not id for id in ids) or len(set(ids)) != len(ids)):
+            raise ValueError('Invalid associated prefixes.')
         negatives = item.get('negative_terms', [])
         if not isinstance(negatives, list) or len(negatives) > 500 or any(not isinstance(term, str) or len(term) > 1024 for term in negatives):
             raise ValueError('Invalid associated negative prompts.')
@@ -79,8 +116,11 @@ def update(path, data):
             library = validate(data.get('library'))
         elif action == 'delete':
             library['prefixes'] = [prefix for prefix in library['prefixes'] if prefix['id'] != data.get('id')]
-            library['associations'] = {key: item for key, item in library.get('associations', {}).items()
-                                       if item['prefix_id'] != data.get('id')}
+            for key, item in list(library.get('associations', {}).items()):
+                ids = association_ids(item)
+                if data.get('id') in ids:
+                    set_association(library, key, [id for id in ids if id != data.get('id')])
+            library.setdefault('associations', {})
         elif action == 'snapshot':
             try:from .prefix_snapshots import capture_snapshot
             except ImportError:from prefix_snapshots import capture_snapshot
@@ -131,9 +171,8 @@ def update(path, data):
             if not isinstance(image_keys, list) or len(image_keys) > 64 or any(not isinstance(key, str) or not key or len(key) > 4096 for key in image_keys):
                 raise ValueError('Invalid image keys.')
             if image_keys:
-                saved = next(p for p in library['prefixes'] if p['name'].casefold() == name.casefold())
                 for key in image_keys:
-                    library.setdefault('associations', {})[key] = {'prefix_id': saved['id'], 'terms': list(dict.fromkeys(term.strip() for term in terms)), 'negative_terms': saved.get('negative_terms', []), **({'image': references[key]} if key in references else {})}
+                    add_association(library, key, saved['id'], references.get(key))
                 validate(library)
         elif action in ('associate', 'dissociate'):
             # Pair images with a saved prefix (or unpair them) without touching the prefix's terms.
@@ -142,17 +181,21 @@ def update(path, data):
                 raise ValueError('Choose 1–256 images.')
             associations = library.setdefault('associations', {})
             if action == 'dissociate':
-                for key in image_keys: associations.pop(key, None)
+                prefix_id = data.get('prefix_id')
+                for key in image_keys:
+                    item = associations.get(key)
+                    if not prefix_id:
+                        associations.pop(key, None)
+                    elif item and prefix_id in association_ids(item):
+                        set_association(library, key, [id for id in association_ids(item) if id != prefix_id])
                 if not associations: library.pop('associations', None)
             else:
                 prefix = next((p for p in library['prefixes'] if p['id'] == data.get('prefix_id')), None)
                 if prefix is None: raise ValueError('That prefix no longer exists. Refresh the library.')
                 references = data.get('image_refs', {})
                 if not isinstance(references, dict) or len(references) > 256: raise ValueError('Invalid image references.')
-                texts = {t['id']: t['text'] for t in library['tags']}
-                terms = [texts[tag] for tag in prefix['tags'] if tag in texts]
                 for key in image_keys:
-                    associations[key] = {'prefix_id': prefix['id'], 'terms': terms, 'negative_terms': prefix.get('negative_terms', []), **({'image': references[key]} if isinstance(references.get(key), dict) else {})}
+                    add_association(library, key, prefix['id'], references.get(key))
             validate(library)
         else:
             raise ValueError('Invalid library action.')
