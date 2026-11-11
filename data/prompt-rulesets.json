@@ -9292,6 +9292,443 @@
           ]
         }
       ]
+    },
+    {
+      "version": 1,
+      "id": "stock-fetish-content-filter",
+      "name": "Fetish content filter",
+      "family": "fetish-content-filter",
+      "rules": [],
+      "choices": [
+        {
+          "id": "bdsm",
+          "label": "BDSM and power play",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit tags",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "bdsm",
+                    "bondage",
+                    "shibari",
+                    "shibari_over_clothes",
+                    "shibari_under_clothes",
+                    "breast_bondage",
+                    "ribbon_bondage",
+                    "tape_bondage",
+                    "snake_bondage",
+                    "predicament_bondage",
+                    "public_bondage",
+                    "self_bondage",
+                    "implied_bondage",
+                    "hair_bondage",
+                    "stealth_bondage",
+                    "tail_bondage",
+                    "vine_bondage",
+                    "mummification_(bound)",
+                    "femdom",
+                    "dominatrix",
+                    "dominator_(bdsm)",
+                    "domination",
+                    "submission",
+                    "sadism",
+                    "masochism",
+                    "humiliation",
+                    "small_penis_humiliation",
+                    "human_furniture",
+                    "orgasm_denial",
+                    "forced_orgasm",
+                    "chastity_cage",
+                    "flat_chastity_cage",
+                    "nub_chastity_cage",
+                    "chastity_belt",
+                    "chastity_bra",
+                    "bondage_gear",
+                    "x-cross_(bdsm)",
+                    "yoke_(bdsm)",
+                    "shibari_marks",
+                    "rope_bondage",
+                    "ropebondage",
+                    "tied_up_(sexual)"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "restraints",
+          "label": "Restraints, gags and blindfolds",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit tags",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "bound",
+                    "bound_wrists",
+                    "bound_arms",
+                    "bound_legs",
+                    "bound_ankles",
+                    "bound_thighs",
+                    "bound_torso",
+                    "bound_together",
+                    "bound_toes",
+                    "bound_fingers",
+                    "bound_thumbs",
+                    "bound_knees",
+                    "bound_leg",
+                    "bound_feet",
+                    "bound_wings",
+                    "bound_tail",
+                    "bound_penis",
+                    "restraints",
+                    "stationary_restraints",
+                    "upright_restraints",
+                    "standing_restraints",
+                    "hogtie",
+                    "spreader_bar",
+                    "stocks",
+                    "pillory",
+                    "handcuffs",
+                    "fuzzy_handcuffs",
+                    "shared_handcuffs",
+                    "gag",
+                    "gagged",
+                    "ball_gag",
+                    "bit_gag",
+                    "cloth_gag",
+                    "tape_gag",
+                    "ring_gag",
+                    "wiffle_gag",
+                    "gag_harness",
+                    "cleave_gag",
+                    "over_the_nose_gag",
+                    "over_the_mouth_gag",
+                    "clothes_gag",
+                    "panty_gag",
+                    "dildo_gag",
+                    "plug_gag",
+                    "panel_gag",
+                    "spider_gag",
+                    "rope_gag",
+                    "dental_gag",
+                    "knot_gag",
+                    "linked_gag",
+                    "improvised_gag",
+                    "hand_gagged",
+                    "blindfold",
+                    "black_blindfold",
+                    "white_blindfold",
+                    "red_blindfold",
+                    "blue_blindfold",
+                    "pink_blindfold",
+                    "purple_blindfold",
+                    "green_blindfold",
+                    "arms_bound",
+                    "arms_tied",
+                    "ballgag",
+                    "bitgag",
+                    "blindfolded",
+                    "bound_hands",
+                    "cleave_gagged",
+                    "cleavegag",
+                    "clothes_gagged",
+                    "hand_gag",
+                    "handcuff",
+                    "handgag",
+                    "hands_bound",
+                    "hands_tied",
+                    "knot_gagged",
+                    "knotgag",
+                    "otm_gag",
+                    "over_the_mouth_gagged",
+                    "over_the_nose_gagged",
+                    "panty_gagged",
+                    "pantygag",
+                    "penis_gag",
+                    "spread_bar",
+                    "tape_gagged",
+                    "tapegag",
+                    "tied_arms",
+                    "tied_hands",
+                    "tied_together",
+                    "tied_wrists",
+                    "wrists_bound"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "pain-sensation",
+          "label": "Pain and sensation play",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit tags",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "spanking",
+                    "spanked",
+                    "spanking_self",
+                    "imminent_spanking",
+                    "whip_marks",
+                    "tickle_torture",
+                    "nipple_torture",
+                    "clitoris_torture",
+                    "nipple_clamps",
+                    "corset_piercing",
+                    "wax_play",
+                    "electrostimulation",
+                    "breathplay",
+                    "clit_torture",
+                    "nipple_pain",
+                    "red_butt",
+                    "whipmarks"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "fetish-roleplay",
+          "label": "Fetish clothing and roleplay",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit tags",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "bondage_outfit",
+                    "bondage_mittens",
+                    "gimp_mask",
+                    "gimp_suit",
+                    "pet_play",
+                    "pony_play",
+                    "viewer_on_leash",
+                    "clitoris_leash",
+                    "nipple_leash",
+                    "clit_leash",
+                    "petboy",
+                    "ponyplay",
+                    "pov_leashed"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "body-part-acts",
+          "label": "Foot and armpit fetish acts",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit tags",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "footjob",
+                    "two-footed_footjob",
+                    "reverse_footjob",
+                    "simulated_footjob",
+                    "after_footjob",
+                    "footjob_over_clothes",
+                    "cooperative_footjob",
+                    "female_footjob",
+                    "footjob_from_behind",
+                    "implied_footjob",
+                    "double_footjob",
+                    "footjob_under_table",
+                    "under-stirrup_footjob",
+                    "stealth_footjob",
+                    "foot_worship",
+                    "licking_foot",
+                    "mutual_foot_licking",
+                    "smelling_feet",
+                    "armpit_sex",
+                    "licking_armpit",
+                    "smelling_armpit",
+                    "armpit_licking",
+                    "ashikoki",
+                    "foot_lick",
+                    "foot_licking",
+                    "foot_sniff",
+                    "multiple_footjob"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "vore",
+          "label": "Vore and unbirthing",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit tags",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "vore",
+                    "imminent_vore",
+                    "anal_vore",
+                    "tail_vore",
+                    "unbirthing",
+                    "unbirth"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "expansion",
+          "label": "Inflation and body expansion",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit tags",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "inflation",
+                    "cum_inflation",
+                    "breast_expansion",
+                    "ass_expansion",
+                    "penis_growth"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "insertion-play",
+          "label": "Insertion and medical play",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit tags",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "urethral_insertion",
+                    "urethral_fingering",
+                    "urethral_penetration",
+                    "urethral_beads",
+                    "sounding",
+                    "sounding_rod",
+                    "enema",
+                    "alcohol_enema",
+                    "fisting",
+                    "anal_fisting",
+                    "self_fisting",
+                    "milking_machine",
+                    "prostate_milking",
+                    "anal_wine",
+                    "female_fingers_in_male_anus",
+                    "prostate_massage",
+                    "urethral_object_push"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "adult-baby",
+          "label": "Adult baby and diaper play",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit tags",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "adult_baby",
+                    "diaper",
+                    "diaper_changing",
+                    "adultbaby"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "globals": [],

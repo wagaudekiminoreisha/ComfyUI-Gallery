@@ -15,7 +15,7 @@ class StockTests(unittest.TestCase):
   stock=[row for row in definitions if row['id'].startswith('stock-')]
   for definition in stock:
    validate_definition(definition)
-   allowed=general | aliases if definition['id'] in ('stock-injury-gore-filter','stock-disturbing-content-filter') else general
+   allowed=general | aliases if definition['id'] in ('stock-injury-gore-filter','stock-disturbing-content-filter','stock-fetish-content-filter') else general
    for choice in definition['choices']:
     expected_default='single' if (definition['id'],choice['id'])==('stock-attire-styling','bottoms') else 'keep'
     self.assertEqual(choice['default'],expected_default)
@@ -58,3 +58,21 @@ class StockTests(unittest.TestCase):
    self.assertEqual(next(row for row in loaded['definitions'] if row['id']=='stock-eyes')['name'],'My edited Eyes');self.assertEqual(loaded['globals'],[]);self.assertEqual(path.read_bytes(),before)
    self.assertIn('stock-clothing-layers',[row['id'] for row in loaded['definitions']])
    self.assertIn('stock-injury-gore-filter',[row['id'] for row in loaded['definitions']])
+   self.assertIn('stock-fetish-content-filter',[row['id'] for row in loaded['definitions']])
+ def test_fetish_filter_categories_and_exceptions_apply_to_source_tags(self):
+  definitions=json.loads((ROOT/'data/prompt-rulesets.json').read_text(encoding='utf-8'))['definitions']
+  definition=next(row for row in definitions if row['id']=='stock-fetish-content-filter')
+  box=dict(id='qa',definition=definition,origin='encoder',scope='main',preferences={},enabled=True,collapsed=False)
+  text='bdsm, rope bondage, handcuffs, foot worship, latex gloves, barefoot, electricity, petboy, unbirth'
+  self.assertEqual(apply_rules(text,[box])[0],text)
+  box['preferences']={'bdsm':'omit'}
+  self.assertEqual(apply_rules(text,[box])[0],text.replace('bdsm, rope bondage, ',''))
+  box['preferences']={choice['id']:'omit' for choice in definition['choices']}
+  class Clip:
+   def tokenize(self,text):return text
+   def encode_from_tokens_scheduled(self,value):return value
+  result=GalleryPromptEncode().encode(Clip(),'portrait',source_text=text,rules_state=json.dumps([box]))
+  self.assertEqual(result['result'][1],'portrait, latex gloves, barefoot, electricity')
+  restraints=next(choice for choice in definition['choices'] if choice['id']=='restraints')
+  restraints['options'][1]['rules'][0]['except_tags']=['handcuffs']
+  self.assertIn('handcuffs',apply_rules(text,[box])[0])

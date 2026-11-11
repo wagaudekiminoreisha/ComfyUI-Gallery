@@ -76,6 +76,8 @@ Add **Injury and gore filter** to a positive encoder to omit unwanted prompt tag
 
 **Disturbing content filter** adds separate preferences for **Violence, death and self-harm**, **Coercion and abuse**, **Bodily waste and vomit**, and **Infestation and decay**.
 
+**Fetish content filter** offers independent controls for BDSM and power play, restraints/gags/blindfolds, pain and sensation play, fetish clothing and roleplay, foot and armpit fetish acts, vore and unbirthing, body expansion, insertion and medical play, and adult baby/diaper play. Choose **Omit tags** for the categories you want filtered. Its **Tags** view supports individual exceptions and additional blocked tags.
+
 Each preference displays its operation and matching template tags. `T` means sampled tags, `Tₜ` the template's potential tags, `S` the full operand set, and `B` batch-editable tags. `∖` removes, `∪` adds, and `∩` intersects. Expand S to see every tag covered by a rule. Hair attribute checkboxes show `T′ ∩ S = T ∩ S` when kept and `T′ = T ∖ S` when omitted. Template matches can include optional alternatives; the backend still applies rules after sampling.
 
 Expand **Tags** on a configured ruleset to inspect its tags and create exceptions. Choose a rule group, search its tags, then click a tag to toggle its treatment. Exclusion rules offer **Allow/Block**, required tags offer **Make optional/Require**, and protection and exclusivity rules have their corresponding actions. The input below the list adds another tag to that rule. **Reset exceptions** restores the full set. Conditions and preference choices still determine when each rule runs.

@@ -106,6 +106,66 @@ rows.append(definition('disturbing-content-filter', 'Disturbing content filter',
     ]),
 ]))
 
+rows.append(definition('fetish-content-filter', 'Fetish content filter', [
+    omit_tags('bdsm', 'BDSM and power play', [
+        'bdsm', 'bondage', 'shibari', 'shibari_over_clothes', 'shibari_under_clothes',
+        'breast_bondage', 'ribbon_bondage', 'tape_bondage', 'snake_bondage',
+        'predicament_bondage', 'public_bondage', 'self_bondage', 'implied_bondage',
+        'hair_bondage', 'stealth_bondage', 'tail_bondage', 'vine_bondage',
+        'mummification_(bound)', 'femdom', 'dominatrix', 'dominator_(bdsm)',
+        'domination', 'submission', 'sadism', 'masochism', 'humiliation',
+        'small_penis_humiliation', 'human_furniture', 'orgasm_denial', 'forced_orgasm',
+        'chastity_cage', 'flat_chastity_cage', 'nub_chastity_cage', 'chastity_belt',
+        'chastity_bra', 'bondage_gear', 'x-cross_(bdsm)', 'yoke_(bdsm)', 'shibari_marks',
+    ]),
+    omit_tags('restraints', 'Restraints, gags and blindfolds', [
+        'bound', 'bound_wrists', 'bound_arms', 'bound_legs', 'bound_ankles',
+        'bound_thighs', 'bound_torso', 'bound_together', 'bound_toes', 'bound_fingers',
+        'bound_thumbs', 'bound_knees', 'bound_leg', 'bound_feet', 'bound_wings',
+        'bound_tail', 'bound_penis', 'restraints', 'stationary_restraints',
+        'upright_restraints', 'standing_restraints', 'hogtie', 'spreader_bar',
+        'stocks', 'pillory', 'handcuffs', 'fuzzy_handcuffs', 'shared_handcuffs',
+        'gag', 'gagged', 'ball_gag', 'bit_gag', 'cloth_gag', 'tape_gag', 'ring_gag',
+        'wiffle_gag', 'gag_harness', 'cleave_gag', 'over_the_nose_gag',
+        'over_the_mouth_gag', 'clothes_gag', 'panty_gag', 'dildo_gag', 'plug_gag',
+        'panel_gag', 'spider_gag', 'rope_gag', 'dental_gag', 'knot_gag', 'linked_gag',
+        'improvised_gag', 'hand_gagged', 'blindfold', 'black_blindfold',
+        'white_blindfold', 'red_blindfold', 'blue_blindfold', 'pink_blindfold',
+        'purple_blindfold', 'green_blindfold',
+    ]),
+    omit_tags('pain-sensation', 'Pain and sensation play', [
+        'spanking', 'spanked', 'spanking_self', 'imminent_spanking', 'whip_marks',
+        'tickle_torture', 'nipple_torture', 'clitoris_torture', 'nipple_clamps',
+        'corset_piercing', 'wax_play', 'electrostimulation', 'breathplay',
+    ]),
+    omit_tags('fetish-roleplay', 'Fetish clothing and roleplay', [
+        'bondage_outfit', 'bondage_mittens', 'gimp_mask', 'gimp_suit',
+        'pet_play', 'pony_play', 'viewer_on_leash', 'clitoris_leash', 'nipple_leash',
+    ]),
+    omit_tags('body-part-acts', 'Foot and armpit fetish acts', [
+        'footjob', 'two-footed_footjob', 'reverse_footjob', 'simulated_footjob',
+        'after_footjob', 'footjob_over_clothes', 'cooperative_footjob',
+        'female_footjob', 'footjob_from_behind', 'implied_footjob', 'double_footjob',
+        'footjob_under_table', 'under-stirrup_footjob', 'stealth_footjob',
+        'foot_worship', 'licking_foot', 'mutual_foot_licking', 'smelling_feet',
+        'armpit_sex', 'licking_armpit', 'smelling_armpit',
+    ]),
+    omit_tags('vore', 'Vore and unbirthing', [
+        'vore', 'imminent_vore', 'anal_vore', 'tail_vore', 'unbirthing',
+    ]),
+    omit_tags('expansion', 'Inflation and body expansion', [
+        'inflation', 'cum_inflation', 'breast_expansion', 'ass_expansion', 'penis_growth',
+    ]),
+    omit_tags('insertion-play', 'Insertion and medical play', [
+        'urethral_insertion', 'urethral_fingering', 'urethral_penetration',
+        'urethral_beads', 'sounding', 'sounding_rod', 'enema', 'alcohol_enema',
+        'fisting', 'anal_fisting', 'self_fisting', 'milking_machine', 'prostate_milking',
+    ]),
+    omit_tags('adult-baby', 'Adult baby and diaper play', [
+        'adult_baby', 'diaper', 'diaper_changing',
+    ]),
+]))
+
 path=ROOT/'data/prompt-rulesets.json';library=json.loads(path.read_text(encoding='utf-8'))
 generated = {row['id']: row for row in rows}
 library['definitions'] = [generated.pop(row['id'], row) for row in library['definitions']]
