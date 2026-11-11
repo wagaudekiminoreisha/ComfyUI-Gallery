@@ -3,7 +3,14 @@ import csv,gzip,json
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 with gzip.open(ROOT/'data/danbooru.csv.gz','rt',encoding='utf-8') as stream:
-    GENERAL={row[0] for row in csv.reader(stream) if len(row)>1 and row[1]=='0'}
+    vocabulary=[row for row in csv.reader(stream) if len(row)>1]
+GENERAL={row[0] for row in vocabulary if row[1]=='0'}
+canonical_names={row[0] for row in vocabulary}
+alias_targets={}
+for row in vocabulary:
+    for alias in row[3].split(',') if len(row)>3 else []:
+        if alias:
+            alias_targets.setdefault(alias, set()).add(row[0])
 GROUPS=json.loads((ROOT/'data/danbooru-groups.json').read_text(encoding='utf-8'))['groups']
 def pool(values):return list(dict.fromkeys(tag for tag in values if tag in GENERAL))
 def group(name):return pool(GROUPS.get('tag_group:'+name,{}).get('tags',[]))
@@ -32,7 +39,76 @@ rows.append(definition('chest','Chest attributes',[preference('size','Chest size
 rows.append(definition('nudity','Nudity tags',[preference('state','Nudity description',['nude','topless','bottomless','completely_nude'],True),profiles('cleanup','Prompt cleanup',[('omit','Omit nudity and exposed anatomy tags',[rule('exclude',pool(['nude','topless','bottomless','completely_nude','nipples','areolae','penis','testicles','vulva','pussy','anus','erection']))])])]))
 rows.append(definition('adult-acts','Adult act tags',[profiles('cleanup','Prompt act tags',[('omit','Leave sexual acts unspecified',[rule('exclude',group('sex_acts')+group('simulated_sex_acts'))])]),preference('act','Add act',['sex','masturbation','fellatio','cunnilingus','vaginal','anal','handjob','paizuri'],True)]))
 rows.append(definition('batch-protections','Common batch protections',[profiles('protect','Protect from batch conversion',[('composition','Composition and counts',[rule('protect',pool(['solo','1girl','1boy','2girls','2boys','multiple_girls','multiple_boys','full_body','upper_body','portrait']))]),('identity-neutral','Anatomy and appearance',[rule('protect',pool(['blonde_hair','brown_hair','black_hair','blue_eyes','green_eyes','brown_eyes','dark_skin','pale_skin','freckles','mole']))])])]))
+
+def omit_tags(key, label, tags):
+    tags = pool(tags)
+    selected = set(tags)
+    # Rules normalize a subset of the dictionary's aliases. Include known spellings
+    # here so common inputs such as "gore" work in both preview and execution.
+    aliases = sorted(alias for alias, targets in alias_targets.items()
+                     if alias not in canonical_names and len(targets) == 1 and targets <= selected)
+    return profiles(key, label, [('omit', 'Omit tags', [rule('exclude', tags + aliases)])])
+
+
+rows.append(definition('injury-gore-filter', 'Injury and gore filter', [
+    omit_tags('amputation', 'Amputation and missing limbs', [
+        'amputee', 'armless_amputee', 'legless_amputee', 'double_amputee',
+        'triple_amputee', 'quadruple_amputee', 'missing_limb', 'stump_cover',
+    ]),
+    omit_tags('gore', 'Gore and body horror', [
+        'guro', 'ero_guro', 'candy_gore', 'body_horror', 'mutilation', 'dismemberment',
+        'decapitation', 'disembowelment', 'impaled', 'skinned',
+        'severed_head', 'severed_limb', 'severed_arm', 'severed_leg', 'severed_hand',
+        'severed_finger', 'severed_torso', 'severed_tail', 'severed_ear', 'severed_penis',
+        'entrails', 'intestines', 'exposed_brain', 'exposed_bone', 'exposed_muscle',
+    ]),
+    omit_tags('injury-blood', 'Injuries and visible blood', [
+        'injury', 'implied_injury', 'eye_injury', 'deep_wound', 'gunshot_wound',
+        'broken_arm', 'broken_leg', 'broken_bone', 'bruise', 'bruise_on_face',
+        'bruised_eye', 'bruise_on_arm', 'bruise_on_leg', 'bruise_on_neck',
+        'bruise_on_shoulder', 'bruise_on_chest', 'bruised_chest', 'bruise_on_stomach',
+        'bruise_on_ass', 'blood', 'fake_blood', 'stylized_blood', 'dried_blood',
+        'blood_stain', 'blood_splatter', 'blood_spray', 'blood_drip', 'blood_drop',
+        'pool_of_blood', 'blood_trail', 'smeared_blood', 'nosebleed', 'excessive_nosebleed',
+        'aroused_nosebleed', 'blood_from_mouth', 'blood_from_eyes', 'blood_from_ears',
+        'blood_in_mouth', 'blood_on_face', 'blood_on_hands', 'blood_on_body',
+        'blood_in_hair', 'blood_on_clothes', 'blood_on_bandages', 'blood_on_weapon',
+        'blood_on_knife', 'blood_on_armor', 'blood_on_axe', 'blood_on_ground',
+        'blood_on_wall', 'blood_on_arm', 'blood_on_leg', 'blood_on_neck',
+        'blood_on_chest', 'blood_on_breasts', 'blood_on_back', 'blood_on_cheek',
+        'coughing_blood', 'spitting_blood', 'vomiting_blood', 'drooling_blood',
+    ]),
+]))
+
+rows.append(definition('disturbing-content-filter', 'Disturbing content filter', [
+    omit_tags('violence-death', 'Violence, death and self-harm', [
+        'violence', 'censored_violence', 'corpse', 'pile_of_corpses', 'dead_animal',
+        'necrophilia', 'murder', 'implied_murder', 'imminent_murder', 'execution',
+        'strangling', 'strangulation_mark', 'drowning', 'self-harm', 'self-harm_scar',
+        'suicide', 'implied_suicide', 'attempted_suicide', 'imminent_suicide',
+        'suicide_pact', 'suicide_bomb',
+    ]),
+    omit_tags('coercion-abuse', 'Coercion and abuse', [
+        'abuse', 'domestic_violence', 'animal_abuse', 'child_abuse', 'kidnapping',
+        'torture', 'torture_instruments', 'rape', 'imminent_rape', 'implied_rape',
+        'assisted_rape', 'after_rape', 'rape_face', 'you_gonna_get_raped',
+        'molestation', 'sleep_molestation', 'compensated_molestation',
+        'bestiality', 'implied_bestiality', 'imminent_bestiality',
+    ]),
+    omit_tags('waste-vomit', 'Bodily waste and vomit', [
+        'scat', 'poop', 'defecating', 'diarrhea', 'peeing', 'peeing_self',
+        'public_urination', 'implied_peeing', 'assisted_peeing', 'peeing_in_cup',
+        'peeing_in_bottle', 'peeing_on_viewer', 'peeing_on_penis', 'piss_bottle',
+        'human_toilet', 'vomit', 'vomiting', 'imminent_vomiting', 'vomiting_cum',
+    ]),
+    omit_tags('infestation-decay', 'Infestation and decay', [
+        'parasite', 'maggot', 'leech', 'rotting',
+    ]),
+]))
+
 path=ROOT/'data/prompt-rulesets.json';library=json.loads(path.read_text(encoding='utf-8'))
-library['definitions']=[row for row in library['definitions'] if not row['id'].startswith('stock-')]+rows
+generated = {row['id']: row for row in rows}
+library['definitions'] = [generated.pop(row['id'], row) for row in library['definitions']]
+library['definitions'].extend(generated.values())
 path.write_text(json.dumps(library,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 print('Built',len(rows),'stock rulesets from general-category vocabulary; no global attachments added.')

@@ -3,6 +3,7 @@ import { associationPrefixIds } from './PrefixAssociations';
 import {PrefixRulesEditor} from './PrefixRulesEditor';
 import {capturePrefixSnapshot} from './PrefixLibrary';
 import {rulesRequest} from './RulesLibrary';
+import {availableRules,disabledRulesets,globalRuleBoxes} from './RuleAvailability';
 import {promptLeaves} from './RuleImpact';
 import {loadLocalMetadata} from './LocalMetadata';
 import { useUnsavedPrefix } from './UnsavedPrefix';
@@ -285,7 +286,7 @@ export function SourcePrefixPanel() {
         if (!label) throw new Error('Name the new prefix first.');
         // Spelling (spaces or canonical underscores) follows the gallery settings, as in the prefix editor.
         const terms = positive.length ? await formatPromptTerms(positive) : [], negativeTerms = negative.length ? await formatPromptTerms(negative) : [];
-        if((snapshot||asSnapshot)&&prefix){const previous=snapshot?library.snapshots?.[snapshot]:undefined;const rulesData=(await rulesRequest()).library;const rules=(snapshot?rulesData.prefixes['snapshot:'+snapshot]:undefined)||previous?.rules||[...rulesData.globals,...rulesData.prefixes[prefix.id]||[]];const id=await capturePrefixSnapshot({prefix_id:prefix.id,terms,negative_terms:negativeTerms,rules,hair_policy:previous?.hair_policy,image_keys:[...new Set([...Object.keys(previous?.members||{}),...keys])],image_refs:{...previous?.members,...refs}});setSnapshot(id||undefined);message.success(id?'Saved snapshot; parent prefix unchanged.':'Tags and rules match the parent; paired with the shared prefix.');}else message.success(await savePrefix(label, terms, library.revision, keys, negativeTerms, refs));
+        if((snapshot||asSnapshot)&&prefix){const previous=snapshot?library.snapshots?.[snapshot]:undefined;const rulesData=(await rulesRequest()).library;const attached=(snapshot?rulesData.prefixes['snapshot:'+snapshot]:undefined)||previous?.rules||rulesData.prefixes[prefix.id]||[];const rules=[...globalRuleBoxes(rulesData),...availableRules(attached.filter(box=>box.origin!=='global'),disabledRulesets(rulesData))];const id=await capturePrefixSnapshot({prefix_id:prefix.id,terms,negative_terms:negativeTerms,rules,hair_policy:previous?.hair_policy,image_keys:[...new Set([...Object.keys(previous?.members||{}),...keys])],image_refs:{...previous?.members,...refs}});setSnapshot(id||undefined);message.success(id?'Saved snapshot; parent prefix unchanged.':'Tags and rules match the parent; paired with the shared prefix.');}else message.success(await savePrefix(label, terms, library.revision, keys, negativeTerms, refs));
         drafts.markSaved({ name: label, positive: terms, negative: negativeTerms });
         setName(label); setPositive(terms); setNegative(negativeTerms);
         const fresh = await reload();

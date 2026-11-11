@@ -7,7 +7,9 @@ export function encoderWidgetValues(info:any):Record<string,any>{
  const values=Array.isArray(info?.widgets_values)?info.widgets_values:[],properties=info?.properties||{};
  const saved=properties.gallery_encoder_widgets?.version===1?properties.gallery_encoder_widgets.values:undefined;
  const boxes=properties.prompt_boxes;
- const result:Record<string,any>={text:typeof values[0]==='string'?values[0]:'',source_mode:boxes||typeof values[0]==='string'&&values[0].includes('⟦source')?'boxes':'after',hair_policy:JSON.stringify(boxes?.hairPolicy||{}),rules_state:JSON.stringify([...(Array.isArray(properties.gallery_inherited_rules)?properties.gallery_inherited_rules:[]),...(Array.isArray(boxes?.rulesets)?boxes.rulesets:[])]),prefix_snapshots:JSON.stringify(properties.gallery_prefix_snapshots||[]),source_image_exclusions:'{}'};
+ const rules=[...(Array.isArray(properties.gallery_global_rules)?properties.gallery_global_rules:[]),...(Array.isArray(properties.gallery_inherited_rules)?properties.gallery_inherited_rules:[]),...(Array.isArray(boxes?.rulesets)?boxes.rulesets:[])];
+ const disabled=new Set(Array.isArray(properties.gallery_disabled_rulesets)?properties.gallery_disabled_rulesets:[]);
+ const result:Record<string,any>={text:typeof values[0]==='string'?values[0]:'',source_mode:boxes||typeof values[0]==='string'&&values[0].includes('⟦source')?'boxes':'after',hair_policy:JSON.stringify(boxes?.hairPolicy||{}),rules_state:JSON.stringify(rules.filter(box=>!disabled.has(box?.definition?.id))),prefix_snapshots:JSON.stringify(properties.gallery_prefix_snapshots||[]),source_image_exclusions:'{}'};
  let rulesFound=false,snapshotsFound=false;
  for(const value of values.slice(1)){
   if(typeof value==='string'&&modes.has(value)){result.source_mode=value;continue;}

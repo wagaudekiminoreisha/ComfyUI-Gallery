@@ -38,7 +38,7 @@ def validate_definition(value):
         if not isinstance(rows, list) or len(rows)>200: raise ValueError('At most 200 rules per list.')
         for row in rows:
             if not isinstance(row, dict) or row.get('op') not in OPS: raise ValueError('Unknown rule operation.')
-            for field in ('tags', 'if_all'):
+            for field in ('tags', 'if_all', 'except_tags'):
                 tags = row.get(field, [])
                 if not isinstance(tags, list) or len(tags)>1000 or any(not isinstance(tag,str) or not tag.strip() or len(tag)>300 or any(c in tag for c in ',{}[]<>|\n\r') or tag.strip().startswith('(') for tag in tags): raise ValueError('Rules use lists of individual literal tags.')
             if row.get('condition') is not None:validate_condition(row['condition'])
@@ -80,6 +80,16 @@ def validate_boxes(value):
     return value
 
 
+def effective_rule(rule):
+    exceptions = {tag_key(tag) for tag in rule.get('except_tags', [])}
+    tags = [tag for tag in rule['tags'] if tag_key(tag) not in exceptions]
+    if not tags or rule['op'] == 'select' and tag_key(rule['value']) not in {tag_key(tag) for tag in tags}:
+        return None
+    result = {**rule, 'tags': tags}
+    result.pop('except_tags', None)
+    return result
+
+
 def active_boxes(boxes):
     boxes=validate_boxes(boxes)
     ranks={'global':0,'prefix':1,'snapshot':2,'encoder':3}
@@ -113,7 +123,10 @@ def apply_rules(text, boxes):
         for choice in definition.get('choices',[]):
             selected=box.get('preferences',{}).get(choice['id'],choice['default'])
             rows.extend(next(option for option in choice['options'] if option['id']==selected).get('rules',[]))
-        for row in rows:
+        for configured in rows:
+            row = effective_rule(configured)
+            if row is None:
+                continue
             if not all(tag_key(tag) in initial for tag in row.get('if_all',[])):continue
             if not condition_matches(row.get('condition'),initial):continue
             tags={tag_key(tag) for tag in row['tags']}; op=row['op']

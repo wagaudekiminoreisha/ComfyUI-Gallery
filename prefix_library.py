@@ -128,9 +128,12 @@ def update(path, data):
             rules_path=path.parent/'gallery-rulesets.json'
             if rules_path.is_file():
                 try:
-                    try:from .rules_library import read_library
-                    except ImportError:from rules_library import read_library
-                    rules,_=read_library(rules_path);baseline=rules.get('globals',[])+rules.get('prefixes',{}).get(data.get('prefix_id'),[])
+                    try:from .rules_library import read_library, global_rule_policy
+                    except ImportError:from rules_library import read_library, global_rule_policy
+                    rules,_=read_library(rules_path)
+                    policy=global_rule_policy(rules)
+                    baseline=policy['globals']+[box for box in rules.get('prefixes',{}).get(data.get('prefix_id'),[])
+                                                 if box['definition']['id'] not in policy['disabled']]
                 except ImportError:pass
             snapshot_id=capture_snapshot(library,data,baseline)
             validate(library)
@@ -372,7 +375,7 @@ class GalleryPromptEncode:
     @classmethod
     def INPUT_TYPES(cls):
         return {'required': {'clip': ('CLIP',), 'text': ('STRING', {'multiline': True, 'dynamicPrompts': True, 'default': ''})},
-                'optional': {'source_text': ('STRING', {'forceInput': True}), 'source_mode': (list(SOURCE_MODES), {'default': 'after'}), 'hair_policy': ('STRING', {'default': '{}'}), 'rules_state': ('STRING', {'default': '[]'}), 'prefix_snapshots': ('STRING', {'default': '[]'}), 'source_image_exclusions': ('STRING', {'default': '{}'})},
+                'optional': {'source_text': ('STRING', {'forceInput': True}), 'source_mode': (list(SOURCE_MODES), {'default': 'after'}), 'hair_policy': ('STRING', {'default': '{}'}), 'rules_state': ('STRING', {'default': '[]'}), 'prefix_snapshots': ('STRING', {'default': '[]'}), 'source_image_exclusions': ('STRING', {'default': '{}'}), 'rules_policy': ('STRING', {'default': '', 'advanced': True})},
                 'hidden': {'extra_pnginfo': 'EXTRA_PNGINFO', 'unique_id': 'UNIQUE_ID'}}
 
     RETURN_TYPES = ('CONDITIONING', 'STRING')
@@ -385,7 +388,7 @@ class GalleryPromptEncode:
         # Unresolved {a|b} groups are picked here each run, so the result must not be cached.
         return float('nan') if '{' in (text or '') + (source_text or '') or 'one' in str(kwargs.get('hair_policy','')) else ''
 
-    def encode(self, clip, text, source_text=None, source_mode='after', extra_pnginfo=None, unique_id=None, hair_policy='{}', rules_state='[]', prefix_snapshots='[]', source_image_exclusions='{}'):
+    def encode(self, clip, text, source_text=None, source_mode='after', extra_pnginfo=None, unique_id=None, hair_policy='{}', rules_state='[]', prefix_snapshots='[]', source_image_exclusions='{}', rules_policy=''):
         snapshots=json.loads(prefix_snapshots) if isinstance(prefix_snapshots,str) else prefix_snapshots
         if not isinstance(snapshots,list) or len(snapshots)>100 or any(not isinstance(row,dict) or not isinstance(row.get('prefix_id'),str) or row.get('snapshot_id') is not None and (not isinstance(row['snapshot_id'],str) or not re.fullmatch('[a-f0-9]{64}',row['snapshot_id'])) for row in snapshots):raise ValueError('Invalid prefix snapshot list.')
         if clip is None:
@@ -397,10 +400,18 @@ class GalleryPromptEncode:
         policy = sample_policy(hair_policy)
         effective, choices = resolve_dynamic(composed)
         effective = filter_hair_prompt(effective, policy)
-        try: from .prompt_rules import apply_rules
-        except ImportError: from prompt_rules import apply_rules
+        try: from .prompt_rules import apply_rules, validate_boxes
+        except ImportError: from prompt_rules import apply_rules, validate_boxes
         try: rules = json.loads(rules_state) if isinstance(rules_state, str) else rules_state
         except ValueError: raise ValueError('Invalid encoder rules JSON.')
+        if rules_policy:
+            availability = json.loads(rules_policy)
+            if (not isinstance(availability, dict) or not isinstance(availability.get('disabled'), list)
+                    or any(not isinstance(id, str) for id in availability['disabled'])):
+                raise ValueError('Invalid encoder rules policy.')
+            disabled = set(availability['disabled'])
+            rules = validate_boxes(availability.get('globals')) + [box for box in validate_boxes(rules)
+                                                if box.get('origin') != 'global' and box['definition']['id'] not in disabled]
         effective, rules_trace = apply_rules(effective, rules)
         record_resolution(extra_pnginfo, unique_id, composed, effective, choices, source_text, source_exclusions(text) if source_mode == 'boxes' else None)
         if isinstance(extra_pnginfo, dict) and isinstance(extra_pnginfo.get(RESOLVED_KEY), dict) and str(unique_id) in extra_pnginfo[RESOLVED_KEY]:

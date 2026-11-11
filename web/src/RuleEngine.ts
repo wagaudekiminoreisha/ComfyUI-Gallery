@@ -3,10 +3,11 @@ import { compatibleBranches, promptRuleOccurrences } from './PromptRuleContext';
 import pack from '../../data/global-tag-rules.json';
 
 export type RuleCondition={op:'tag';tag:string}|{op:'all'|'any'|'not';children:RuleCondition[]};
-export type Rule = { op: 'exclude'|'protect'|'require'|'select'|'exclusive'; tags:string[]; value?:string; if_all?:string[];condition?:RuleCondition };
+export type Rule = { op: 'exclude'|'protect'|'require'|'select'|'exclusive'; tags:string[]; except_tags?:string[]; value?:string; if_all?:string[];condition?:RuleCondition };
 export type Ruleset = { version:1; id:string; name:string; family:string; rules:Rule[]; choices:{id:string;label:string;default:string;options:{id:string;label:string;rules:Rule[]}[]}[] };
 export type RuleBox = {id:string;definition:Ruleset;scope:string;origin:'global'|'prefix'|'snapshot'|'encoder';label?:string;preferences:Record<string,string>;enabled:boolean;collapsed:boolean};
-export type RulesLibrary = {version:1;definitions:Ruleset[];globals:RuleBox[];prefixes:Record<string,RuleBox[]>};
+export type RulesetMode = 'global' | 'on-demand' | 'disabled';
+export type RulesLibrary = {version:1;definitions:Ruleset[];globals:RuleBox[];prefixes:Record<string,RuleBox[]>;availability?:Record<string,RulesetMode>};
 export const ruleTag = (text:string) => {const key=text.trim().toLowerCase().replace(/\s+/g,'_');return (pack.aliases as Record<string,string>)[key]||key;};
 const ranks={global:0,prefix:1,snapshot:2,encoder:3};
 export const ruleBoxKey=(box:RuleBox)=>box.definition.family+'\n'+box.scope;
@@ -15,7 +16,14 @@ export function activeRuleBoxes(boxes:RuleBox[]) {
     for(const box of boxes)if(box.enabled)maxima.set(ruleBoxKey(box),Math.max(maxima.get(ruleBoxKey(box))??-1,ranks[box.origin]));
     return boxes.filter(box=>box.enabled&&ranks[box.origin]===maxima.get(ruleBoxKey(box)));
 }
-export function selectedRules(box:RuleBox):Rule[]{return [...box.definition.rules,...box.definition.choices.flatMap(choice=>choice.options.find(option=>option.id===(box.preferences[choice.id]??choice.default))?.rules||[])];}
+export function effectiveRule(rule:Rule):Rule|undefined {
+    const exceptions=new Set(rule.except_tags?.map(ruleTag));
+    const tags=rule.tags.filter(tag=>!exceptions.has(ruleTag(tag)));
+    if(!tags.length||rule.op==='select'&&!tags.some(tag=>ruleTag(tag)===ruleTag(rule.value!)))return;
+    const {except_tags: _exceptions,...rest}=rule;
+    return {...rest,tags};
+}
+export function selectedRules(box:RuleBox):Rule[]{return [...box.definition.rules,...box.definition.choices.flatMap(choice=>choice.options.find(option=>option.id===(box.preferences[choice.id]??choice.default))?.rules||[])].flatMap(rule=>{const effective=effectiveRule(rule);return effective?[effective]:[];});}
 function filterTags(text:string,excluded:Set<string>,depth=0):string {
     if(depth>32)throw new Error('Prompt nesting exceeds rules limit.');
     return parsePrompt(text).flatMap(chip=>{

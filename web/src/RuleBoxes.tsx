@@ -7,11 +7,12 @@ import {activeRuleBoxes,type RuleBox,type Ruleset} from './RuleEngine';
 import {RuleOperations,RuleNotation,RuleStyles} from './RuleOperation';
 import {HairControls} from './HairControls';
 import {cleanHairPolicy,type HairPolicy} from './HairPolicy';
+import {RulesetTags} from './RulesetTags';
 
 type HairBox={value:HairPolicy|null;onChange:(value:HairPolicy|null)=>void};
-export function RuleBoxes({value,onChange,definitions,origin='encoder',inherited=[],promote=false,template='',hairPrompting,onEdit}:{value:RuleBox[];onChange:(value:RuleBox[])=>void;definitions:Ruleset[];origin?:RuleBox['origin'];inherited?:RuleBox[];promote?:boolean;template?:string;hairPrompting?:HairBox;onEdit?:(id:string)=>void}){
+export function RuleBoxes({value,onChange,definitions,origin='encoder',inherited=[],background=[],promote=false,template='',hairPrompting,onEdit}:{value:RuleBox[];onChange:(value:RuleBox[])=>void;definitions:Ruleset[];origin?:RuleBox['origin'];inherited?:RuleBox[];background?:RuleBox[];promote?:boolean;template?:string;hairPrompting?:HairBox;onEdit?:(id:string)=>void}){
  const [folded,setFolded]=useState<Record<string,boolean>>({}),[channel,setChannel]=useState<{boxId:string;name:string}>();
- const all=[...inherited,...value],active=new Set(activeRuleBoxes(all));
+ const all=[...inherited,...value],active=new Set(activeRuleBoxes([...background,...all]));
  const patch=(id:string,changes:Partial<RuleBox>,preference=false)=>onChange(patchRuleBox(value,id,{...changes,...(promote&&preference?{origin:'encoder' as const,label:'Encoder override'}:{})}));
  const move=(index:number,delta:number)=>{const result=[...value];[result[index],result[index+delta]]=[result[index+delta],result[index]];onChange(result);};
  const card=(box:RuleBox,index:number,readOnly=false)=><fieldset className="cg-rule-box" key={(readOnly?'inherited:':'')+box.id} aria-label={'Ruleset box '+box.definition.name} style={{opacity:active.has(box)?1:.65}}>
@@ -24,6 +25,7 @@ export function RuleBoxes({value,onChange,definitions,origin='encoder',inherited
   </div>
   {!(readOnly?folded[box.id]??box.collapsed:box.collapsed)&&<div>
    <small>{box.label||box.definition.family} · pinned ruleset snapshot</small>
+   <RulesetTags value={box.definition} preferences={box.preferences} onChange={readOnly?undefined:definition=>patch(box.id,{definition},true)}/>
    <label style={{display:'block',marginTop:6}}>Policy channel <select aria-label="Ruleset scope" disabled={readOnly} value={box.scope} onChange={event=>event.target.value==='__separate__'?setChannel({boxId:box.id,name:''}):patch(box.id,{scope:event.target.value})}><option value="main">Main · inherit and override</option>{[...new Set(all.map(row=>row.scope))].filter(scope=>scope!=='main').map((scope,index)=><option key={scope} value={scope}>Additional channel {index+1}{!scope.startsWith('channel-')?' · '+scope:''}</option>)}<option value="__separate__">Create independent channel…</option></select></label><small>Same family + channel: encoder overrides snapshot, prefix and global defaults. Independent channels combine; they do not bind subjects or regions.</small>
    <RuleOperations rules={box.definition.rules} template={template} inactive={!active.has(box)}/>
    {box.definition.choices.map(choice=>{
@@ -41,7 +43,13 @@ export function RuleBoxes({value,onChange,definitions,origin='encoder',inherited
   {hairPrompting?.value&&<HairControls value={hairPrompting.value} template={template} onChange={hairPrompting.onChange} onRemove={()=>hairPrompting.onChange(null)}/>}
   <div className="cg-rule-add"><span aria-hidden="true">＋</span><select aria-label="Add ruleset" value="" onChange={event=>{
    if(event.target.value==='__hair_prompting__'){if(hairPrompting&&!hairPrompting.value)hairPrompting.onChange(cleanHairPolicy(null));return;}
-   const definition=definitions.find(item=>item.id===event.target.value);if(definition&&!hasActiveRuleset(all,definition.id))onChange(insertRuleBox(value,newRuleBox(definition,origin)));
+   const definition=definitions.find(item=>item.id===event.target.value);
+   if(definition&&!hasActiveRuleset(all,definition.id)){
+    const global=background.find(box=>box.enabled&&box.scope==='main'&&box.definition.id===definition.id);
+    const candidate=newRuleBox(global?.definition||definition,origin);
+    if(global)candidate.preferences={...global.preferences};
+    onChange(insertRuleBox(value,candidate));
+   }
   }}><option value="">Add ruleset…</option>{hairPrompting&&!hairPrompting.value&&<option value="__hair_prompting__">Hair prompting · attribute filter</option>}{definitions.filter(item=>!hasActiveRuleset(all,item.id)).map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
   <RuleNotation/>
  </div>;

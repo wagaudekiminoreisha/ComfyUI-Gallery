@@ -1,3 +1,4 @@
+import asyncio
 import importlib
 import json
 from pathlib import Path
@@ -18,6 +19,26 @@ def box(rules,origin='encoder',family='hair',scope='main'):
  return dict(id='test',definition=dict(version=1,id='test',name='Test',family=family,rules=rules,choices=[]),origin=origin,scope=scope,preferences={},enabled=True,collapsed=False)
 def select(value):return dict(op='select',tags=['short hair','long hair'],value=value)
 class RulesTests(unittest.TestCase):
+ def test_tag_exceptions_apply_to_all_operations_and_survive_encoder_metadata(self):
+  rules=[dict(op='exclude',tags=['gore','blood'],except_tags=['GORE']),
+         dict(op='require',tags=['hat','coat'],except_tags=['coat']),
+         dict(op='protect',tags=['blue_eyes','hair bow'],except_tags=['blue eyes']),
+         dict(op='exclusive',tags=['standing','sitting'],except_tags=['sitting']),
+         dict(op='exclude',tags=['fog'],if_all=['indoors'])]
+  boxes=[box(rules)]
+  class Clip:
+   def tokenize(self,text):return text
+   def encode_from_tokens_scheduled(self,value):return value
+  metadata={}
+  result=GalleryPromptEncode().encode(Clip(),'gore, (blood:1.2), blue eyes, standing, sitting, fog',
+                                    rules_state=json.dumps(boxes),extra_pnginfo=metadata,unique_id='1')
+  self.assertEqual(result['result'][1],'gore, blue eyes, standing, sitting, fog, hat')
+  self.assertEqual(metadata['gallery_prompts']['1']['rules_applied']['protected_tags'],['hair_bow'])
+  self.assertEqual(metadata['gallery_prompts']['1']['rules_program'],boxes)
+  fixed=dict(op='select',tags=['short hair','long hair'],value='short hair',except_tags=['short_hair'])
+  self.assertEqual(apply_rules('long hair',[box([fixed])])[0],'long hair')
+  with self.assertRaises(ValueError):validate_definition(box([dict(op='exclude',tags=['gore'],except_tags=['{gore|}'])])['definition'])
+
  def test_precedence_noop_weights_and_conflicts(self):
   text='alpha,  (long hair:1.2), beta'
   for rows in ([],[box([dict(op='protect',tags=['long hair'])])]):self.assertEqual(apply_rules(text,rows)[0],text)
@@ -68,6 +89,46 @@ class AttireTests(unittest.TestCase):
    self.assertIn(result['result'][1],['jeans, hairpin','track pants, hair ribbon'])
 
 class LibraryTests(unittest.IsolatedAsyncioTestCase):
+ async def test_queue_uses_each_users_current_global_and_disabled_rules(self):
+  definition=box([dict(op='exclude',tags=['gore'])])
+  definition['definition']['id']='filter'
+  global_box={**definition,'origin':'global'}
+  handlers=[]
+  server=types.SimpleNamespace(app=web.Application(),add_on_prompt_handler=handlers.append)
+  with tempfile.TemporaryDirectory() as temp:
+   root=Path(temp)
+   for user,mode in [('a','global'),('b','disabled'),('c','on-demand')]:
+    (root/user).write_text(json.dumps({'version':1,'definitions':[definition['definition']],
+      'globals':[global_box],'prefixes':{},'availability':{'filter':mode}}),encoding='utf-8')
+   library.install_prompt_rules(server,lambda request:root/request.user)
+   async def queue(user):
+    payload={'prompt':{'1':{'class_type':'GalleryPromptEncode','inputs':{'rules_state':['3',0]}},
+                       '2':{'class_type':'CLIPTextEncode','inputs':{}}}}
+    async def body():return payload
+    async def receive(_):
+     await asyncio.sleep(0)
+     return handlers[0](payload)
+    request=types.SimpleNamespace(user=user,method='POST',path='/api/prompt',json=body)
+    submitted=await server.app.middlewares[-1](request,receive)
+    self.assertEqual(submitted['prompt']['2']['inputs'],{})
+    self.assertEqual(submitted['prompt']['1']['inputs']['rules_state'],['3',0])
+    return submitted['prompt']['1']['inputs']['rules_policy']
+   global_policy,disabled,on_demand=await asyncio.gather(queue('a'),queue('b'),queue('c'))
+
+  class Clip:
+   def tokenize(self,text):return text
+   def encode_from_tokens_scheduled(self,tokens):return tokens
+
+  def effective(policy,boxes=()):
+   return GalleryPromptEncode().encode(Clip(),'portrait, gore',rules_policy=policy,rules_state=list(boxes))['result'][1]
+  self.assertEqual(effective(global_policy),'portrait')
+  self.assertEqual(effective(global_policy,[{**definition,'definition':{**definition['definition'],'rules':[]}}]),'portrait, gore')
+  self.assertEqual(effective(disabled,[definition,global_box]),'portrait, gore')
+  self.assertEqual(effective(on_demand,[global_box]),'portrait, gore')
+  self.assertEqual(effective(on_demand,[definition]),'portrait')
+  with self.assertRaisesRegex(ValueError,'availability'):
+   library.validate_library({'version':1,'availability':{'filter':'always'}})
+
  async def test_cas_user_isolation_invalid_script_and_origin(self):
   with tempfile.TemporaryDirectory() as temp:
    routes=web.RouteTableDef();library.register_rules_routes(routes,lambda request:Path(temp)/request.headers.get('X-User','default')/'rules.json')

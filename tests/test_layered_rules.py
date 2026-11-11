@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from prefix_snapshots import capture_snapshot,validate_snapshots
+from prefix_snapshots import capture_snapshot,validate_snapshots,program
 from prompt_rules import apply_rules,validate_boxes
 from hair_policy import sample_policy,filter_hair_prompt
 from hydrus import HydrusBridge,HydrusError
@@ -15,6 +15,12 @@ def box(rules,origin='encoder'):
  return dict(id='box',definition=dict(version=1,id='rules',name='Test',family='hair',rules=rules,choices=[]),origin=origin,scope='main',preferences={},enabled=True,collapsed=False)
 
 class SnapshotTests(unittest.TestCase):
+ def test_equivalent_tag_exemptions_produce_the_same_snapshot_program(self):
+  configured=box([dict(op='exclude',tags=['gore','blood'],except_tags=['blood'])])
+  literal=box([dict(op='exclude',tags=['gore'])])
+  self.assertEqual(program([configured]),program([literal]))
+  exempt=box([dict(op='require',tags=['hat'],except_tags=['hat'])])
+  self.assertEqual(program([exempt]),[])
  def setUp(self):
   self.library={'version':2,'tags':[{'id':'a','name':'a','text':'blonde hair'},{'id':'b','name':'b','text':'short hair'}],'prefixes':[{'id':'p','name':'Character','tags':['a','b']}]}
  def test_parent_consolidation_and_content_addressed_membership(self):

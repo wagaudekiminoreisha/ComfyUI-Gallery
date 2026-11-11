@@ -15,3 +15,10 @@ test('conditional notation keeps the condition separate from the affected tag se
  const description=describeRule({op:'exclude',tags:['standing'],if_all:['solo']},'{standing|sitting}, solo');
  assert.deepEqual(description.condition,['solo']);assert.deepEqual(description.pool,['standing']);assert(description.expression.startsWith('C ⊆ T ⇒'));
 });
+
+test('tag coverage and notation describe exemptions as executed',()=>{
+ const description=describeRule({op:'exclude',tags:['gore','blood'],except_tags:['blood']},'gore, blood');
+ assert.deepEqual(description.pool,['gore']);assert.deepEqual(description.removed,['gore']);
+ const fixed=describeRule({op:'select',tags:['short hair','long hair'],value:'short hair',except_tags:['short hair']},'long hair');
+ assert.equal(fixed.expression,'T′ = T');assert.deepEqual(fixed.added,[]);
+});

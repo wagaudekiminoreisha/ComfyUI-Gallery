@@ -57,3 +57,27 @@ test('handheld filter is opt-in and separates hair actions, props and holding pr
  assert.equal(R.applyRulePreview(text,[rules]).text,'long hair, hairclip, blue eyes');
  assert(R.applyRulePreview('{holding pencil|blue eyes}, long hair',[rules]).text.includes('blue eyes'));
 });
+
+test('injury and gore preview filters selected categories and keeps unrelated alternatives',()=>{
+ const definition=require('../data/prompt-rulesets.json').definitions.find(row=>row.id==='stock-injury-gore-filter');
+ const rules={id:'injury',definition,origin:'encoder',scope:'main',preferences:{gore:'omit',amputation:'omit'},enabled:true,collapsed:false};
+ const result=R.applyRulePreview('red scarf, double amputee, (gore:1.2), {severed head|smile}, blood, prosthetic leg',[rules]);
+ assert.deepEqual(result.errors,[]);
+ assert.equal(result.text,'red scarf, {|smile}, blood, prosthetic leg');
+});
+
+test('per-tag exceptions follow each operation and leave conditional rules conditional',()=>{
+ const rules=[
+  {op:'exclude',tags:['gore','blood'],except_tags:['GORE']},
+  {op:'require',tags:['hat','coat'],except_tags:['coat']},
+  {op:'protect',tags:['blue_eyes','hair bow'],except_tags:['blue eyes']},
+  {op:'exclusive',tags:['standing','sitting'],except_tags:['sitting']},
+  {op:'exclude',tags:['fog'],except_tags:[],if_all:['indoors']},
+ ];
+ const result=R.applyRulePreview('gore, (blood:1.2), blue eyes, standing, sitting, fog',[box(rules)]);
+ assert.equal(result.text,'gore, blue eyes, standing, sitting, fog, hat');
+ assert.deepEqual(result.errors,[]);
+ assert.deepEqual(result.protectedTags,['hair bow']);
+ const fixed={op:'select',tags:['short hair','long hair'],value:'short hair',except_tags:['short_hair']};
+ assert.equal(R.applyRulePreview('long hair',[box([fixed])]).text,'long hair');
+});

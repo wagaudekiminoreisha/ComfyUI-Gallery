@@ -1,4 +1,6 @@
 """User-scoped, revision-checked ruleset library and prefix attachments."""
+import asyncio
+from contextvars import ContextVar
 import hashlib
 import json
 import os
@@ -10,6 +12,16 @@ from aiohttp import web
 from .prompt_rules import validate_definition, validate_boxes
 
 LOCK=threading.RLock()
+RULESET_MODES = ('global', 'on-demand', 'disabled')
+
+
+def global_rule_policy(library):
+    availability = library.get('availability', {})
+    return {
+        'globals': [dict(box, origin='global') for box in library.get('globals', [])
+                    if availability.get(box['definition']['id'], 'global') == 'global'],
+        'disabled': [id for id, mode in availability.items() if mode == 'disabled'],
+    }
 
 
 def validate_library(value):
@@ -22,6 +34,11 @@ def validate_library(value):
         if definition['id'] in ids:raise ValueError('Duplicate ruleset ID.')
         ids.add(definition['id'])
     validate_boxes(value.get('globals',[]))
+    availability = value.get('availability', {})
+    if (not isinstance(availability, dict) or len(availability) > 500
+            or any(not isinstance(id, str) or not 1 <= len(id.strip()) <= 160 or mode not in RULESET_MODES
+                   for id, mode in availability.items())):
+        raise ValueError('Invalid ruleset availability.')
     bindings=value.get('prefixes',{})
     if not isinstance(bindings,dict) or len(bindings)>5000:raise ValueError('Invalid prefix bindings.')
     for key,boxes in bindings.items():
@@ -34,13 +51,52 @@ def read_library(path):
     try:raw=Path(path).read_bytes()
     except FileNotFoundError:raw=b''
     if len(raw)>8*1024*1024:raise ValueError('Rules library exceeds 8 MiB.')
-    value=json.loads(raw) if raw else json.loads((Path(__file__).parent/'data/prompt-rulesets.json').read_text(encoding='utf-8'))
-    # Offer newly shipped definitions without rewriting custom definitions or pinned attachments.
-    value=validate_library(value)
     shipped=json.loads((Path(__file__).parent/'data/prompt-rulesets.json').read_text(encoding='utf-8'))
+    # Offer newly shipped definitions without rewriting custom definitions or pinned attachments.
+    value=validate_library(json.loads(raw) if raw else shipped)
     known={definition['id'] for definition in value['definitions']}
     value['definitions'] += [definition for definition in shipped['definitions'] if definition['id'] not in known][:max(0,500-len(value['definitions']))]
     return value,hashlib.sha256(raw).hexdigest()
+
+
+def install_prompt_rules(server, get_path):
+    """Bind the queue hook to the requesting ComfyUI user's rules library."""
+    policy = ContextVar('gallery_prompt_rules', default=None)
+
+    @web.middleware
+    async def with_rules(request, handler):
+        if request.method != 'POST' or request.path not in ('/prompt', '/api/prompt'):
+            return await handler(request)
+        try:
+            payload = await request.json()
+            prompt = payload.get('prompt', {}) if isinstance(payload, dict) else {}
+            if not isinstance(prompt, dict) or not any(
+                    isinstance(node, dict) and node.get('class_type') == 'GalleryPromptEncode' for node in prompt.values()):
+                return await handler(request)
+            path = get_path(request)
+            if not path:
+                return await handler(request)
+            library, _ = await asyncio.to_thread(read_library, path)
+        except (OSError, ValueError):
+            return await handler(request)
+        token = policy.set(json.dumps(global_rule_policy(library), ensure_ascii=False))
+        try:
+            return await handler(request)
+        finally:
+            policy.reset(token)
+
+    def apply_policy(payload):
+        encoded = policy.get()
+        prompt = payload.get('prompt') if isinstance(payload, dict) else None
+        if encoded is not None and isinstance(prompt, dict):
+            for node in prompt.values():
+                if (isinstance(node, dict) and node.get('class_type') == 'GalleryPromptEncode'
+                        and isinstance(node.get('inputs'), dict)):
+                    node['inputs']['rules_policy'] = encoded
+        return payload
+
+    server.app.middlewares.append(with_rules)
+    server.add_on_prompt_handler(apply_policy)
 
 
 def register_rules_routes(routes,get_path):

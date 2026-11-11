@@ -1,11 +1,11 @@
 # Scriptable prompt rulesets
 
-Open **Gallery workspace → Rules & protections**. Rulesets contain policy, while prefixes contain tags. Hair and Pose are supplied as starter definitions; all preferences initially keep the supplied prompt unchanged.
+Open **Gallery workspace → Rules & protections**. Rulesets contain policy, while prefixes contain tags. Hair and Pose are supplied as starter definitions.
 
-1. Choose **Global encoder defaults** or a saved prefix under **Attach rulesets**.
-2. Use **Add ruleset** to attach one or more boxes, then choose deterministic preferences. Save the library.
-3. On **Gallery Prompt Encode**, the **Rulesets** section has its own Add ruleset dropdown. Boxes can be enabled, collapsed, reordered and removed. Prefix attachments appear read-only with an **Override on encoder** button that copies their preferences into an editable box.
-4. Existing encoders keep snapshots of their global defaults. Use **Reload global defaults** to adopt saved changes. New encoders get the current defaults. This applies to positive and negative encoders alike: keep generation-only defaults off negative encoders, or disable/remove their boxes.
+1. Pick a definition in **Ruleset settings** and choose **Global**, **On demand**, or **Disabled**.
+2. **Global** applies the preferences from **Global encoder defaults** to every Gallery Prompt Encode without adding a visible box. Saving updates open encoders and the ComfyUI queue. Global settings apply to positive and negative encoders.
+3. **On demand** applies through an explicit encoder, prefix, or snapshot attachment. **Disabled** blocks existing attachments and removes the ruleset from Add ruleset. Switching it back restores its saved preferences.
+4. Add a global ruleset on an encoder to override its settings in that family and policy channel. Prefix attachments have an **Override on encoder** button that copies their preferences.
 
 Prefix attachments follow saved prefix IDs through autocomplete, palette insertion (including combined groups), prefix-editor appends, and connected Gallery Image Source positive prompts. Nested prefix references inherit attachments too. Negative-only prefixes and the Image Source negative output do not inherit positive prefix policies. Older tag boxes without a saved prefix identity must be reinserted from the library to establish this association.
 
@@ -62,7 +62,7 @@ Any operation may include `"if_all": ["solo", "standing"]`. Conditions inspect t
 
 **Import legacy blacklist as Protect rules** creates a global protection box. Until Save succeeds, the old browser list remains active. Successful save removes that legacy list, refreshes global defaults on currently open encoders, and leaves encoder overrides intact. Thereafter edit protections through the imported JSON definition and replace its attachment when changing its snapshot. Workspace tag editors use current global Protect rules; encoder editors use their effective rules, including inherited prefix policies.
 
-The existing broad global congruency dictionary remains advisory. This feature enforces only rulesets you explicitly attach; it does not turn every advisory relationship into a blanket exclusion.
+The broad global congruency dictionary remains advisory. Enabled global rulesets and active attachments enforce their own configured policies.
 
 ## Storage and concurrency
 
@@ -72,6 +72,14 @@ The existing broad global congruency dictionary remains advisory. This feature e
 
 Hair prompting is an optional encoder box under Rulesets. Add **Hair prompting · attribute filter** from the same selector as other rulesets; its Remove button disables the filter and persists its absence in the workflow. Existing saved filters remain available. New encoders start without this box. Adding it again starts at Specific hairstyle (no filtering).
 
+Add **Injury and gore filter** to a positive encoder to omit unwanted prompt tags. Set any of **Amputation and missing limbs**, **Gore and body horror**, or **Injuries and visible blood** to **Omit tags**. These choices apply to tags from connected sources as well as tags entered on the encoder. Each category starts at **Keep supplied**.
+
+**Disturbing content filter** adds separate preferences for **Violence, death and self-harm**, **Coercion and abuse**, **Bodily waste and vomit**, and **Infestation and decay**.
+
 Each preference displays its operation and matching template tags. `T` means sampled tags, `Tₜ` the template's potential tags, `S` the full operand set, and `B` batch-editable tags. `∖` removes, `∪` adds, and `∩` intersects. Expand S to see every tag covered by a rule. Hair attribute checkboxes show `T′ ∩ S = T ∩ S` when kept and `T′ = T ∖ S` when omitted. Template matches can include optional alternatives; the backend still applies rules after sampling.
+
+Expand **Tags** on a configured ruleset to inspect its tags and create exceptions. Choose a rule group, search its tags, then click a tag to toggle its treatment. Exclusion rules offer **Allow/Block**, required tags offer **Make optional/Require**, and protection and exclusivity rules have their corresponding actions. The input below the list adds another tag to that rule. **Reset exceptions** restores the full set. Conditions and preference choices still determine when each rule runs.
+
+Tag changes on a global, prefix, or encoder attachment belong to that configuration. Changes in the reusable definition editor are used by new attachments. Encoder overrides copy their starting definition and exceptions. Exempting a selection rule's fixed value disables that selection step.
 
 The former Global rules panel is now labelled **Compatibility review · advisory**. It remains useful for broad warnings beyond attached rulesets and never enforces additions, exclusions or blocking.

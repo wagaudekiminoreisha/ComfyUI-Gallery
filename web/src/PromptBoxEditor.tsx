@@ -584,7 +584,7 @@ function PromptTrash({ owner }: { owner: string }) {
     </div>,document.body);
 }
 
-export function PromptBoxEditor({ state, source, preview, suggest, onChange, notice, lastEncodedPrompt, unfilteredPreview, ruleDefinitions = [], inheritedRules = [], ruleErrors = [], ruleProtected = [], onReloadRules, rulesNotice,snapshotReferences=[],onOpenSnapshot }: { state: BoxState; source: SourceInfo; preview: string; suggest: (query: string) => Promise<Suggestion[]>; onChange: (state: BoxState) => void; notice?: string; lastEncodedPrompt?: string; unfilteredPreview?: string; ruleDefinitions?: Ruleset[]; inheritedRules?: RuleBox[]; ruleErrors?: string[]; ruleProtected?: string[]; onReloadRules?: ()=>void; rulesNotice?: string;snapshotReferences?:import('./EncoderSnapshots').SnapshotReference[];onOpenSnapshot?:(reference:import('./EncoderSnapshots').SnapshotReference)=>void }) {
+export function PromptBoxEditor({ state, source, preview, suggest, onChange, notice, lastEncodedPrompt, unfilteredPreview, ruleDefinitions = [], inheritedRules = [], globalRules = [], disabledRules = new Set(), ruleErrors = [], ruleProtected = [], onReloadRules, rulesNotice,snapshotReferences=[],onOpenSnapshot }: { state: BoxState; source: SourceInfo; preview: string; suggest: (query: string) => Promise<Suggestion[]>; onChange: (state: BoxState) => void; notice?: string; lastEncodedPrompt?: string; unfilteredPreview?: string; ruleDefinitions?: Ruleset[]; inheritedRules?: RuleBox[]; globalRules?: RuleBox[]; disabledRules?: ReadonlySet<string>; ruleErrors?: string[]; ruleProtected?: string[]; onReloadRules?: ()=>void; rulesNotice?: string;snapshotReferences?:import('./EncoderSnapshots').SnapshotReference[];onOpenSnapshot?:(reference:import('./EncoderSnapshots').SnapshotReference)=>void }) {
     const owner = useId();
     return <RuleImpact.Provider value={new Set(promptLeaves(preview).map(ruleTag))}><RuleProtection.Provider value={ruleProtected}><div data-prompt-editor={owner} style={S.root} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
         <PromptTrash owner={owner} />
@@ -596,16 +596,20 @@ export function PromptBoxEditor({ state, source, preview, suggest, onChange, not
             onPrefix={(item, head) => { const next=addBox(head ? addBox(state, undefined, head) : state,item.label,(item.terms||[]).join(', ')); onChange({...next,boxes:next.boxes.map(box=>box.kind==='group'&&box.name===item.label?{...box,prefixId:item.prefixId}:box)}); }} /></div>
         {notice && <div role="status" style={{ opacity: .8, color: '#d89614' }}>{notice}</div>}
         <details aria-label="Encoder rules" open><summary>Rulesets</summary>
-            <RuleBoxes template={unfilteredPreview??preview} hairPrompting={{value:state.hairPolicy??null,onChange:hairPolicy=>onChange({...state,hairPolicy})}} definitions={ruleDefinitions} value={state.rulesets||[]} inherited={inheritedRules} promote onChange={rulesets=>onChange({...state,rulesets})}/>
-            <div className="cg-rule-controls cg-rule-toolbar"><button type="button" onClick={()=>openRules()}>Manage rulesets</button> <button type="button" onClick={onReloadRules}>Reload global defaults</button></div>
+            <RuleBoxes template={unfilteredPreview??preview} hairPrompting={{value:state.hairPolicy??null,onChange:hairPolicy=>onChange({...state,hairPolicy})}}
+                definitions={ruleDefinitions.filter(definition=>!disabledRules.has(definition.id))}
+                value={(state.rulesets||[]).filter(box=>box.origin!=='global'&&!disabledRules.has(box.definition.id))}
+                inherited={inheritedRules} background={globalRules} promote onChange={rulesets=>onChange({...state,
+                    rulesets:[...rulesets,...(state.rulesets||[]).filter(box=>box.origin!=='global'&&disabledRules.has(box.definition.id))]})}/>
+            <div className="cg-rule-controls cg-rule-toolbar"><button type="button" onClick={()=>openRules()}>Manage rulesets</button> <button type="button" onClick={onReloadRules}>Refresh rules</button></div>
             {rulesNotice&&<p role="status">{rulesNotice}</p>}
             {ruleErrors.map(error=><div role="alert" key={error}>{error} Encoding will stop until the rules agree.</div>)}
             <small>Encoder overrides prefix rules, then global defaults, for the same family and policy channel. Rules run after optional choices. Channels do not create regional conditioning.</small>
         </details>
         {!!snapshotReferences.length&&<details className="cg-rule-tree"><summary>Prefix snapshots · {snapshotReferences.filter(row=>row.snapshot_id).length}</summary>{snapshotReferences.map((row,index)=><button type="button" style={S.btn} key={index} onClick={()=>onOpenSnapshot?.(row)}>{row.prefix_name} · {row.snapshot_id?row.snapshot_id.slice(0,8):'parent tags'}</button>)}</details>}
-        {(state.hairPolicy||[...inheritedRules,...state.rulesets||[]].some(box=>box.enabled&&box.definition.family.startsWith('hair')))&&<HairReview text={preview} policy={state.hairPolicy??undefined} />}
-        {[...inheritedRules,...state.rulesets||[]].some(box=>box.enabled&&box.definition.family.startsWith('clothing'))&&<ClothingReview text={preview} />}
-        {[...inheritedRules,...state.rulesets||[]].some(box=>box.enabled&&box.definition.family==='compatibility')&&<GlobalTagReview text={preview} />}
+        {(state.hairPolicy||[...inheritedRules,...state.rulesets||[]].some(box=>box.origin!=='global'&&!disabledRules.has(box.definition.id)&&box.enabled&&box.definition.family.startsWith('hair')))&&<HairReview text={preview} policy={state.hairPolicy??undefined} />}
+        {[...inheritedRules,...state.rulesets||[]].some(box=>box.origin!=='global'&&!disabledRules.has(box.definition.id)&&box.enabled&&box.definition.family.startsWith('clothing'))&&<ClothingReview text={preview} />}
+        {[...inheritedRules,...state.rulesets||[]].some(box=>box.origin!=='global'&&!disabledRules.has(box.definition.id)&&box.enabled&&box.definition.family==='compatibility')&&<GlobalTagReview text={preview} />}
         <CopyablePrompt title="Prompt sent to the encoder" value={preview} />
         {lastEncodedPrompt !== undefined && <><CopyablePrompt title="Last encoded prompt (after optional choices)" value={lastEncodedPrompt} />{state.hairPolicy&&<HairReview resolved text={lastEncodedPrompt} policy={state.hairPolicy}/>}</>}
     </div></RuleProtection.Provider></RuleImpact.Provider>;

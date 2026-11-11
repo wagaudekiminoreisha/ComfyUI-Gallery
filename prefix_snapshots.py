@@ -12,15 +12,16 @@ def terms(values):
     return sorted(set(canonical(term) for value in values for term in split_top(value) if term.strip()))
 
 def program(boxes):
-    try:from .prompt_rules import active_boxes,tag_key
-    except ImportError:from prompt_rules import active_boxes,tag_key
+    try:from .prompt_rules import active_boxes,effective_rule,tag_key
+    except ImportError:from prompt_rules import active_boxes,effective_rule,tag_key
     rows=[]
     for box in active_boxes(boxes):
         definition=box['definition'];rules=list(definition.get('rules',[]))
         for choice in definition.get('choices',[]):
             selected=box.get('preferences',{}).get(choice['id'],choice['default'])
             rules.extend(next(option for option in choice['options'] if option['id']==selected).get('rules',[]))
-        if rules:rows.append({'family':definition['family'],'scope':box.get('scope','main'),'rules':sorted([dict(rule, tags=sorted(set(tag_key(tag) for tag in rule['tags']))) for rule in rules],key=lambda rule:json.dumps(rule,sort_keys=True))})
+        effective = [item for rule in rules if (item := effective_rule(rule)) is not None]
+        if effective:rows.append({'family':definition['family'],'scope':box.get('scope','main'),'rules':sorted([dict(rule, tags=sorted(set(tag_key(tag) for tag in rule['tags']))) for rule in effective],key=lambda rule:json.dumps(rule,sort_keys=True))})
     return sorted(rows,key=lambda row:json.dumps(row,sort_keys=True))
 
 def prefix_terms(library,prefix,seen=None):

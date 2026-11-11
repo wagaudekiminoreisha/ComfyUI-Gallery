@@ -5,6 +5,7 @@ import {readSourceManifest, saveSourceManifest} from './ImageSourceBridge';
 import {preparePrefixSnapshots} from './EncoderSnapshots';
 import {rulesRequest,RULES_CHANGED} from './RulesLibrary';
 import {applyRulePreview,type RuleBox,type RulesLibrary} from './RuleEngine';
+import {availableRules,disabledRulesets,globalRuleBoxes} from './RuleAvailability';
 import { cleanHairPolicy, filterHairPrompt } from './HairPolicy';
 import { removeTagsFromChip } from './BatchTagBlacklist';
 import { createRoot } from 'react-dom/client';
@@ -104,8 +105,10 @@ export function installPromptBoxes(node: any, deps: Deps) {
     orderEncoderWidgets(node);installEncoderSerialization(node);
     let rulesLibrary:RulesLibrary={version:1,definitions:[],globals:[],prefixes:{}};
     let inheritedRules:RuleBox[]=node.properties?.gallery_inherited_rules||[];
+    let globals:RuleBox[]=node.properties?.gallery_global_rules ?? state.rulesets?.filter(box=>box.origin==='global') ?? [];
+    let disabled=new Set<string>(node.properties?.gallery_disabled_rulesets||[]);
     let rulesNotice='';let alive=true;let rulesRequestId=0;let rulesPending:Promise<void>=Promise.resolve();
-    const effectiveRules=()=>[...inheritedRules,...(state.rulesets||[])];
+    const effectiveRules=()=>availableRules([...globals,...inheritedRules,...(state.rulesets||[]).filter(box=>box.origin!=='global')],disabled);
     const syncRules=()=>{const rules=widget('rules_state');if(rules)rules.value=JSON.stringify(effectiveRules());};
     const suggest = makeSuggest(deps);
 
@@ -138,14 +141,20 @@ export function installPromptBoxes(node: any, deps: Deps) {
         const rawPreview=composeWithSource(compiledNow(),filteredSourceText(state.boxes.find(box=>box.kind==='source'),source.segments,source.text)),filtered=filterHairPrompt(rawPreview,cleanHairPolicy(state.hairPolicy));
         let reviewed:ReturnType<typeof applyRulePreview>;
         try{reviewed=applyRulePreview(filtered,effectiveRules());}catch(error){reviewed={text:filtered,errors:[String(error)],notes:[],protectedTags:[]};}
-        root.render(<PromptBoxEditor snapshotReferences={node.properties?.gallery_prefix_snapshots||[]} onOpenSnapshot={row=>openPrefixManager({name:row.prefix_name,positive:row.terms,negative:row.negative_terms,snapshotId:row.snapshot_id||undefined})} ruleDefinitions={rulesLibrary.definitions} inheritedRules={inheritedRules} ruleErrors={reviewed.errors} ruleProtected={reviewed.protectedTags} rulesNotice={[rulesNotice,...reviewed.notes].filter(Boolean).join(' · ')} onReloadRules={()=>void loadRules(true)} state={state} source={source} unfilteredPreview={rawPreview} preview={reviewed.text} suggest={suggest} onChange={commit} lastEncodedPrompt={node.__galleryEffectivePrompt} notice={notice} />);
+        root.render(<PromptBoxEditor snapshotReferences={node.properties?.gallery_prefix_snapshots||[]} onOpenSnapshot={row=>openPrefixManager({name:row.prefix_name,positive:row.terms,negative:row.negative_terms,snapshotId:row.snapshot_id||undefined})} ruleDefinitions={rulesLibrary.definitions} inheritedRules={availableRules(inheritedRules,disabled)} globalRules={globals} disabledRules={disabled} ruleErrors={reviewed.errors} ruleProtected={reviewed.protectedTags} rulesNotice={[rulesNotice,...reviewed.notes].filter(Boolean).join(' · ')} onReloadRules={()=>void loadRules()} state={state} source={source} unfilteredPreview={rawPreview} preview={reviewed.text} suggest={suggest} onChange={commit} lastEncodedPrompt={node.__galleryEffectivePrompt} notice={notice} />);
     };
-    function loadRules(resetGlobals=false) {
+    function loadRules() {
         const requestId=++rulesRequestId;
         const task=(async()=>{try {
-            const [result,prefixes]=await Promise.all([rulesRequest(),deps.loadLibrary()]);
+            const [result,prefixes]=await Promise.all([rulesRequest(),deps.loadLibrary().catch(()=>undefined)]);
             if(!alive||requestId!==rulesRequestId)return;rulesLibrary=result.library;
-            if(resetGlobals||state.rulesets===undefined){state={...state,rulesets:[...rulesLibrary.globals.map(box=>({...box,origin:'global' as const})),...(resetGlobals?(state.rulesets||[]).filter(box=>box.origin!=='global'):[])]};}
+            globals=globalRuleBoxes(rulesLibrary);
+            disabled=disabledRulesets(rulesLibrary);
+            state={...state,rulesets:(state.rulesets||[]).filter(box=>box.origin!=='global')};
+            node.properties ||= {};
+            node.properties.gallery_global_rules=globals;
+            node.properties.gallery_disabled_rulesets=[...disabled];
+            if(!prefixes)throw new Error('Prefix library unavailable.');
             const source=sourcePromptInfo(node);
             const sourceEnabled=state.boxes.some(box=>box.kind==='source'&&box.enabled&&box.inheritRules!==false);
             const ids=new Set<string>([...(sourceEnabled&&!source.negative?source.prefixes?.map(prefix=>prefix.id)||[]:[]),...state.boxes.flatMap(box=>box.kind==='group'&&box.enabled&&box.inheritRules!==false?[...(box.prefixId?[box.prefixId]:[]),...(box.prefixIds||[])]:[])]);
@@ -155,15 +164,15 @@ export function installPromptBoxes(node: any, deps: Deps) {
             ids.forEach(visit);
             inheritedRules=[...visited].flatMap(id=>(rulesLibrary.prefixes[id]||[]).map(box=>({...box,id:'prefix:'+id+':'+box.id,origin:'prefix' as const,label:'Prefix '+(prefixes.prefixes.find(item=>item.id===id)?.name||id)})));
             const snapshotIds=[...new Set([...state.boxes.flatMap(box=>box.kind==='group'&&box.enabled&&box.inheritRules!==false&&box.prefixSnapshotId?[box.prefixSnapshotId]:[]),...(sourceEnabled&&!source.negative?(source.snapshotTargets||[]).flatMap(target=>target.snapshotId?[target.snapshotId]:[]):[])])];
-            for(const id of snapshotIds){const snapshot=prefixes.snapshots?.[id];if(!snapshot)continue;const privateRules=rulesLibrary.prefixes['snapshot:'+id]||[];const overridden=new Set(privateRules.map(box=>box.definition.family+'\n'+box.scope));const chosen=[...snapshot.rules.filter(box=>!overridden.has(box.definition.family+'\n'+box.scope)),...privateRules];inheritedRules.push(...chosen.map(box=>({...box,id:'snapshot:'+id+':'+box.id,origin:'snapshot' as const,label:'Snapshot '+id.slice(0,8)})));}
+            for(const id of snapshotIds){const snapshot=prefixes.snapshots?.[id];if(!snapshot)continue;const privateRules=rulesLibrary.prefixes['snapshot:'+id]||[];const overridden=new Set(privateRules.map(box=>box.definition.family+'\n'+box.scope));const chosen=[...snapshot.rules.filter(box=>box.origin!=='global'&&!overridden.has(box.definition.family+'\n'+box.scope)),...privateRules];inheritedRules.push(...chosen.map(box=>({...box,id:'snapshot:'+id+':'+box.id,origin:'snapshot' as const,label:'Snapshot '+id.slice(0,8)})));}
             node.properties ||= {};node.properties.gallery_inherited_rules=inheritedRules;node.properties.prompt_boxes=state;
             rulesNotice='';syncRules();render();sizing.request(false);
-        } catch(error){if(alive&&requestId===rulesRequestId){rulesNotice='Rules library unavailable; saved snapshots remain active. '+String(error);render();}}})();
+        } catch(error){if(alive&&requestId===rulesRequestId){rulesNotice='Using saved rules where the library is unavailable. '+String(error);syncRules();render();}}})();
         rulesPending=task;return task;
     }
-    widget('rules_state').serializeValue=async()=>{let pending;do{pending=rulesPending;await pending;}while(pending!==rulesPending);if(state.rulesets===undefined)throw new Error('Rules library could not be loaded. Retry Reload global defaults before queuing this new encoder.');syncRules();return widget('rules_state').value;};
+    widget('rules_state').serializeValue=async()=>{let pending;do{pending=rulesPending;await pending;}while(pending!==rulesPending);if(state.rulesets===undefined)throw new Error('Rules library could not be loaded. Use Refresh rules before queuing this new encoder.');syncRules();return widget('rules_state').value;};
     widget('prefix_snapshots').serializeValue=async()=>{let pending;do{pending=rulesPending;await pending;}while(pending!==rulesPending);syncSource();const references=await preparePrefixSnapshots(node,state,sourcePromptInfo(node),effectiveRules());widget('prefix_snapshots').value=JSON.stringify(references);render();return widget('prefix_snapshots').value;};
-    const rulesChanged=(event:Event)=>{void loadRules(!!(event as CustomEvent).detail?.resetGlobals);};window.addEventListener(RULES_CHANGED,rulesChanged);window.addEventListener('gallery-prefix-library-changed',rulesChanged);
+    const rulesChanged=()=>{void loadRules();};window.addEventListener(RULES_CHANGED,rulesChanged);window.addEventListener('gallery-prefix-library-changed',rulesChanged);
     /** Shown under the boxes after an edit, e.g. which tags "Exclusive tags" turned off. */
     let inheritedPrefixSignature:unknown[]=[];
     let notice = '';
@@ -196,6 +205,8 @@ export function installPromptBoxes(node: any, deps: Deps) {
     };
 
     hideWidget(widget('text')); hideWidget(widget('source_mode')); hideWidget(widget('hair_policy')); hideWidget(widget('rules_state'));hideWidget(widget('prefix_snapshots'));hideWidget(widget('source_image_exclusions'));
+    const policyWidget=widget('rules_policy');
+    if(policyWidget){hideWidget(policyWidget);policyWidget.serialize=false;}
     const dom = node.addDOMWidget('prompt_boxes', 'prompt_boxes', host, sizing.options);
     if (dom) dom.serialize = false;
     sizing.calibrate();
@@ -208,7 +219,14 @@ export function installPromptBoxes(node: any, deps: Deps) {
         const previous = node[key];
         node[key] = function (...args: any[]) {
             const result = previous?.apply(this, args);
-            if (key === 'onConfigure') {repairEncoderValues(node);state = parseState(node.properties?.prompt_boxes) ?? state;inheritedRules=node.properties?.gallery_inherited_rules||[];syncRules();}
+            if (key === 'onConfigure') {
+                repairEncoderValues(node);
+                state=parseState(node.properties?.prompt_boxes)??state;
+                inheritedRules=node.properties?.gallery_inherited_rules||[];
+                globals=node.properties?.gallery_global_rules??state.rulesets?.filter(box=>box.origin==='global')??[];
+                disabled=new Set(node.properties?.gallery_disabled_rulesets||[]);
+                syncRules();
+            }
             setTimeout(()=>{refresh();void loadRules();}, 0);
             return result;
         };

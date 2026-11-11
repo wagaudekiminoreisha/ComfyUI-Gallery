@@ -79,8 +79,11 @@ register_direct_connection(PromptServer.instance.app, PromptServer.instance.rout
                            lambda: hydrus_bridge.settings.load(),
                            lambda request: PromptServer.instance.user_manager.get_request_user_filepath(request, "prompt-library.json"))
 
-from .rules_library import register_rules_routes
-register_rules_routes(PromptServer.instance.routes, lambda request: PromptServer.instance.user_manager.get_request_user_filepath(request, 'gallery-rulesets.json'))
+from .rules_library import register_rules_routes, install_prompt_rules
+def gallery_rules_path(request):
+    return PromptServer.instance.user_manager.get_request_user_filepath(request, 'gallery-rulesets.json')
+register_rules_routes(PromptServer.instance.routes, gallery_rules_path)
+install_prompt_rules(PromptServer.instance, gallery_rules_path)
 
 from .prefix_library import register_prefix_routes
 register_prefix_routes(PromptServer.instance.routes, lambda request: PromptServer.instance.user_manager.get_request_user_filepath(request, "prompt-library.json"))

@@ -8875,6 +8875,423 @@
           ]
         }
       ]
+    },
+    {
+      "version": 1,
+      "id": "stock-injury-gore-filter",
+      "name": "Injury and gore filter",
+      "family": "injury-gore-filter",
+      "rules": [],
+      "choices": [
+        {
+          "id": "amputation",
+          "label": "Amputation and missing limbs",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit tags",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "amputee",
+                    "armless_amputee",
+                    "legless_amputee",
+                    "double_amputee",
+                    "triple_amputee",
+                    "quadruple_amputee",
+                    "missing_limb",
+                    "stump_cover"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "gore",
+          "label": "Gore and body horror",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit tags",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "guro",
+                    "ero_guro",
+                    "candy_gore",
+                    "body_horror",
+                    "mutilation",
+                    "dismemberment",
+                    "decapitation",
+                    "disembowelment",
+                    "impaled",
+                    "skinned",
+                    "severed_head",
+                    "severed_limb",
+                    "severed_arm",
+                    "severed_leg",
+                    "severed_hand",
+                    "severed_finger",
+                    "severed_torso",
+                    "severed_tail",
+                    "severed_ear",
+                    "severed_penis",
+                    "entrails",
+                    "intestines",
+                    "exposed_brain",
+                    "exposed_bone",
+                    "exposed_muscle",
+                    "eroguro",
+                    "gore",
+                    "penectomy",
+                    "severed_limbs"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "injury-blood",
+          "label": "Injuries and visible blood",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit tags",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "injury",
+                    "implied_injury",
+                    "eye_injury",
+                    "deep_wound",
+                    "gunshot_wound",
+                    "broken_arm",
+                    "broken_leg",
+                    "broken_bone",
+                    "bruise",
+                    "bruise_on_face",
+                    "bruised_eye",
+                    "bruise_on_arm",
+                    "bruise_on_leg",
+                    "bruise_on_neck",
+                    "bruise_on_shoulder",
+                    "bruise_on_chest",
+                    "bruised_chest",
+                    "bruise_on_stomach",
+                    "bruise_on_ass",
+                    "blood",
+                    "fake_blood",
+                    "stylized_blood",
+                    "dried_blood",
+                    "blood_stain",
+                    "blood_splatter",
+                    "blood_spray",
+                    "blood_drip",
+                    "blood_drop",
+                    "pool_of_blood",
+                    "blood_trail",
+                    "smeared_blood",
+                    "nosebleed",
+                    "excessive_nosebleed",
+                    "aroused_nosebleed",
+                    "blood_from_mouth",
+                    "blood_from_eyes",
+                    "blood_from_ears",
+                    "blood_in_mouth",
+                    "blood_on_face",
+                    "blood_on_hands",
+                    "blood_on_body",
+                    "blood_in_hair",
+                    "blood_on_clothes",
+                    "blood_on_bandages",
+                    "blood_on_weapon",
+                    "blood_on_knife",
+                    "blood_on_armor",
+                    "blood_on_axe",
+                    "blood_on_ground",
+                    "blood_on_wall",
+                    "blood_on_arm",
+                    "blood_on_leg",
+                    "blood_on_neck",
+                    "blood_on_chest",
+                    "blood_on_breasts",
+                    "blood_on_back",
+                    "blood_on_cheek",
+                    "coughing_blood",
+                    "spitting_blood",
+                    "vomiting_blood",
+                    "drooling_blood",
+                    "black_eye",
+                    "black_eye_(injury)",
+                    "blood-stained_clothes",
+                    "blood-stained_knife",
+                    "blood_from_nose",
+                    "blood_on_fingers",
+                    "blood_on_floor",
+                    "blood_on_hair",
+                    "blood_pool",
+                    "blood_spatter",
+                    "blood_spit",
+                    "blood_stains",
+                    "blood_tears",
+                    "bloodstains",
+                    "bloody_arm",
+                    "bloody_axe",
+                    "bloody_bandages",
+                    "bloody_breasts",
+                    "bloody_chest",
+                    "bloody_clothes",
+                    "bloody_face",
+                    "bloody_fingers",
+                    "bloody_ground",
+                    "bloody_hair",
+                    "bloody_hands",
+                    "bloody_knife",
+                    "bloody_leg",
+                    "bloody_mouth",
+                    "bloody_nose",
+                    "bloody_sword",
+                    "bloody_tears",
+                    "bloody_wall",
+                    "bloody_weapon",
+                    "bruised",
+                    "bruises",
+                    "crying_blood",
+                    "dripping_blood",
+                    "epic_nosebleed",
+                    "injured",
+                    "injuries",
+                    "mouthbleed",
+                    "nose_bleed",
+                    "puddle_of_blood",
+                    "puking_blood",
+                    "wound",
+                    "wounded",
+                    "wounds"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": 1,
+      "id": "stock-disturbing-content-filter",
+      "name": "Disturbing content filter",
+      "family": "disturbing-content-filter",
+      "rules": [],
+      "choices": [
+        {
+          "id": "violence-death",
+          "label": "Violence, death and self-harm",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit tags",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "violence",
+                    "censored_violence",
+                    "corpse",
+                    "pile_of_corpses",
+                    "dead_animal",
+                    "necrophilia",
+                    "murder",
+                    "implied_murder",
+                    "imminent_murder",
+                    "execution",
+                    "strangling",
+                    "strangulation_mark",
+                    "drowning",
+                    "self-harm",
+                    "self-harm_scar",
+                    "suicide",
+                    "implied_suicide",
+                    "attempted_suicide",
+                    "imminent_suicide",
+                    "suicide_pact",
+                    "suicide_bomb",
+                    "carcass",
+                    "choking_another",
+                    "corpse_pile",
+                    "ligature_mark",
+                    "self-injury",
+                    "self-mutilation",
+                    "self_harm",
+                    "strangle",
+                    "strangle_mark"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "coercion-abuse",
+          "label": "Coercion and abuse",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit tags",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "abuse",
+                    "domestic_violence",
+                    "animal_abuse",
+                    "child_abuse",
+                    "kidnapping",
+                    "torture",
+                    "torture_instruments",
+                    "rape",
+                    "imminent_rape",
+                    "implied_rape",
+                    "assisted_rape",
+                    "after_rape",
+                    "rape_face",
+                    "you_gonna_get_raped",
+                    "molestation",
+                    "sleep_molestation",
+                    "compensated_molestation",
+                    "bestiality",
+                    "implied_bestiality",
+                    "imminent_bestiality",
+                    "/yggr",
+                    "about_to_be_raped",
+                    "beastiality",
+                    "broken_rape_victim",
+                    "molester",
+                    "molesting",
+                    "rape_eyes",
+                    "rapeface",
+                    "somnophilia",
+                    "zoophilia"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "waste-vomit",
+          "label": "Bodily waste and vomit",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit tags",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "scat",
+                    "poop",
+                    "defecating",
+                    "diarrhea",
+                    "peeing",
+                    "peeing_self",
+                    "public_urination",
+                    "implied_peeing",
+                    "assisted_peeing",
+                    "peeing_in_cup",
+                    "peeing_in_bottle",
+                    "peeing_on_viewer",
+                    "peeing_on_penis",
+                    "piss_bottle",
+                    "human_toilet",
+                    "vomit",
+                    "vomiting",
+                    "imminent_vomiting",
+                    "vomiting_cum",
+                    "imminent_puking",
+                    "oshikko",
+                    "peeing_panties",
+                    "peeing_pants",
+                    "puke",
+                    "puking",
+                    "puking_cum",
+                    "watersports"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "infestation-decay",
+          "label": "Infestation and decay",
+          "default": "keep",
+          "options": [
+            {
+              "id": "keep",
+              "label": "Keep supplied",
+              "rules": []
+            },
+            {
+              "id": "omit",
+              "label": "Omit tags",
+              "rules": [
+                {
+                  "op": "exclude",
+                  "tags": [
+                    "parasite",
+                    "maggot",
+                    "leech",
+                    "rotting",
+                    "leeches",
+                    "maggots"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "globals": [],

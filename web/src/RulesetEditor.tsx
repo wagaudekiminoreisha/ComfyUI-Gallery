@@ -2,6 +2,7 @@ import {Button,Input,Select,Space,Tag} from 'antd';
 import type {Rule,RuleCondition,Ruleset} from './RuleEngine';
 import {LogicBadge} from './LogicBadge';
 import {RuleStyles} from './RuleOperation';
+import {RulesetTags} from './RulesetTags';
 const id=()=>crypto.randomUUID?.()||'item-'+Date.now()+'-'+Math.random();
 const names={exclude:'EXCLUDE',require:'ADD',select:'PICK ONE',exclusive:'AT MOST ONE',protect:'PROTECT'};
 function TagInput({value,onChange,label}:{value:string[];onChange:(value:string[])=>void;label:string}){return <Select mode="tags" aria-label={label} value={value} onChange={onChange} tokenSeparators={[',']} maxTagCount={6} style={{minWidth:180,width:'100%'}} placeholder="Type tags and press Enter" tagRender={({label,closable,onClose})=><Tag closable={closable} onClose={onClose}>{label}</Tag>}/>;}
@@ -27,6 +28,7 @@ export function RuleListEditor({value,onChange}:{value:Rule[];onChange:(value:Ru
 }
 export function RulesetEditor({value,onChange}:{value:Ruleset;onChange:(value:Ruleset)=>void}){
  return <div className="cg-rule-controls cg-rule-tree" aria-label="Visual ruleset editor"><RuleStyles/>
+  <RulesetTags value={value} onChange={onChange}/>
   <Space wrap><label>Name <Input aria-label="Ruleset name" value={value.name} onChange={event=>onChange({...value,name:event.target.value})}/></label><label>Override family <Input aria-label="Ruleset family" value={value.family} onChange={event=>onChange({...value,family:event.target.value})}/></label></Space>
   <details open><summary><LogicBadge name="AND"/>Base rules · {value.rules.length}</summary><RuleListEditor value={value.rules} onChange={rules=>onChange({...value,rules})}/></details>
   {value.choices.map((choice,index)=><details className="cg-rule-tree" key={choice.id}><summary><LogicBadge name="OR"/>{choice.label} · {choice.options.length} options</summary>
