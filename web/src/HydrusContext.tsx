@@ -74,7 +74,6 @@ export function HydrusProvider({ children }: { children: ReactNode }) {
     }, [gallerySettings.relativePath, setLocalHydrusTags]);
 
     useEffect(() => {
-        if (!open) return;
         let cancelled = false;
         hydrusRequest<HydrusSettings>('settings').then(value => {
             if (!cancelled) {

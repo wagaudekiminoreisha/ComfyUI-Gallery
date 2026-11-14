@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import re
+import random
 import sqlite3
 import tempfile
 import threading
@@ -772,10 +773,14 @@ class HydrusBridge:
                         if type(sort_type) is not int or sort_type not in (set(range(28))-{17}) or type(ascending) is not bool:raise HydrusError('Invalid metadata search sort.')
                         if has_tags and join=='all':
                             order={value:index for index,value in enumerate(tag_ids)};matched.sort(key=lambda record:order.get(record.get('file_id'),len(order)))
-                        else:sort_records(matched,sort_type,ascending)
+                        elif sort_type!=4:sort_records(matched,sort_type,ascending)
                         known={record['file_id']:record for record in matched if record.get('file_id') is not None}
                         identifiers=list(dict.fromkeys((tag_ids if has_tags and join=='any' else [])+list(known)))
-                        status=self.sync.status(settings);extra={'sampling_fallback':has_tags and join=='any','metadata_scanned':status['indexed'],'index_status':{key:value for key,value in status.items() if key!='jobs'}}
+                        status=self.sync.status(settings);extra={'sampling_fallback':has_tags and join=='any' and sort_type!=4,'metadata_scanned':status['indexed'],'index_status':{key:value for key,value in status.items() if key!='jobs'}}
+                    if data.get('file_sort_type',2)==4:
+                        # Sample the full unique match pool, independently of upstream order.
+                        identifiers=list(dict.fromkeys(identifiers))
+                        random.shuffle(identifiers)
                     token=secrets.token_urlsafe(24);session={'identity':identity,'ids':identifiers,'records':known,'extra':extra,'expires':now+600};sessions[token]=session
                     if len(sessions)>32:sessions.pop(next(iter(sessions)))
                 session['expires']=now+600;identifiers=session['ids'];batch=identifiers[offset:offset+limit]

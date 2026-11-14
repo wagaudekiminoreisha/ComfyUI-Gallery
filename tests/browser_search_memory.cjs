@@ -8,9 +8,9 @@ try{
  const switchTo=label=>workspace.locator('.cg-header').getByText(label,{exact:true}).click();
  const ids=()=>page.locator('[data-gallery-entry]').evaluateAll(els=>els.map(el=>el.getAttribute('data-gallery-entry')));
  const choose=async(label,title)=>{await page.getByRole('combobox',{name:label,exact:true}).press('ArrowDown');await page.locator('.ant-select-dropdown:visible').getByTitle(title,{exact:true}).click();};
- const local=page.getByRole('combobox',{name:'Filter local files',exact:true});await local.fill('azure');await local.press('Enter');await local.press('Escape');
+ const local=page.getByRole('combobox',{name:'Filter local files',exact:true});await local.fill('azure sky');await local.press('Enter');await local.press('Escape');
  await page.waitForFunction(()=>document.querySelectorAll('[data-gallery-entry]').length===1);const localIds=await ids();
- await switchTo('Both');await page.getByText('Hydrus result sampling (advanced)',{exact:true}).click();await choose('Hydrus search order','Random');await page.getByRole('button',{name:'Search',exact:true}).click();await page.waitForFunction(()=>document.querySelectorAll('[data-gallery-entry]').length===5);
+ await switchTo('Both');await choose('Gallery order','Random');await page.getByRole('button',{name:'Search',exact:true}).click();await page.waitForFunction(()=>document.querySelectorAll('[data-gallery-entry]').length===5);
  await choose('Gallery order','Random');await page.getByRole('button',{name:'Reshuffle',exact:true}).click();const bothIds=await ids();
  await switchTo('Local');await page.waitForFunction(()=>document.querySelectorAll('[data-gallery-entry]').length===1);assert.deepEqual(await ids(),localIds);assert.equal(await page.getByRole('button',{name:'Reshuffle',exact:true}).count(),0);
  await switchTo('Hydrus');assert.equal(await page.locator('[data-gallery-entry]').count(),0);

@@ -27,4 +27,19 @@ class SourceImageExclusionsTests(unittest.TestCase):
   result=GalleryPromptEncode().encode(Clip(),'⟦source⟧',source_text='blue eyes, blonde hair, blue eyes, long hair',source_mode='boxes',source_image_exclusions=json.dumps(self.payload()),extra_pnginfo=metadata,unique_id='1')
   self.assertEqual(result['result'][1],'blonde hair, blue eyes, long hair')
   self.assertEqual(metadata[RESOLVED_KEY]['1']['source_excluded_by_image'],self.payload())
+ def test_group_edits_are_applied_per_image_before_dynamic_resolution(self):
+  group='{blue eyes|green eyes}'
+  payload={'segments':[{'key':'a','text':group,'excluded':[],'replacements':{group:'({blue eyes|hazel eyes|}:1.3)'}},{'key':'b','text':group,'excluded':[]}]}
+  self.assertEqual(apply_source_exclusions(group+', '+group,payload),'({blue eyes|hazel eyes|}:1.3), '+group)
+  class Clip:
+   def tokenize(self,text):return text
+   def encode_from_tokens_scheduled(self,text):return text
+  result=GalleryPromptEncode().encode(Clip(),'⟦source⟧',source_text=group+', '+group,source_mode='boxes',source_image_exclusions=json.dumps(payload))
+  self.assertNotIn('{',result['result'][1])
+  self.assertNotIn('hazel eyes',payload['segments'][1]['text'])
+ def test_unsegmented_replacements_and_invalid_edits(self):
+  self.assertEqual(apply_source_exclusions('{a|b}, live tag',{'replacements':{'{a|b}':'{a|c}'}}),'{a|c}, live tag')
+  payload=self.payload();payload['segments'][0]['replacements']={'blue eyes':42}
+  with self.assertRaisesRegex(ValueError,'Invalid per-image'):
+   apply_source_exclusions('blue eyes, blonde hair, blue eyes, long hair',payload)
 if __name__=='__main__':unittest.main()

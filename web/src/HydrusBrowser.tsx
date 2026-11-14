@@ -22,7 +22,7 @@ type InputCopy = { name: string; subfolder: string; type: string; input_name: st
 export function HydrusBrowser({ open, source = 'hydrus', searchMode, viewRevision, onSourceChange }: { onSourceChange: (source: string) => void; source?: string; open: boolean; searchMode: string; viewRevision: number }) {
     const gallery = useGalleryContext();
     const hybrid = searchMode === 'both';
-    const { settings, setSettingsOpen, reloadMemory } = useHydrus();
+    const { settings, settingsError, setSettingsOpen, reloadMemory } = useHydrus();
     const scope = `${settings?.url}|${settings?.profile}`;
     const viewKey = scope + ':' + searchMode;
     const [shareTags, setShareTags] = useViewState(viewKey, true);
@@ -56,8 +56,9 @@ export function HydrusBrowser({ open, source = 'hydrus', searchMode, viewRevisio
     const [error, setError] = useViewState(viewKey, '');
     const [progress, setProgress] = useState('');
     const [loadingMore,setLoadingMore]=useState(false);
+    const savedRequests=useRef<Record<string,{kind:'search'|'page';payload:Record<string,unknown>}>>({});
     const activeRequest=useRef<{kind:'search'|'page';payload:Record<string,unknown>;version:number}|undefined>(undefined);
-    const moreInFlight=useRef(false),moreFailed=useRef(false);
+    const moreInFlight=useRef<number|undefined>(undefined),moreFailed=useRef(false);
     const requestVersion = useRef(0);
     const lastSampling = useRef<Record<string, string>>({});
     const cancelCopies = useRef(false);
@@ -66,16 +67,25 @@ export function HydrusBrowser({ open, source = 'hydrus', searchMode, viewRevisio
     const searchRef = useRef<any>(null);
     const working = copying || downloading;
     useEffect(() => {
+        savedRequests.current={};activeRequest.current=undefined;
         requestVersion.current++; setResult(undefined); setSelected([]); setPages([]); setPageKey(''); setCopies({}); setBusy(false);
     }, [scope]);
-    useEffect(() => { if (!open) { requestVersion.current++; cancelCopies.current = true; cancelDownloads.current = true; setBusy(false); } }, [open]);
+    useEffect(() => { if (!open) { cancelCopies.current = true; cancelDownloads.current = true; } }, [open]);
 
-    useEffect(() => { requestVersion.current++; setBusy(false);setSelected([]); }, [viewRevision]);
+    useEffect(() => {
+        const version=++requestVersion.current;
+        const saved=savedRequests.current[viewKey];
+        activeRequest.current=open&&saved?{...saved,version}:undefined;
+        moreFailed.current=false;setLoadingMore(false);setBusy(false);
+    }, [viewKey,viewRevision,open]);
+    useEffect(() => { setSelected([]); }, [viewRevision]);
     const localCount = gallery.imagesDetailsList.filter(file => !['divider', 'empty-space'].includes(file.type)).length;
 
 
     const read = async (kind: 'search' | 'pages' | 'page', key = pageKey, offset = 0) => {
+        if(kind==='search'&&!settings&&!settingsError)return;
         const version = ++requestVersion.current;moreFailed.current=false;setLoadingMore(false);activeRequest.current=undefined;
+        if(kind!=='pages')delete savedRequests.current[viewKey];
         setBusy(true); setError(''); setNotice('');
         if (kind !== 'pages') { setResult(undefined); setSelected([]); }
         if (kind === 'search') {
@@ -88,11 +98,14 @@ export function HydrusBrowser({ open, source = 'hydrus', searchMode, viewRevisio
                 const data = await hydrusRequest<{ pages: Page }>('pages', {});
                 if (version !== requestVersion.current) return;
                 setPages(data.pages?.pages || (data.pages?.is_media_page ? [data.pages] : []));
+                const saved=savedRequests.current[viewKey];
+                activeRequest.current=saved?{...saved,version}:undefined;
             } else {
                 const payload=kind === 'search' ? { tags:searchTags, match, limit, metadata_terms: localBranch, metadata_field: localField, field_join: fieldJoin, or_groups: orGroups, file_sort_type: sortType, file_sort_asc: ascending, expand_danbooru_aliases: gallery.settings.hydrusSearchAliases !== false } : { page_key: key, offset, limit };
                 activeRequest.current={kind:kind as 'search'|'page',payload,version};
                 const data = !settings?.has_access_key && kind==='search'?{items:[],total:0}:await hydrusRequest<Results>(kind,payload);
                 if (version !== requestVersion.current) return;
+                savedRequests.current[viewKey]={kind:kind as 'search'|'page',payload};
                 setResult(data); reloadMemory();
                 if (kind === 'search') {
                     const sampling = `${sortType}:${ascending}`;
@@ -106,16 +119,17 @@ export function HydrusBrowser({ open, source = 'hydrus', searchMode, viewRevisio
     };
     const nextOffset=result?.next_offset!==undefined?result.next_offset:result&&(result.offset||0)+(result.limit||limit)<result.total?(result.offset||0)+(result.limit||limit):null;
     const loadMore=async(force=false)=>{
-        const request=activeRequest.current;if(!open||busy||moreInFlight.current||nextOffset===null||!request||request.version!==requestVersion.current||moreFailed.current&&!force)return;
-        moreInFlight.current=true;moreFailed.current=false;setLoadingMore(true);setError('');
+        const request=activeRequest.current;if(!open||busy||nextOffset===null||!request||moreInFlight.current===request.version||request.version!==requestVersion.current||moreFailed.current&&!force)return;
+        moreInFlight.current=request.version;moreFailed.current=false;setLoadingMore(true);setError('');
         try{
             const page=await hydrusRequest<Results>(request.kind,{...request.payload,offset:nextOffset,...(result?.search_id?{search_id:result.search_id}:{})});
             if(request.version!==requestVersion.current)return;
             setResult(previous=>previous?{...page,items:[...new Map([...previous.items,...page.items].map(item=>[item.hash,item])).values()]}:page);reloadMemory();
         }catch(error){if(request.version===requestVersion.current){moreFailed.current=true;setError(String(error));}}
-        finally{moreInFlight.current=false;setLoadingMore(false);}
+        finally{if(moreInFlight.current===request.version)moreInFlight.current=undefined;if(request.version===requestVersion.current)setLoadingMore(false);}
     };
     const changeTab = (value: string) => {
+        delete savedRequests.current[viewKey];activeRequest.current=undefined;
         requestVersion.current++; setBusy(false); setTab(value); setResult(undefined); setSelected([]); setError('');
         if (value === 'pages') void read('pages');
     };
@@ -175,7 +189,7 @@ export function HydrusBrowser({ open, source = 'hydrus', searchMode, viewRevisio
             <Tabs activeKey={tab} onChange={changeTab} items={[{ key: 'search', label: hybrid ? 'Search both libraries' : 'Search Hydrus', disabled: working }, { key: 'pages', label: 'Open client pages', disabled: working }]} />
             {tab === 'search' ? <>{<Space wrap style={{ marginBottom: 8 }}>{hybrid && <Checkbox checked={shareTags} onChange={event => setShareTags(event.target.checked)}>Match these Hydrus tags against local prompts and cached tags too</Checkbox>}<Button onClick={() => setLocalEditor(true)}>Metadata group{localBranch.length ? ' (' + localBranch.length + ')' : ''}</Button>{!!localBranch.length && <Tag closable onClose={() => setLocalBranch([])} title={localBranch.join(' AND ')}>{localField}: {localBranch.join(' AND ').slice(0, 90)}</Tag>}</Space>}<HydrusSearchPanel localSuggestions={hybrid ? localSuggestions : []} tags={tags} setTags={setTags} match={match} setMatch={setMatch} limit={limit} setLimit={setLimit}
                 orGroups={orGroups} setOrGroups={setOrGroups} sortType={sortType} setSortType={setSortType} ascending={ascending} setAscending={setAscending}
-                busy={busy} disabled={working} configured={hybrid || !!settings?.has_access_key} scope={scope} onSearch={() => read('search')} inputRef={searchRef} /></> : <>
+                busy={busy} disabled={working} configured={!!settings?.has_access_key || hybrid && (!!settings || !!settingsError)} scope={scope} onSearch={() => read('search')} inputRef={searchRef} /></> : <>
                 <Space wrap><Button loading={busy} disabled={working} onClick={() => read('pages')}>Reload open pages</Button><Button disabled={!pageKey || busy || working} onClick={() => read('page')}>Reload page images</Button><span>Requires Manage Pages permission.</span></Space>
                 <Tree style={{ maxHeight: 180, overflow: 'auto' }} key={JSON.stringify(pages)} defaultExpandAll treeData={treeData(pages)} selectedKeys={[pageKey]} disabled={working}
                     onSelect={keys => { if (keys.length) { const key = String(keys[0]); setPageKey(key); void read('page', key); } }} />
@@ -192,6 +206,8 @@ export function HydrusBrowser({ open, source = 'hydrus', searchMode, viewRevisio
         {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 12, whiteSpace: 'pre-wrap' }} />}
         {notice && <Alert type="success" showIcon message={notice} style={{ marginBottom: 12 }} />}
         {(busy || working) && <Space><Spin size="small" /><span aria-live="polite">{progress || 'Searching Hydrus…'}</span>{working && <Button onClick={() => { cancelCopies.current = true; cancelDownloads.current = true; }}>Cancel remaining</Button>}</Space>}
-        <UnifiedGallery onNearEnd={()=>void loadMore()} hasMore={nextOffset!==null} loadingMore={loadingMore} onLoadMore={()=>void loadMore(true)} viewKey={viewKey} sortRequest={sortRequest} onTrashed={hashes => setResult(old => old ? { ...old, items: old.items.filter(item => !hashes.includes(item.hash)), total: Math.max(0, old.total - hashes.length) } : old)} source={source} remote={items} selectedRemote={selected} setSelectedRemote={setSelected} copy={copy} download={download} working={working} scope={scope} active={open} />
+        <UnifiedGallery onNearEnd={()=>void loadMore()} hasMore={nextOffset!==null} loadingMore={loadingMore} onLoadMore={()=>void loadMore(true)} viewKey={viewKey} sortRequest={sortRequest}
+            onOrderChange={(order,ascending)=>{const type=({date:2,mime:3,random:4,hash:20} as Record<string,number>)[order];if(type!==undefined){setSortType(type);setAscending(ascending);}}}
+            onTrashed={hashes => setResult(old => old ? { ...old, items: old.items.filter(item => !hashes.includes(item.hash)), total: Math.max(0, old.total - hashes.length) } : old)} source={source} remote={items} selectedRemote={selected} setSelectedRemote={setSelected} copy={copy} download={download} working={working} scope={scope} active={open} />
     </section>;
 }

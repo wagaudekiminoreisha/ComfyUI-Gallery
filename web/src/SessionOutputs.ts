@@ -19,3 +19,10 @@ export function installSessionOutputs(api: { addEventListener: (name: string, ca
 export function useSessionOutputs() {
     return useSyncExternalStore(listener => { listeners.add(listener); return () => { listeners.delete(listener); }; }, () => outputs);
 }
+
+export function forgetSessionOutputs(urls: ReadonlySet<string>) {
+    const remaining = outputs.filter(file => !urls.has(file.url));
+    if (remaining.length === outputs.length) return;
+    outputs = remaining;
+    listeners.forEach(listener => listener());
+}

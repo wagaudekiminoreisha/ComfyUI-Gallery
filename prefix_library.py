@@ -318,18 +318,26 @@ def source_exclusions(text):
     return [tag for match in SOURCE_MARKER_PATTERN.finditer(text or '') for tag in marker_excluded(match)]
 
 
+def edit_source_text(source, excluded, replacements):
+    return ','.join(replacements.get(source_key(part), part) for part in split_top(filter_source(source, excluded)))
+
+
 def apply_source_exclusions(source, raw):
     """Filter image segments before joining, so identical tags in other images survive."""
     try: data=json.loads(raw) if isinstance(raw,str) else raw
     except ValueError: raise ValueError('Invalid per-image source exclusions.')
     if not data:return source
+    def valid_replacements(value):
+        return isinstance(value,dict) and all(isinstance(key,str) and isinstance(text,str) for key,text in value.items())
+    if isinstance(data,dict) and 'segments' not in data and valid_replacements(data.get('replacements')):
+        return edit_source_text(source or '',[],data['replacements'])
     if not isinstance(data,dict) or not isinstance(data.get('segments'),list) or len(data['segments'])>256:raise ValueError('Invalid per-image source exclusions.')
     segments=data['segments']
     for segment in segments:
-        if not isinstance(segment,dict) or not isinstance(segment.get('key'),str) or not isinstance(segment.get('text'),str) or not isinstance(segment.get('excluded'),list) or any(not isinstance(tag,str) for tag in segment['excluded']):raise ValueError('Invalid per-image source exclusions.')
+        if not isinstance(segment,dict) or not isinstance(segment.get('key'),str) or not isinstance(segment.get('text'),str) or not isinstance(segment.get('excluded'),list) or any(not isinstance(tag,str) for tag in segment['excluded']) or not valid_replacements(segment.get('replacements',{})):raise ValueError('Invalid per-image source exclusions.')
     expected=', '.join(segment['text'] for segment in segments if segment['text'])
     if (source or '')!=expected:raise ValueError('Source image prompts changed. Refresh the encoder before queuing again.')
-    return ', '.join(text for segment in segments if (text:=filter_source(segment['text'],segment['excluded']).strip()))
+    return ', '.join(text for segment in segments if (text:=edit_source_text(segment['text'],segment['excluded'],segment.get('replacements',{})).strip()))
 
 
 def compose_prompt(text, source_text=None, source_mode='after'):

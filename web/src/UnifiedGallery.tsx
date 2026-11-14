@@ -1,6 +1,6 @@
 import {loadLocalMetadata} from './LocalMetadata';
 import { useViewState } from './ViewState';
-import { useSessionOutputs } from './SessionOutputs';
+import { forgetSessionOutputs, useSessionOutputs } from './SessionOutputs';
 import { recoverStoredSourceMetadata, recoverSourceOriginals, sourceViewerEntry } from './SourceViewer';
 import { ASSET_ACTION_EVENT } from './GalleryWorkspace';
 import { type ImageSourceImage } from './ImageSourceGeometry';
@@ -33,9 +33,10 @@ function ModelThumbnail({ file }: { file: FileDetails }) {
     return thumbnail ? <img src={thumbnail} alt={file.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <div style={{ padding: 40, color: 'white' }}>3D · Open viewer</div>;
 }
 
-export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoadMore, viewKey, sortRequest, source, remote, selectedRemote, setSelectedRemote, copy, download, working, scope, active, onTrashed }: {
+export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoadMore, viewKey, sortRequest, onOrderChange, source, remote, selectedRemote, setSelectedRemote, copy, download, working, scope, active, onTrashed }: {
     onNearEnd?:()=>void;hasMore?:boolean;loadingMore?:boolean;onLoadMore?:()=>void;viewKey: string;
     sortRequest?: { type: number; ascending: boolean; revision: number };
+    onOrderChange?: (order: GalleryOrder, ascending: boolean) => void;
     onTrashed: (hashes: string[]) => void;
     source: string; remote: RemoteImage[]; selectedRemote: string[]; setSelectedRemote: React.Dispatch<React.SetStateAction<string[]>>;
     copy: (hashes: string[], append?: boolean) => Promise<void>; download: (hashes: string[],folder?:string) => Promise<void>; working: boolean; scope: string; active: boolean;
@@ -56,6 +57,7 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
     const [seed, setSeed] = useViewState(viewKey, () => Date.now());
     const [viewer, setViewer] = useState<string>();
     const [detached, setDetached] = useState(false);
+    const [viewerSelection, setViewerSelection] = useState<Set<string>>(new Set());
     const viewerActive = active || detached;
     const [zoom, setZoom] = useState(1);
     const [actionBusy, setActionBusy] = useState(false);
@@ -89,11 +91,11 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
     useEffect(() => {
         if (!sortRequest || appliedSort.current[viewKey] === sortRequest.revision) return;
         appliedSort.current[viewKey] = sortRequest.revision;
-        const order = ({ 2: 'date', 4: 'random', 3: 'mime', 20: 'hash' } as Record<number, GalleryOrder>)[sortRequest.type];
-        if (order) { setOrder(order); setAscending(sortRequest.ascending); if (order === 'random') setSeed(value => value + 1); }
-    }, [sortRequest, viewKey]);
-    const selected = new Set([...gallery.selectedImages.map(url => 'local:' + url), ...selectedRemote.map(hash => 'hydrus:' + hash)]);
-    const selectionActive = selectionMode || selected.size > 0;
+        // A fresh random search gets a new layout; loading pages preserves it.
+        if (sortRequest.type === 4 && order === 'random') setSeed(value => value + 1);
+    }, [sortRequest, viewKey, order]);
+    const selected = detached ? viewerSelection : new Set([...gallery.selectedImages.map(url => 'local:' + url), ...selectedRemote.map(hash => 'hydrus:' + hash)]);
+    const selectionActive = (!detached && selectionMode) || selected.size > 0;
     const isVideo = (entry: GalleryEntry) => entry.local?.type === 'media' || entry.remote?.mime?.startsWith('video/');
     const isImage = (entry: GalleryEntry) => entry.local?.type === 'image' || entry.remote?.mime?.startsWith('image/');
     /**
@@ -111,7 +113,7 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
         return viewerUrls!.flatMap(url => byUrl.get(url) ? [localEntry(byUrl.get(url)!)] : []);
     }, [viewerUrls, sourceImages, knownFiles, hydrus.items]);
     const shown = viewerList || entries;
-    const shownSelected = [...new Map([...entries, ...(viewerList || [])].map(entry => [entry.id, entry])).values()].filter(entry => selected.has(entry.id));
+    const shownSelected = [...new Map((detached ? viewerList || [] : [...entries, ...(viewerList || [])]).map(entry => [entry.id, entry])).values()].filter(entry => selected.has(entry.id));
     const index = shown.findIndex(entry => entry.id === viewer);
     const current = shown[index];
     const thumbnail = (entry: GalleryEntry) => entry.previewUrl ? BASE_PATH + entry.previewUrl : entry.source === 'node' ? BASE_PATH + entry.local!.url : entry.local ? `${BASE_PATH}/Gallery/thumbnail?url=${encodeURIComponent(entry.local.url)}&v=${entry.local.timestamp || 0}&root=${encodeURIComponent(gallery.settings.relativePath)}` : `${BASE_PATH}/Gallery/hydrus/thumbnail?hash=${entry.hash}&target=${encodeURIComponent(scope)}`;
@@ -122,7 +124,7 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
         else if (viewer && index < 0) setViewer(shown[Math.min(lastViewerIndex.current, shown.length - 1)]?.id);
         else if (index >= 0) lastViewerIndex.current = index;
     }, [viewerActive, index, viewer, shown]);
-    useEffect(() => { setViewer(undefined); setTrashing([]); }, [scope]);
+    useEffect(() => { setViewer(previous => previous?.startsWith('hydrus:') ? undefined : previous); setTrashing([]); }, [scope]);
     // The image search window opens its results here ("Open in gallery").
     useEffect(() => {
         const show = (event: Event) => {
@@ -130,7 +132,7 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
             const { url, urls, sourceImages: images, sourceIndex = 0, sourceNodeId } = (event as CustomEvent<{ url: string; urls?: string[]; sourceImages?: ImageSourceImage[]; sourceIndex?: number; sourceNodeId?: number | string }>).detail || {};
             if (images?.length) {
                 const image = images[sourceIndex] || images[0];
-                setDetached(true); setSourceImages(images); setViewerUrls(undefined); setViewer(sourceViewerEntry(image,knownFiles,localEntry).id);
+                setDetached(true); setViewerSelection(new Set()); setSourceImages(images); setViewerUrls(undefined); setViewer(sourceViewerEntry(image,knownFiles,localEntry).id);
                 void recoverStoredSourceMetadata(images, async names => {
                     const response = await fetch(BASE_PATH + '/Gallery/source/metadata', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({names})});
                     // Older running backends can still resolve a Hydrus hash from its input path.
@@ -154,21 +156,23 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
                         return focused >= 0 ? sourceViewerEntry(resolved[focused],knownFiles,localEntry).id : previous;
                     });
                 }).catch(error => { if (request === viewerRequest.current) message.warning(String(error)); });
-            } else if (url) { setDetached(true); setSourceImages(undefined); setViewerUrls(urls?.length ? urls : undefined); setViewer('local:' + url); }
+            } else if (url) { setDetached(true); setViewerSelection(new Set()); setSourceImages(undefined); setViewerUrls(urls?.length ? urls : [url]); setViewer('local:' + url); }
         };
         window.addEventListener(OPEN_VIEWER_EVENT, show);
         return () => window.removeEventListener(OPEN_VIEWER_EVENT, show);
     }, [knownFiles, hydrus.items]);
     const setSelection = (ids: Set<string>) => {
+        if (detached) { setViewerSelection(ids); return; }
         gallery.setSelectedImages([...ids].filter(id => id.startsWith('local:')).map(id => id.slice(6)));
         setSelectedRemote([...ids].filter(id => id.startsWith('hydrus:')).map(id => id.slice(7)));
     };
     const toggle = (entry: GalleryEntry, range = false) => {
         if (disabled || entry.source === 'node') return;
         const next = new Set(selected);
-        const start = entries.findIndex(item => item.id === anchor.current);
-        const end = entries.findIndex(item => item.id === entry.id);
-        if (range && start >= 0 && end >= 0) entries.slice(Math.min(start, end), Math.max(start, end) + 1).forEach(item => next.add(item.id));
+        const list = detached ? shown : entries;
+        const start = list.findIndex(item => item.id === anchor.current);
+        const end = list.findIndex(item => item.id === entry.id);
+        if (range && start >= 0 && end >= 0) list.slice(Math.min(start, end), Math.max(start, end) + 1).forEach(item => next.add(item.id));
         else { if (next.has(entry.id)) next.delete(entry.id); else next.add(entry.id); anchor.current = entry.id; }
         setSelection(next);
     };
@@ -238,14 +242,16 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
             }
         });
     };
+    const actRef = useRef(act);
+    actRef.current = act;
     useEffect(() => {
         const action = (event: Event) => {
             const {url,key,urls} = (event as CustomEvent).detail || {};
             const file = knownFiles.find(file => file.url === url);
             if (!file) return;
             const entry = localEntry(file);
-            if (key === 'view') { viewerRequest.current++; setDetached(true); setSourceImages(undefined); setViewerUrls(urls?.length ? urls : [url]); setViewer(entry.id); }
-            else if (key === 'download') void act(key, entry);
+            if (key === 'view') { viewerRequest.current++; setDetached(true); setViewerSelection(new Set()); setSourceImages(undefined); setViewerUrls(urls?.length ? urls : [url]); setViewer(entry.id); }
+            else if (key === 'download') void actRef.current(key, entry);
             else if (key === 'source') setAppending([entry]);
             else if (key === 'prefix') openSourcePrefix([entry]);
             else if (key === 'info') openImageInfo({url});
@@ -269,16 +275,28 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
     ], onClick: ({ key }: { key: string }) => { void act(key, entry); } });
     const move = (step: number) => { const next = shown[index + step]; if (next) { stopMedia(viewerRef.current); setViewer(next.id); } };
     const advanceAfterRemoval = (removed: Set<string>) => {
+        if (!removed.size) return;
+        viewerRequest.current++;
+        setViewerUrls(previous => previous?.filter(url => !removed.has('local:' + url)));
+        setSourceImages(previous => previous?.filter(image => !removed.has(sourceViewerEntry(image,knownFiles,localEntry).id)));
+        setViewerSelection(previous => new Set([...previous].filter(id => !removed.has(id))));
         if (!viewer || !removed.has(viewer)) return;
         stopMedia(viewerRef.current);
         const next = shown.slice(index + 1).find(entry => !removed.has(entry.id)) || shown.slice(0, index).reverse().find(entry => !removed.has(entry.id));
-        setViewer(next?.id);
+        if (next) setViewer(next.id);
+        else closeViewer();
     };
     useEffect(() => { if (viewer && index >= 0 && !viewerList) grid.current?.scrollToItem({ rowIndex: Math.floor(index / columns.current), columnIndex: index % columns.current }); }, [viewer, index]);
     const closeViewer = () => {
         viewerRequest.current++; stopMedia(viewerRef.current);
         setViewer(undefined); setViewerUrls(undefined); setSourceImages(undefined); setDetached(false);
+        setViewerSelection(new Set());
         if (index >= 0 && !viewerList) grid.current?.scrollToItem({ rowIndex: Math.floor(index / columns.current), columnIndex: index % columns.current });
+    };
+    const openGridViewer = (entry: GalleryEntry) => {
+        viewerRequest.current++;
+        setDetached(false); setViewerSelection(new Set());
+        setSourceImages(undefined); setViewerUrls(undefined); setViewer(entry.id);
     };
     const renderCard = (rowIndex: number, columnIndex: number, count: number, style: React.CSSProperties) => {
                         const entry = entries[rowIndex * count + columnIndex]; if (!entry) return null;
@@ -292,7 +310,7 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
                                         if (event.shiftKey) { if (!anchor.current) anchor.current = entry.id; toggle(next, true); }
                                         grid.current?.scrollToItem({ rowIndex: Math.floor(nextIndex / count), columnIndex: nextIndex % count });
                                         requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-gallery-entry="' + CSS.escape(next.id) + '"]')?.focus());
-                                    } if (event.key === 'Enter') { event.preventDefault(); setViewer(entry.id); } if (event.key === ' ') { event.preventDefault(); toggle(entry, event.shiftKey); } }}>
+                                    } if (event.key === 'Enter') { event.preventDefault(); openGridViewer(entry); } if (event.key === ' ') { event.preventDefault(); toggle(entry, event.shiftKey); } }}>
                                 <div draggable={isImage(entry) && !selectionActive} onDragStart={event => {event.dataTransfer.setData('application/x-gallery-image',JSON.stringify({url:entry.local?.url||'hydrus:'+entry.hash,hash:entry.hash,name:entry.name,metadata:entry.remote||entry.local?.metadata})); if (entry.local) { event.dataTransfer.setData('text/uri-list', original(entry)); event.dataTransfer.setData('custom', JSON.stringify({ name: entry.name, folder: gallery.currentFolder, type: entry.local.type, url: entry.local.url })); } }} style={{ height: 'calc(100% - 54px)', background: token.colorFillQuaternary, cursor: 'pointer' }} onClick={event => {
                                     if (event.detail > 1) return;
                                     lastClick.current = undefined;
@@ -300,11 +318,11 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
                                         lastClick.current = { id: entry.id, selected: selected.has(entry.id) };
                                         toggle(entry, event.shiftKey);
                                     } else if (event.shiftKey || event.ctrlKey || event.metaKey) toggle(entry, event.shiftKey);
-                                    else setViewer(entry.id);
+                                    else openGridViewer(entry);
                                 }} onDoubleClick={() => {
                                     const previous = lastClick.current;
                                     if (previous?.id === entry.id) { const next = new Set(selected); if (previous.selected) next.add(entry.id); else next.delete(entry.id); setSelection(next); }
-                                    setViewer(entry.id);
+                                    openGridViewer(entry);
                                 }}>
                                     {entry.remote && isVideo(entry) ? <><img src={thumbnail(entry)} alt={entry.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /><span style={{ position: 'absolute', top: 14, right: 14, background: '#111d', color: '#fff', padding: '3px 7px', borderRadius: 5 }}>▶ VIDEO</span></> : entry.local?.type === '3d' ? <ModelThumbnail file={entry.local} /> : entry.local?.type === 'media' ? <video muted loop={gallery.settings.autoPlayVideos} autoPlay={gallery.settings.autoPlayVideos} preload="metadata" src={original(entry)} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : entry.local?.type === 'audio' ? <div style={{ padding: 40, color: 'white' }}>AUDIO · Open viewer</div> : <img src={thumbnail(entry)} alt={entry.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />}
                                 </div>
@@ -313,9 +331,9 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
                         </Dropdown></div>;
                     };
     const shortcuts = (event: React.KeyboardEvent) => {
-        if (disabled || !active || (event.target as HTMLElement).closest('input,textarea,select,button,[contenteditable="true"],[role="combobox"],[role="menu"]')) return;
+        if (disabled || !viewerActive || (event.target as HTMLElement).closest('input,textarea,select,button,[contenteditable="true"],[role="combobox"],[role="menu"]')) return;
         const key = event.key.toLowerCase();
-        if ((event.ctrlKey || event.metaKey) && key === 'a') { event.preventDefault(); event.stopPropagation(); setSelection(new Set([...selected, ...entries.map(item => item.id)])); return; }
+        if ((event.ctrlKey || event.metaKey) && key === 'a') { event.preventDefault(); event.stopPropagation(); setSelection(new Set([...selected, ...(detached ? shown : entries).map(item => item.id)])); return; }
         if (event.ctrlKey || event.metaKey || event.altKey) return;
         const focused = current || entries.find(item => item.id === (event.target as HTMLElement).closest<HTMLElement>('[data-gallery-entry]')?.dataset.galleryEntry);
         if (focused && (key === 'd' || key === 'i')) { event.preventDefault(); event.stopPropagation(); void act(key === 'd' ? 'download' : 'source', focused); }
@@ -325,11 +343,11 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
         <div className="cg-selection-float"><Button aria-pressed={selectionActive} type={selectionActive ? 'primary' : 'default'} onClick={() => { if (selectionActive) { setSelectionMode(false); setSelection(new Set()); } else setSelectionMode(true); }}>{selectionActive ? 'Selection mode ON' : 'Selection mode'}</Button>{selectionActive && <span>Click selects · Double-click opens</span>}</div>
         <div className="cg-grid-toolbar">
             <span className="cg-grid-summary">{entries.length.toLocaleString()} files{selected.size ? ' · ' + selected.size + ' selected' : ''}</span>
-            <Select aria-label="Gallery order" value={order} onChange={setOrder} style={{ width: 155 }} options={[
+            <Select aria-label="Gallery order" value={order} onChange={value => { setOrder(value); onOrderChange?.(value, ascending); }} style={{ width: 155 }} options={[
                 { value: 'date', label: 'Import / file date' }, { value: 'name', label: 'Name' }, { value: 'mime', label: 'Filetype' }, { value: 'hash', label: 'SHA-256 hash' }, { value: 'random', label: 'Random' }, { value: 'result', label: 'Search order' }
             ]} />
-            <Select aria-label="Gallery sort direction" value={ascending ? 'asc' : 'desc'} onChange={value => setAscending(value === 'asc')} style={{ width: 120 }} disabled={order === 'random' || order === 'result'} options={[{ value: 'desc', label: 'Descending' }, { value: 'asc', label: 'Ascending' }]} />
-            {order === 'random' && <Button onClick={() => setSeed(value => value + 1)}>Reshuffle</Button>}
+            <Select aria-label="Gallery sort direction" value={ascending ? 'asc' : 'desc'} onChange={value => { setAscending(value === 'asc'); onOrderChange?.(order, value === 'asc'); }} style={{ width: 120 }} disabled={order === 'random' || order === 'result'} options={[{ value: 'desc', label: 'Descending' }, { value: 'asc', label: 'Ascending' }]} />
+            {order === 'random' && <Button onClick={() => { setSeed(value => value + 1); onOrderChange?.(order, ascending); }}>Reshuffle</Button>}
             <Tooltip title="Thumbnail size"><Slider aria-label="Thumbnail size" min={140} max={340} step={20} value={tileSize} onChange={setTileSize} style={{ width: 90, margin: '0 12px' }} /></Tooltip>
             <Button disabled={disabled || !entries.length} onClick={() => setSelection(new Set([...selected, ...entries.map(item => item.id)]))}>Select all shown ({entries.length})</Button>
             <Tooltip title="Selection mode: click selects, double-click opens. Space selects; Enter opens. Ctrl/Cmd+click toggles selection; Shift+click selects a range. Right-click for actions. Gallery order sorts loaded files; missing hashes sort last. Dates use Hydrus import time for remote files and cached matching copies; otherwise local file time."><Button aria-label="Gallery help">?</Button></Tooltip>
@@ -407,6 +425,7 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
             const removed = new Set<string>();
             for (const entry of deleting) if (entry.local && await ComfyAppApi.deleteImage(entry.local.url, gallery.settings.relativePath)) removed.add(entry.local.url);
             advanceAfterRemoval(new Set([...removed].map(url => 'local:' + url)));
+            forgetSessionOutputs(removed);
             gallery.setSelectedImages(old => old.filter(url => !removed.has(url)));
             gallery.mutate(old => old ? { folders: Object.fromEntries(Object.entries(old.folders).map(([folder, files]) => [folder, Object.fromEntries(Object.entries(files).filter(([, file]) => !removed.has(file.url)))])) } : old);
             if (removed.size !== deleting.length) message.error(`${deleting.length - removed.size} file(s) could not be deleted. Reload and try again.`);

@@ -438,13 +438,14 @@ fallback retains the hybrid query editor so it can be refined; manually choosing
 a source tab changes the search scope. The source view and random order no longer
 reset each other.
 
-**Gallery order → Random** shuffles the complete loaded grid; **Reshuffle** needs
-no API call. Under **Hydrus result sampling (advanced)**, Random chooses a new
-limited batch from Hydrus on Search and shuffles it together with local matches.
-This samples the remote result set; it does not download an unlimited database.
+**Gallery order → Random** shuffles the loaded grid and requests random Hydrus
+results on the next **Search** in Hydrus or Both. Each new search samples again;
+loading additional pages keeps the current search's order stable. **Reshuffle**
+reorders loaded files without an API call.
+Random searches shuffle the complete unique matching ID list in Gallery before
+fetching the first page, so upstream result order cannot favor the initial batch.
 Import/file date uses cached Hydrus import timestamps for hash-matching copies,
-otherwise local file time. Missing dates sort last. Other Hydrus-specific sampling
-options do not remove local matches.
+otherwise local file time. Missing dates sort last.
 
 **Metadata group** is available in Hydrus and Both, including positive prompt,
 negative prompt, Hydrus tags, names/hashes and all fields. Choose **Tag query AND
@@ -638,6 +639,12 @@ Saved prefixes have collapsible **Associated images** thumbnails in the library 
 Image Source thumbnails are now buttons. In **Single — selected image** mode, the chosen index is saved in the workflow and controls both the output pixels and positive/negative strings. The editor opens on that selection; reordering/removal maintains a valid selection. Stitch modes continue combining all images and their enabled prompts. Existing workflows without a selected index start at image 1.
 
 **Gallery Prompt Encode (Library)** now has an optional `source_text` STRING socket. Wire Image Source's `positive` output into one encoder's `source_text`, and its `negative` output into another. Connect CLIP to both, then their CONDITIONING outputs to the sampler's corresponding inputs. A read-only **Effective prompt** panel shows direct Gallery source changes immediately. Other STRING providers display their text after execution. Connecting a source appends its prompt after the editable node text by default. Set `source_mode` to `before` to prepend it, or `replace` for the former override behavior (including an empty source). Disconnecting uses the node text alone without erasing it. The text STRING output and conditioning always use the same effective prompt. Existing encoder outputs retain their positions.
+
+The encoder's **Source** card supports inline group editing: add or remove options,
+change the grouping dropdown, or select a group to adjust its weight. Edits update
+the effective prompt and apply during encoding. They are saved with the encoder
+per source image and prompt side; the original source and saved prefixes stay
+unchanged. Use **↺** beside an edited group to restore its current source version.
 
 
 ## Bulk prompt insertion (hydrus.15)

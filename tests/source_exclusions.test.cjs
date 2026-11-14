@@ -20,3 +20,21 @@ test('old shared exclusions bind once to the currently visible image',()=>{
  assert.equal(state.boxes[0].excluded,undefined);assert.deepEqual(exclusionsFor(state.boxes[0],a),['blue eyes']);assert.deepEqual(exclusionsFor(state.boxes[0],b),[]);
  assert.equal(bindLegacySourceExclusions(state,[b]),state);
 });
+test('group edits are isolated per image, survive reload, and reach preview and execution',()=>{
+ const group='{blue eyes|green eyes}',edited='({blue eyes|hazel eyes|}:1.3)';
+ const first={...a,text:group+', blonde hair'},second={...b,text:group+', long hair'};
+ const editedBox={...box,excludedBySource:{},replacementsBySource:{[a.key]:{[group]:edited}}};
+ const saved=parseState(JSON.parse(JSON.stringify({version:1,boxes:[editedBox]}))).boxes[0];
+ assert.equal(filteredSourceText(saved,[first,second]),edited+', blonde hair, '+group+', long hair');
+ const payload=sourceExclusionPayload(saved,[first,second]);
+ assert.deepEqual(payload.segments[0].replacements,{[group]:edited});
+ assert.equal(payload.segments[1].replacements,undefined);
+ assert.equal(filteredSourceText(saved,[second]),second.text);
+ assert.equal(filteredSourceText({...saved,replacementsBySource:{}},[first]),first.text);
+});
+test('unsegmented sources carry edits without replacing unrelated live source tags',()=>{
+ const editedBox={...box,replacements:{'{a|b}':'{a|c}'}};
+ assert.deepEqual(sourceExclusionPayload(editedBox),{replacements:{'{a|b}':'{a|c}'}});
+ assert.equal(filteredSourceText(editedBox,undefined,'{a|b}, live tag'),'{a|c}, live tag');
+ assert.equal(filteredSourceText(editedBox,undefined,'different group, live tag'),'different group, live tag');
+});

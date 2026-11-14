@@ -1,4 +1,5 @@
-import {exclusionsFor,type SourceSegment} from './SourceExclusions';
+import {exclusionsFor,replacementsFor,type SourceSegment} from './SourceExclusions';
+import {emptyGroup} from './PromptBoxes';
 import {resolvedTagNames,tagIdentity} from './LocalImageSearch';
 import {RuleImpact,useRuleImpact,promptLeaves,PromptRelations,tagCount} from './RuleImpact';
 import {LogicBadge} from './LogicBadge';
@@ -503,9 +504,25 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
     // Each top-level part of the source text is one chip; the part's own text is what a removal stores.
     const parts = sourceText ? splitTop(sourceText, ',').map(part => part.trim()).filter(Boolean) : [];
     const kept = parts.filter(part => !dropped.has(sourceKey(part)));
-    const patch = (value: Partial<Pick<SourceBox, 'enabled' | 'collapsed' | 'excluded' | 'excludedBySource' | 'inheritRules'>>) => onChange(updateBox(state, box.id, value));
+    const replacements=replacementsFor(box,segment);
+    const [selectedChip,setSelectedChip]=useState<string>();
+    const chipsFor=(part:string)=>parsePrompt(Object.prototype.hasOwnProperty.call(replacements,sourceKey(part))?replacements[sourceKey(part)]:part).map((chip,index)=>({...chip,id:JSON.stringify([segment?.key,part,index])}));
+    const sourceChips=kept.flatMap(part=>chipsFor(part).map(chip=>({part,chip})));
+    const selected=sourceChips.find(entry=>entry.chip.id===selectedChip);
+    const patch = (value: Partial<Omit<SourceBox,'id'|'kind'>>) => onChange(updateBox(state, box.id, value));
     const setExcluded = (next: string[]) => segment?patch({excludedBySource:{...box.excludedBySource,[segment.key]:next}}):patch({ excluded: next.length ? next : undefined });
-    const effective=useRuleImpact();const leaves=promptLeaves(kept.join(', '));const retained=leaves.filter(tag=>!effective||effective.has(ruleTag(tag))).length;
+    const setReplacements=(next:Record<string,string>)=>segment?patch({replacementsBySource:{...box.replacementsBySource,[segment.key]:next}}):patch({replacements:next});
+    const editPart=(part:string,edit:(chips:Chip[])=>Chip[])=>{
+        const text=edit(chipsFor(part)).map(compileChip).filter(Boolean).join(', ');
+        if(!text){setExcluded([...excluded,part]);setSelectedChip(undefined);return;}
+        const next={...replacements,[sourceKey(part)]:text};if(text===part)delete next[sourceKey(part)];setReplacements(next);
+    };
+    const changeKind=(part:string,chip:Chip,mode:AddMode)=>editPart(part,chips=>{
+        const group=emptyGroup('Source',chips);
+        return (convertChip({version:1,boxes:[group]},group.id,chip.id,mode).boxes[0] as GroupBox).chips;
+    });
+    const removeChip=(part:string,chip:Chip)=>editPart(part,chips=>chips.filter(item=>item.id!==chip.id));
+    const effective=useRuleImpact();const leaves=promptLeaves(sourceChips.map(entry=>compileChip(entry.chip)).join(', '));const retained=leaves.filter(tag=>!effective||effective.has(ruleTag(tag))).length;
     const status = !source.connected ? 'not connected' : sourceText ? (retained<leaves.length?retained+'/'+leaves.length+' retained':leaves.length+' tags') + (kept.length < parts.length ? ` · ${parts.length - kept.length} left out` : '') : 'connected';
     return <div data-prompt-drop ref={ref}
         onClick={event => { if (!(event.target as HTMLElement).closest('button,input,select,[data-chip-id]')) ref.current?.querySelector<HTMLInputElement>('[data-add-input] input')?.focus(); }}
@@ -517,7 +534,7 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
             <BoxGrip id={box.id} name="Source" boxRef={ref} onEnd={() => setMark(undefined)} />
             <Btn label={box.collapsed ? 'Expand source box' : 'Collapse source box'} onClick={() => patch({ collapsed: !box.collapsed })}>{box.collapsed ? '▸' : '▾'}</Btn>
             <input type="checkbox" aria-label="Use source box" title="Use the connected source text" checked={box.enabled} onChange={event => patch({ enabled: event.target.checked })} />
-            <strong>Source</strong><Btn label="Copy source box syntax" onClick={()=>void navigator.clipboard.writeText(kept.join(", "))}>⧉</Btn>
+            <strong>Source</strong><Btn label="Copy source box syntax" onClick={()=>void navigator.clipboard.writeText(sourceChips.map(entry=>compileChip(entry.chip)).join(', '))}>⧉</Btn>
             <small style={{ opacity: .6 }}>{status}</small>
             <span style={{ flex: 1 }} />
             <Btn label="Move source box up" disabled={index === 0} onClick={() => onChange(moveBox(state, box.id, -1))}>▲</Btn>
@@ -538,7 +555,8 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
                 ? <div style={S.muted}>Connect a text output (for example a Gallery Image Source prompt) to <code>source_text</code>. Its tags appear here and are placed where this box sits.</div>
                 : !sourceText
                     ? <div style={S.muted}>{source.note || 'Connected prompt will be shown after execution.'}</div>
-                    : <div style={{ ...S.body, ...S.chips, padding: '0 6px 6px' }}>{kept.map((part, at) => { const chip = parsePrompt(part)[0]; return chip && <span key={at + part} style={{display:'contents'}}>{at>0&&<LogicBadge name="AND"/>}<ChipView chip={chip} selected={false} onSelect={() => undefined} onRemove={() => setExcluded([...excluded, part])} /></span>; })}</div>}
+                    : <div style={{ ...S.body, ...S.chips, padding: '0 6px 6px' }}>{sourceChips.map(({part,chip},at)=><span key={chip.id} style={{display:'contents'}}>{at>0&&<LogicBadge name="AND"/>}<ChipView chip={chip} selected={selectedChip===chip.id} onSelect={()=>setSelectedChip(chip.id)} onRemove={()=>removeChip(part,chip)} suggest={suggest} onKind={mode=>changeKind(part,chip,mode)} onItems={items=>editPart(part,chips=>chips.flatMap(item=>item.id===chip.id?(withItems(item,items)?[withItems(item,items)!]:[]):[item]))}/>{Object.prototype.hasOwnProperty.call(replacements,sourceKey(part))&&<Btn label={'Reset source tag '+part} onClick={()=>{const next={...replacements};delete next[sourceKey(part)];setReplacements(next);setSelectedChip(undefined);}}>↺</Btn>}</span>)}</div>}
+            {selected&&<ChipEditor chip={selected.chip} onClose={()=>setSelectedChip(undefined)} onKind={mode=>changeKind(selected.part,selected.chip,mode)} onRemove={()=>removeChip(selected.part,selected.chip)} onSplit={()=>editPart(selected.part,chips=>chips.flatMap(chip=>chip.id===selected.chip.id?parsePrompt(chipTerms(chip).join(', ')):[chip]))} onMove={delta=>editPart(selected.part,chips=>moveItem(chips,selected.chip.id,delta))} onChange={next=>editPart(selected.part,chips=>chips.map(chip=>chip.id===selected.chip.id?next:chip))}/>}
             {!!excluded.length && <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, padding: '0 6px 6px' }} aria-label="Source tags left out">
                 <small style={{ opacity: .65 }} title="Removed here only: the source and the image lineage are unchanged">Left out:</small>
                 {excluded.map(tag => <button key={tag} type="button" title="Put this source tag back" aria-label={'Restore ' + tag} onClick={() => setExcluded(excluded.filter(item => item !== tag))}

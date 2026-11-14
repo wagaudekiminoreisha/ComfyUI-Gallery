@@ -5,6 +5,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
@@ -416,6 +417,44 @@ class BrowserTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(result['items']), 2)
         result = await self.post('dictionary', {'query': 'blue hair'})
         self.assertIn('blue_hair', result['tags'])
+
+    async def test_random_tag_search_samples_all_unique_matches_and_freezes_pages(self):
+        # A repeatedly ordered upstream response must not fix our first page.
+        self.search_payload = {'file_ids': [12, 12, 13]}
+        query = {'tags': ['a'], 'file_sort_type': 4, 'limit': 1}
+        def shuffle(values):
+            if shuffled.call_count == 1:
+                values.reverse()
+        with patch('hydrus.random.shuffle', side_effect=shuffle) as shuffled:
+            first = await self.post('search', query)
+            self.assertEqual(first['total'], 2)
+            self.assertEqual(first['items'][0]['file_id'], 13)
+            self.assertEqual(shuffled.call_args.args[0], [13, 12])
+            second = await self.post('search', {**query, 'offset': 1, 'search_id': first['search_id']})
+            self.assertEqual(second['items'][0]['file_id'], 12)
+            self.assertEqual(shuffled.call_count, 1)
+            fresh = await self.post('search', query)
+            self.assertEqual(fresh['items'][0]['file_id'], 12)
+            self.assertNotEqual(fresh['search_id'], first['search_id'])
+            self.assertEqual(shuffled.call_count, 2)
+        queries = [query for path, query in self.calls if path.endswith('search_files')]
+        self.assertEqual(len(queries), 2)
+        self.assertTrue(all(not any(isinstance(tag, str) and tag.startswith('system:limit')
+                                   for tag in json.loads(query['tags'])) for query in queries))
+
+    async def test_random_metadata_or_search_samples_the_whole_union_once(self):
+        matched = {**self.record, 'file_id': 14, 'hash': 'f' * 64}
+        query = {'tags': ['a'], 'metadata_terms': ['pose'], 'field_join': 'any',
+                 'file_sort_type': 4, 'limit': 1}
+        with patch.object(self.bridge.sync, 'search', return_value=[matched]), \
+                patch('hydrus.random.shuffle', side_effect=lambda values: values.reverse()) as shuffled:
+            first = await self.post('search', query)
+            self.assertEqual(first['items'][0]['file_id'], 14)
+            self.assertFalse(first['sampling_fallback'])
+            calls = shuffled.call_count
+            second = await self.post('search', {**query, 'offset': 1, 'search_id': first['search_id']})
+            self.assertEqual(second['items'][0]['file_id'], 13)
+            self.assertEqual(shuffled.call_count, calls)
 
     async def test_input_does_not_overwrite_other_content(self):
         (self.input / 'hydrus').mkdir()
