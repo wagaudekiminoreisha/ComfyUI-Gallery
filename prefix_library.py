@@ -420,6 +420,7 @@ class GalleryPromptEncode:
             disabled = set(availability['disabled'])
             rules = validate_boxes(availability.get('globals')) + [box for box in validate_boxes(rules)
                                                 if box.get('origin') != 'global' and box['definition']['id'] not in disabled]
+        before_rules = effective
         effective, rules_trace = apply_rules(effective, rules)
         record_resolution(extra_pnginfo, unique_id, composed, effective, choices, source_text, source_exclusions(text) if source_mode == 'boxes' else None)
         if isinstance(extra_pnginfo, dict) and isinstance(extra_pnginfo.get(RESOLVED_KEY), dict) and str(unique_id) in extra_pnginfo[RESOLVED_KEY]:
@@ -428,7 +429,24 @@ class GalleryPromptEncode:
             extra_pnginfo[RESOLVED_KEY][str(unique_id)]['rules_program'] = rules
             extra_pnginfo[RESOLVED_KEY][str(unique_id)]['prefix_snapshots'] = snapshots
             extra_pnginfo[RESOLVED_KEY][str(unique_id)]['source_excluded_by_image'] = json.loads(source_image_exclusions) if isinstance(source_image_exclusions,str) else source_image_exclusions
-        return {'ui': {'effective_prompt': [effective], 'source_text': [source_text or '']}, 'result': (clip.encode_from_tokens_scheduled(clip.tokenize(effective)), effective)}
+        tokens = clip.tokenize(effective)
+        try: from .load_report import encoder_load
+        except ImportError: from load_report import encoder_load
+        load = encoder_load(clip, effective, tokens)
+        try: from .prompt_load import prompt_groups
+        except ImportError: from prompt_load import prompt_groups
+        groups = prompt_groups(extra_pnginfo, unique_id, scoped_source)
+        if not groups:
+            groups = [{'name': 'Encoder prompt', 'kind': 'box', 'syntax': composed}]
+        diagnostic_context = {'effective': effective, 'before_rules': before_rules, 'rules': rules, 'groups': groups}
+        if isinstance(extra_pnginfo, dict) and unique_id is not None:
+            extra_pnginfo.get(RESOLVED_KEY, {}).get(str(unique_id), {})['token_load'] = load
+            extra_pnginfo.get(RESOLVED_KEY, {}).get(str(unique_id), {})['diagnostic_context'] = diagnostic_context
+        conditioning = clip.encode_from_tokens_scheduled(tokens)
+        if isinstance(conditioning, list):
+            conditioning = [[row[0], {**row[1], 'gallery_load': {'node_id': str(unique_id), 'token_streams': load, 'rules_applied': len(rules_trace.get('rulesets', [])), 'diagnostic_context': diagnostic_context}}]
+                            if isinstance(row, (list, tuple)) and len(row) == 2 and isinstance(row[1], dict) else row for row in conditioning]
+        return {'ui': {'effective_prompt': [effective], 'source_text': [source_text or ''], 'token_load': [load]}, 'result': (conditioning, effective)}
 
 
 def record_resolution(extra_pnginfo, unique_id, composed, effective, choices, source_text=None, source_excluded=None):

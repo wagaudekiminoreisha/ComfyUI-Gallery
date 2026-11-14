@@ -27,3 +27,7 @@ NODE_DISPLAY_NAME_MAPPINGS["GalleryPromptLibrary"] = "Gallery Prompt Library"
 from .prefix_library import GalleryPromptEncode
 NODE_CLASS_MAPPINGS['GalleryPromptEncode'] = GalleryPromptEncode
 NODE_DISPLAY_NAME_MAPPINGS['GalleryPromptEncode'] = 'Gallery Prompt Encode (Library)'
+
+from .load_report import GalleryLoadReport
+NODE_CLASS_MAPPINGS['GalleryLoadReport'] = GalleryLoadReport
+NODE_DISPLAY_NAME_MAPPINGS['GalleryLoadReport'] = 'Gallery Load Report'

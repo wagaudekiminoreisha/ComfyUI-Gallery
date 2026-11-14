@@ -1,5 +1,6 @@
 import {migrateEncoderWorkflow,registerEncoderConstructor} from './EncoderSerialization';
 import { installSessionOutputs } from './SessionOutputs';
+import {installLoadReport} from './LoadReport';
 import { mountGalleryAssetPane } from './GalleryAssetPane';
 import { useGalleryTheme, interactionStyles } from './GalleryTheme';
 import { installPrefixWidgets } from './PrefixLibrary';
@@ -42,6 +43,7 @@ if (STANDALONE) {
     async nodeCreated(node: any) {
         installSourceWidgets(node);
         installPrefixWidgets(node);
+        installLoadReport(node);
         try {
             if (node.comfyClass === "GalleryNode") {
                 node.addWidget("button", "Open Gallery", null, () => {

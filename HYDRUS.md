@@ -641,8 +641,11 @@ Image Source thumbnails are now buttons. In **Single — selected image** mode, 
 **Gallery Prompt Encode (Library)** now has an optional `source_text` STRING socket. Wire Image Source's `positive` output into one encoder's `source_text`, and its `negative` output into another. Connect CLIP to both, then their CONDITIONING outputs to the sampler's corresponding inputs. A read-only **Effective prompt** panel shows direct Gallery source changes immediately. Other STRING providers display their text after execution. Connecting a source appends its prompt after the editable node text by default. Set `source_mode` to `before` to prepend it, or `replace` for the former override behavior (including an empty source). Disconnecting uses the node text alone without erasing it. The text STRING output and conditioning always use the same effective prompt. Existing encoder outputs retain their positions.
 
 The encoder's **Source** card supports inline group editing: add or remove options,
-change the grouping dropdown, or select a group to adjust its weight. Edits update
-the effective prompt and apply during encoding. They are saved with the encoder
+change the grouping dropdown, or select a group to adjust its weight.
+Click an individual tag inside a source group (or focus it and press Enter/Space)
+to edit that tag's text, weight or grouping. Delete/Backspace removes that member
+without removing the surrounding group or changing another image's tags.
+Edits update the effective prompt and apply during encoding. They are saved with the encoder
 per source image and prompt side; the original source and saved prefixes stay
 unchanged. Use **↺** beside an edited group to restore its current source version.
 
@@ -672,3 +675,62 @@ Use **Categories to append** to select several wiki categories, then **Append ca
 **Optional alternatives {a|b|c|}** adds a trailing empty branch. It is available for individual/bulk tags, prefixes and categories. A single choice stays `{a|}`; empty selections insert nothing. With separate category groups, each category has its own empty branch. This syntax means one listed alternative or no text, not all listed alternatives together. Prefixes keep their constituent tags together as one alternative. Affixes and weights surround the inserted block as before.
 
 The [ComfyUI dynamic prompt extension](https://github.com/Comfy-Org/ComfyUI_frontend/blob/main/src/extensions/core/dynamicPrompts.ts) resolves enabled text widgets at queue time. Gallery inserts the expressions; it does not add wildcard resolution to incoming STRING connections.
+
+## Hardware-aware operation load report
+
+Add **Gallery Load Report** (`utils/gallery`) after VAE Decode or the final image
+operation. Connect its required **images** input; its IMAGE output passes the same
+batch through to Save Image. The report appears inside the node after execution,
+and **report_json** exposes the same data as a STRING.
+
+Optional connections make the assessment more complete:
+
+- **model**: the patched MODEL used by the sampler, including IPAdapter/LoRA changes.
+- **latent**: the sampler's actual LATENT batch, for the model's working-memory estimate.
+- **positive / negative**: the conditioning used by the sampler. Gallery encoders
+  retain measured token counts in conditioning, so cached encodes can be inspected.
+  Connect after ControlNet application to inspect its live model weights too.
+
+The report uses the **ComfyUI host's** device, memory capacity and available memory,
+not the browser computer. It shows each Gallery encoder's actual final tokenization
+after source edits, dynamic choices and rules: content tokens where word IDs are
+available, padded/special-token slots, and chunks per tokenizer stream. Streams are
+not added into a fictional shared context limit. Other encoders remain inventory
+unless they supply Gallery runtime measurements.
+
+Source counts and image dimensions, output tensor storage, sampler settings,
+ControlNet/IPAdapter operations, strengths, model filenames and on-disk sizes are
+shown separately. Supported live ControlNet and IPAdapter Plus objects expose
+deduplicated weight storage; IPAdapter Plus also exposes image-context slots and
+conditioning tensor storage. Unsupported integrations remain graph inventory.
+
+The connected model reports its weight size, current loaded weight size and dtype.
+With LATENT connected, its working-memory estimate plus base weights is compared
+with device capacity. This is a partial estimate, not a prediction of peak VRAM or
+a guarantee of fitting: auxiliary models, CLIP, VAE, long-context attention and
+allocator peaks are excluded. Disk size and tensor storage are not GPU residency.
+When an upstream numeric CFG exceeds 1, the estimate assumes two conditioning
+branches together; otherwise it uses one. Linked/custom guidance may need manual
+interpretation, and ComfyUI can serialize branches to reduce memory pressure.
+Available memory is a fresh snapshot at report execution, not a per-node profiler.
+No models are loaded or moved, and GPU peak counters are not reset by the report.
+
+Connect the encoder's same **CLIP** to the report to enable **group and ruleset
+diagnosis**. Expand the encoder's diagnosis section to see named tag boxes,
+individual source/encoder groups, and the token, padded-slot and chunk reduction
+associated with removing their final tags. Inspect the saved group syntax beside
+its associated final text to distinguish a large alternatives list from the
+single option actually encoded. Named boxes and nested groups overlap, and
+shared tags are marked; these attribution rows must not be added together.
+
+Rulesets are compared with that ruleset disabled while the remaining program is
+evaluated normally against the already-resolved prompt. Positive token impact
+means added text load; negative means saved tokens. Comparisons that would cause
+a rule conflict are shown as unavailable. Counts remain separate per tokenizer
+stream; a mismatching CLIP measurement is rejected. Gallery conditioning carries
+the diagnostic context through cached runs; older cached results need a rerun.
+
+This is tokenizer-only analysis, not a measurement of GPU time or VRAM per tag or
+ruleset. It analyzes at most 64 group/box rows and 32 active rulesets per encoder,
+shows coverage and analysis duration, and does not encode the counterfactual
+prompts with CLIP. Leaving the optional CLIP input disconnected avoids that work.
