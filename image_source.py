@@ -77,6 +77,14 @@ def parse_manifest(value):
               "background": value.get("background", "#ffffff")}
     if not isinstance(result["background"], str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", result["background"]):
         raise ImageSourceError("Background must be a color in #rrggbb format.")
+    if 'prompt_selection' in value:
+        if value['prompt_selection'] not in ('layout','active','batch','all'):raise ImageSourceError('Invalid prompt image selection.')
+        result['prompt_selection'] = value['prompt_selection']
+    if 'prompt_merge' in value:
+        if value['prompt_merge'] not in ('append','union','common','frequency'):raise ImageSourceError('Invalid prompt merge mode.')
+        result['prompt_merge'] = value['prompt_merge']
+    if 'prompt_min_percent' in value:
+        result['prompt_min_percent'] = _integer(value['prompt_min_percent'],'Prompt frequency',1,100)
     if 'batch_indices' in value:
         indices = value['batch_indices']
         if not isinstance(indices, list) or not indices or len(indices) > len(images):
@@ -289,8 +297,10 @@ def render_batch(manifest, input_root):
 
 
 def source_prompts(manifest):
-    images = manifest['images'][manifest['active_index']:manifest['active_index'] + 1] if manifest['layout'] == 'single' else manifest['images']
-    return tuple(', '.join(str(item.get('prompt', {}).get(side, '')) for item in images if item.get('prompt', {}).get(side)) for side in ('positive', 'negative'))
+    try: from .source_prompt_policy import prompt_source_images, merge_prompt_texts
+    except ImportError: from source_prompt_policy import prompt_source_images, merge_prompt_texts
+    images = prompt_source_images(manifest)
+    return tuple(merge_prompt_texts([str(item.get('prompt',{}).get(side) or '') for item in images],manifest.get('prompt_merge','append'),manifest.get('prompt_min_percent',60)) for side in ('positive','negative'))
 
 
 class GalleryImageSource:

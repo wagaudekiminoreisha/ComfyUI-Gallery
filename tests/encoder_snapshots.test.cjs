@@ -5,12 +5,12 @@ const ts=require('../web/node_modules/typescript');
 const {load}=require('./ts_loader.cjs');
 const filename=path.resolve(__dirname,'../web/src/EncoderSnapshots.ts');
 const source=ts.transpileModule(fs.readFileSync(filename,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
-async function capture(positive,negative,excluded=[],excludedBySource,sourceKey='a.png:positive'){
+async function capture(positive,negative,excluded=[],excludedBySource,sourceKey='a.png:positive',boxPatch={},sourcePatch={}){
  const payloads=[],module={exports:{}};
  const library={prefixes:[{id:'p',name:'Portrait',tags:[]}],tags:[]};
  vm.runInThisContext(`(function(exports,module,require){${source}\n})`,{filename})(module.exports,module,request=>request==='./PrefixLibrary'?{loadPrefixes:async()=>library,capturePrefixSnapshot:async payload=>{payloads.push(payload);return null;}}:load(request));
- const node={};const state={boxes:[{kind:'source',enabled:true,excluded,excludedBySource}],hairPolicy:{mode:'specific'}};
- const refs=await module.exports.preparePrefixSnapshots(node,state,{snapshotTargets:[{sourceKey,prefixId:'p',terms:positive,negative_terms:negative}]},[]);
+ const node={};const state={boxes:[{kind:'source',enabled:true,excluded,excludedBySource,...boxPatch}],hairPolicy:{mode:'specific'}};
+ const refs=await module.exports.preparePrefixSnapshots(node,state,{snapshotTargets:[{sourceKey,prefixId:'p',terms:positive,negative_terms:negative}],...sourcePatch},[]);
  return {payload:payloads[0],refs,node};
 }
 test('image-source snapshots omit empty negative sides and trailing separators',async()=>{
@@ -32,4 +32,11 @@ test('snapshots apply only the matching source image exclusions',async()=>{
  const a=await capture(['blue eyes','blonde hair'],[],[],map,'a.png:positive');
  const b=await capture(['blue eyes','long hair'],[],[],map,'b.png:positive');
  assert.deepEqual(a.payload.terms,['blonde hair']);assert.deepEqual(b.payload.terms,['blue eyes','long hair']);
+});
+
+test('source-local categories and consensus constrain positive snapshot contributions',async()=>{
+ const filtered=await capture(['blue eyes','standing','mystery'],[],[],undefined,'a.png:positive',{categoryExclusions:['eyes']});
+ assert.deepEqual(filtered.payload.terms,['standing','mystery']);
+ const common=await capture(['blue eyes','standing'],[],[],undefined,'a.png:positive',{}, {merge:{mode:'common',min_percent:60},segments:[{key:'a.png:positive',name:'a',text:'blue eyes, standing'},{key:'b.png:positive',name:'b',text:'blue eyes, sitting'}]});
+ assert.deepEqual(common.payload.terms,['blue eyes']);
 });

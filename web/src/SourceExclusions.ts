@@ -1,4 +1,6 @@
 import {filterSource,sourceKey,splitTop,type BoxState,type SourceBox} from './PromptBoxes';
+import {filterSourceCategories} from './SourceTagPolicy';
+import {mergeSourcePromptTexts,type SourceMerge} from './ImageSourceGeometry';
 export type SourceSegment={key:string;name:string;text:string};
 export function exclusionsFor(box:SourceBox,segment?:SourceSegment):string[]{return segment?box.excludedBySource?.[segment.key]||[]:box.excluded||[];}
 export function replacementsFor(box:SourceBox,segment?:SourceSegment):Record<string,string>{return segment?box.replacementsBySource?.[segment.key]||{}:box.replacements||{};}
@@ -10,12 +12,14 @@ export function bindLegacySourceExclusions(state:BoxState,segments?:SourceSegmen
  if(!segments?.length||!state.boxes.some(box=>box.kind==='source'&&box.excluded?.length))return state;
  return {...state,boxes:state.boxes.map(box=>box.kind==='source'&&box.excluded?.length?{...box,excluded:undefined,excludedBySource:{...box.excludedBySource,[segments[0].key]:[...new Set([...(box.excludedBySource?.[segments[0].key]||[]),...box.excluded])]}}:box)};
 }
-export function sourceExclusionPayload(box:SourceBox|undefined,segments?:SourceSegment[]){
+export function sourceExclusionPayload(box:SourceBox|undefined,segments?:SourceSegment[],merge?:SourceMerge){
  if(!box?.enabled)return {};
- if(!segments?.length)return Object.keys(box.replacements||{}).length?{replacements:box.replacements}:{};
+ const policy=box.categoryExclusions?.length?{category_exclusions:box.categoryExclusions}:{};
+ if(!segments?.length)return {...policy,...(Object.keys(box.replacements||{}).length?{replacements:box.replacements}:{})};
  const active=segments.map(segment=>{const replacements=replacementsFor(box,segment);return {...segment,excluded:exclusionsFor(box,segment),...(Object.keys(replacements).length?{replacements}:{})};});
- return active.some(segment=>segment.excluded.length||segment.replacements)?{segments:active}:{};
+ return active.some(segment=>segment.excluded.length||segment.replacements)||merge&&merge.mode!=='append'||box.categoryExclusions?.length?{segments:active,...policy,...(merge&&merge.mode!=='append'?{merge}:{})}:{};
 }
-export function filteredSourceText(box:SourceBox|undefined,segments?:SourceSegment[],fallback?:string){
- return box&&segments?.length?segments.map(segment=>editSourceText(segment.text,exclusionsFor(box,segment),replacementsFor(box,segment)).trim()).filter(Boolean).join(', '):box&&fallback?editSourceText(fallback,exclusionsFor(box),replacementsFor(box)):fallback;
+export function filteredSourceText(box:SourceBox|undefined,segments?:SourceSegment[],fallback?:string,merge?:SourceMerge){
+ const text=box&&segments?.length?mergeSourcePromptTexts(segments.map(segment=>editSourceText(segment.text,exclusionsFor(box,segment),replacementsFor(box,segment)).trim()),merge):box&&fallback?editSourceText(fallback,exclusionsFor(box),replacementsFor(box)):fallback;
+ return box&&text?filterSourceCategories(text,box.categoryExclusions).text:text;
 }

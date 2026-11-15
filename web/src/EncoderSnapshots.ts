@@ -1,4 +1,7 @@
-import {sourceInput} from './PromptBoxes';
+import {filterSourceCategories} from './SourceTagPolicy';
+import {filteredSourceText,type SourceSegment} from './SourceExclusions';
+import type {SourceMerge} from './ImageSourceGeometry';
+import {sourceInput,sourceKey} from './PromptBoxes';
 import {editSourceText} from './SourceExclusions';
 import type {BoxState} from './PromptBoxes';
 import {compileChip,formatBoxTerms,splitTop} from './PromptBoxes';
@@ -6,13 +9,15 @@ import {capturePrefixSnapshot,loadPrefixes,type PrefixImage} from './PrefixLibra
 import type {RuleBox} from './RuleEngine';
 export type SnapshotTarget={sourceKey?:string;prefixId:string;terms:string[];negative_terms:string[];image_keys?:string[];image_refs?:Record<string,PrefixImage>;snapshotId?:string};
 export type SnapshotReference={prefix_id:string;prefix_name:string;snapshot_id:string|null;terms:string[];negative_terms:string[];image_keys:string[]};
-export async function preparePrefixSnapshots(node:any,state:BoxState,source:{negative?:boolean;snapshotTargets?:SnapshotTarget[];sources?:Record<string,{negative?:boolean;snapshotTargets?:SnapshotTarget[]}>},rules:RuleBox[]):Promise<SnapshotReference[]>{
+type SnapshotSourceInfo={negative?:boolean;snapshotTargets?:SnapshotTarget[];text?:string;segments?:SourceSegment[];merge?:SourceMerge};
+export async function preparePrefixSnapshots(node:any,state:BoxState,source:SnapshotSourceInfo & {sources?:Record<string,SnapshotSourceInfo>},rules:RuleBox[]):Promise<SnapshotReference[]>{
  const library=await loadPrefixes();
  const targets:SnapshotTarget[]=state.boxes.flatMap(box=>{
   if(box.kind!=='source'||!box.enabled)return [];
   const info=source.sources?.[sourceInput(box)]||(sourceInput(box)==='source_text'?source:undefined);
   if(!info||info.negative)return [];
-  return (info.snapshotTargets||[]).map(target=>({...target,terms:splitTop(editSourceText(target.terms.join(', '),target.sourceKey?box.excludedBySource?.[target.sourceKey]||box.excluded||[]:box.excluded||[],target.sourceKey?box.replacementsBySource?.[target.sourceKey]||box.replacements||{}:box.replacements||{}),',')}));
+  const retained=info.segments?.length&&info.merge&&info.merge.mode!=='append'?new Set(splitTop(filteredSourceText(box,info.segments,info.text,info.merge)||'',',').map(sourceKey)):undefined;
+  return (info.snapshotTargets||[]).map(target=>{const edited=editSourceText(target.terms.join(', '),target.sourceKey?box.excludedBySource?.[target.sourceKey]||box.excluded||[]:box.excluded||[],target.sourceKey?box.replacementsBySource?.[target.sourceKey]||box.replacements||{}:box.replacements||{});return {...target,terms:splitTop(filterSourceCategories(edited,box.categoryExclusions).text,',').filter(term=>!retained||retained.has(sourceKey(term)))};});
  });
  for(const box of state.boxes)if(box.kind==='group'&&box.enabled)for(const id of [...(box.prefixId?[box.prefixId]:[]),...(box.prefixIds||[])]){
   const prefix=library.prefixes.find(row=>row.id===id);if(!prefix?.tags.length)continue;

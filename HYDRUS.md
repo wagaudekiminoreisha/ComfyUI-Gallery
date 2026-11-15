@@ -690,6 +690,11 @@ Appearance. **＋ Source** adds cards, up to eight. See
 [Multiple encoder sources](docs/MULTIPLE_ENCODER_SOURCES.md) for wiring, per-card
 edits, rule inheritance and workflow compatibility.
 
+Source cards also have opt-in Appearance/Pose category filters. In the Image
+Source editor, **Prompt sources** chooses active/batch/all images independently
+of composition and offers append, union, common-term, or frequency aggregation.
+See [Source tag policy prototype](docs/SOURCE_TAG_POLICY.md) for coverage and limits.
+
 Add **Gallery Load Report** (`utils/gallery`) after VAE Decode or the final image
 operation. Connect its required **images** input; its IMAGE output passes the same
 batch through to Save Image. The report appears inside the node after execution,
