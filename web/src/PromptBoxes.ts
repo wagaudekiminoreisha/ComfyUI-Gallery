@@ -18,18 +18,20 @@ export const SOURCE_MARKER = '\u27e6source\u27e7';
  * Tags removed from the source box travel inside the marker, `\u27e6source -["tag a","tag b"]\u27e7`, because the
  * source text itself is often only known when the workflow runs. The backend drops those tags then.
  */
-const MARKER = /\u27e6source(?: -(\[[^\u27e7]*\]))?\u27e7/;
+const MARKER = /\u27e6source(?::(source_text(?:_[2-8])?))?(?: -(\[[^\u27e7]*\]))?\u27e7/;
+export const SOURCE_INPUTS = ['source_text', ...Array.from({length:7},(_,index)=>'source_text_'+(index+2))];
+export const sourceInput = (box: SourceBox) => box.input || 'source_text';
 // ComfyUI resolves {a|b} and strips /* */ and // comments in the text when it queues, so those characters are
 // written as JSON \u escapes and cannot change the list.
 const escapeList = (excluded: string[]) => JSON.stringify(excluded).replace(/[{}|/\u27e7]/g, char => '\\u' + char.charCodeAt(0).toString(16).padStart(4, '0'));
-export const sourceMarker = (excluded?: string[]) => excluded?.length ? '\u27e6source -' + escapeList(excluded) + '\u27e7' : SOURCE_MARKER;
+export const sourceMarker = (excluded?: string[], input = 'source_text') => '\u27e6source' + (input === 'source_text' ? '' : ':' + input) + (excluded?.length ? ' -' + escapeList(excluded) : '') + '\u27e7';
 export const hasSourceMarker = (text: string) => MARKER.test(text);
 /** Every source marker (with or without removed tags) replaced by `replace(excluded)`. */
-export function replaceSourceMarkers(text: string, replace: (excluded: string[]) => string): string {
-    return text.replace(new RegExp(MARKER.source, 'g'), (_, list?: string) => {
+export function replaceSourceMarkers(text: string, replace: (excluded: string[], input: string) => string): string {
+    return text.replace(new RegExp(MARKER.source, 'g'), (_, input?: string, list?: string) => {
         let excluded: string[] = [];
         try { const value = list ? JSON.parse(list) : []; if (Array.isArray(value)) excluded = value.filter((item): item is string => typeof item === 'string'); } catch { /* a damaged list removes nothing */ }
-        return replace(excluded);
+        return replace(excluded, input || 'source_text');
     });
 }
 /** How removed source tags are compared: case, underscores and spacing do not matter. */
@@ -45,7 +47,7 @@ export type TagChip = { id: string; kind: 'tag'; text: string; enabled: boolean;
 export type OrChip = { id: string; kind: 'or'; options: string[]; optional: boolean; enabled: boolean; weight?: number };
 export type Chip = TagChip | OrChip;
 export type GroupBox = { id: string; kind: 'group'; name: string; chips: Chip[]; enabled: boolean; collapsed: boolean; chipsCollapsed?: boolean; prefixId?: string; prefixIds?:string[];prefixSnapshotId?:string;inheritRules?:boolean; format?: AddMode };
-export type SourceBox = { id: string; kind: 'source'; inheritRules?:boolean; enabled: boolean; collapsed: boolean; /** Source tags left out of the prompt. */ excluded?: string[]; excludedBySource?: Record<string,string[]>; replacements?: Record<string,string>; replacementsBySource?: Record<string,Record<string,string>> };
+export type SourceBox = { id: string; kind: 'source'; input?:string; name?:string; inheritRules?:boolean; enabled: boolean; collapsed: boolean; /** Source tags left out of the prompt. */ excluded?: string[]; excludedBySource?: Record<string,string[]>; replacements?: Record<string,string>; replacementsBySource?: Record<string,Record<string,string>> };
 export type PromptBox = GroupBox | SourceBox;
 export type BoxState = { version: 1; boxes: PromptBox[]; hairPolicy?: HairPolicy | null; rulesets?: RuleBox[] };
 
@@ -163,20 +165,25 @@ export function compileBoxes(state: BoxState, conflicts?: Conflicts, legacyEach 
     const parts: string[] = [];
     for (const box of state.boxes) {
         if (!box.enabled) continue;
-        if (box.kind === 'source') parts.push(sourceMarker(box.excluded));
+        if (box.kind === 'source') parts.push(sourceMarker(box.excluded, sourceInput(box)));
         else parts.push(...formatBoxTerms(box.chips.filter(chip => !skipped.has(chip.id)).map(chip => merged.get(chip.id) ?? compileChip(chip)).filter(Boolean), box.format, legacyEach));
     }
     return parts.join(', ');
 }
 
 /** Mirrors the backend: put the source text where the marker is and tidy stray commas. */
-export function composeWithSource(compiled: string, source?: string): string {
+export function composeWithSource(compiled: string, source?: string, sources?: Record<string,string>): string {
     const clean = (source || '').trim().replace(/^,+|,+$/g, '').trim();
-    return replaceSourceMarkers(compiled, excluded => filterSource(clean, excluded).trim()).replace(/(?:\s*,\s*){2,}/g, ', ').trim().replace(/^,+|,+$/g, '').trim();
+    return replaceSourceMarkers(compiled, (excluded,input) => filterSource(sources?.[input] ?? (input==='source_text'?clean:''), excluded).trim()).replace(/(?:\s*,\s*){2,}/g, ', ').trim().replace(/^,+|,+$/g, '').trim();
 }
 
 export const emptyGroup = (name: string, chips: Chip[] = []): GroupBox => ({ id: newId(), kind: 'group', name, chips, enabled: true, collapsed: false });
-export const sourceBox = (): SourceBox => ({ id: newId(), kind: 'source', enabled: true, collapsed: false });
+export const sourceBox = (input = 'source_text'): SourceBox => ({ id: newId(), kind: 'source', ...(input==='source_text'?{}:{input}), enabled: true, collapsed: false });
+export function addSourceBox(state: BoxState, input?:string):BoxState {
+ const used=new Set(state.boxes.filter((box):box is SourceBox=>box.kind==='source').map(sourceInput));
+ const next=input||SOURCE_INPUTS.find(name=>!used.has(name));
+ return next&&SOURCE_INPUTS.includes(next)&&!used.has(next)?{...state,boxes:[...state.boxes,sourceBox(next)]}:state;
+}
 
 /** Default labels follow current tag-box position; explicit prefix/custom names are kept. */
 export function renumberBoxes(state:BoxState):BoxState{let index=0;return {...state,boxes:state.boxes.map(box=>{if(box.kind!=='group')return box;index++;return /^#\d+$/.test(box.name)?{...box,name:'#'+index}:box;})};}
@@ -193,15 +200,16 @@ export function nextName(state: BoxState): string {
  */
 export function stateFromText(text: string, mode = 'after', hasSource = true): BoxState {
     const source = sourceBox();
-    const marker = MARKER.exec(text);
-    if (marker) {
-        replaceSourceMarkers(marker[0], excluded => { if (excluded.length) source.excluded = excluded; return ''; });
-        const before = text.slice(0, marker.index), after = replaceSourceMarkers(text.slice(marker.index + marker[0].length), () => '');
-        const boxes: PromptBox[] = [];
-        if (parsePrompt(before).length) boxes.push(emptyGroup('#1', parsePrompt(before)));
-        boxes.push(source);
-        if (parsePrompt(after).length) boxes.push(emptyGroup(boxes.length > 1 ? '#2' : '#1', parsePrompt(after)));
-        return { version: 1, boxes };
+    if (MARKER.test(text)) {
+        const boxes:PromptBox[]=[],seen=new Set<string>();let start=0;
+        for(const marker of text.matchAll(new RegExp(MARKER.source,'g'))){
+            const before=text.slice(start,marker.index);if(parsePrompt(before).length)boxes.push(emptyGroup('#1',parsePrompt(before)));
+            replaceSourceMarkers(marker[0],(excluded,input)=>{if(!seen.has(input)){const box=sourceBox(input);if(excluded.length)box.excluded=excluded;boxes.push(box);seen.add(input);}return '';});
+            start=marker.index!+marker[0].length;
+        }
+        const after=text.slice(start);if(parsePrompt(after).length)boxes.push(emptyGroup('#1',parsePrompt(after)));
+        if(!seen.has('source_text'))boxes.push({...source,enabled:false});
+        return renumberBoxes({version:1,boxes});
     }
     const own = emptyGroup('#1', parsePrompt(text));
     if (mode === 'replace' && hasSource) own.enabled = false;
@@ -230,26 +238,29 @@ function cleanChip(value: unknown): Chip | undefined {
     return undefined;
 }
 
-/** Validate state read back from a saved workflow. There is always exactly one source box. */
+/** Validate saved state: one card per source socket, with the legacy primary retained. */
 export function parseState(value: unknown): BoxState | undefined {
     if (!isRecord(value) || value.version !== 1 || !Array.isArray(value.boxes)) return undefined;
     const boxes: PromptBox[] = [];
-    let hasSource = false;
+    const seenSources = new Set<string>();
     for (const raw of value.boxes) {
         if (!isRecord(raw)) continue;
         const id = typeof raw.id === 'string' && raw.id ? raw.id : newId();
         if (raw.kind === 'source') {
+            const input=typeof raw.input==='string'?raw.input:'source_text';
+            if(!SOURCE_INPUTS.includes(input)||seenSources.has(input))continue;
+            seenSources.add(input);
             const cleanReplacements=(value:unknown):Record<string,string>=>isRecord(value)?Object.fromEntries(Object.entries(value).filter((entry):entry is [string,string]=>typeof entry[1]==='string')):{};
             const replacements=cleanReplacements(raw.replacements);
             const replacementsBySource=isRecord(raw.replacementsBySource)?Object.fromEntries(Object.entries(raw.replacementsBySource).map(([key,value])=>[key,cleanReplacements(value)])):{};
             const excludedBySource=Object.fromEntries(Object.entries(raw.excludedBySource&&typeof raw.excludedBySource==='object'?raw.excludedBySource:{}).filter(([key,value])=>key.length<=4096&&Array.isArray(value)).map(([key,value])=>[key,(value as unknown[]).filter((tag):tag is string=>typeof tag==='string'&&!!tag.trim())]));
             const excluded = Array.isArray(raw.excluded) ? raw.excluded.filter((item): item is string => typeof item === 'string' && !!item.trim()) : [];
-            if (!hasSource) { hasSource = true; boxes.push({ id, kind: 'source',...(raw.inheritRules===false?{inheritRules:false}:{}), enabled: raw.enabled !== false, collapsed: raw.collapsed === true, ...(excluded.length ? { excluded } : {}),...(Object.keys(excludedBySource).length?{excludedBySource}:{}),...(Object.keys(replacements).length?{replacements}:{}),...(Object.keys(replacementsBySource).length?{replacementsBySource}:{}) }); }
+            { boxes.push({ id, kind: 'source',...(input==='source_text'?{}:{input}),...(typeof raw.name==='string'?{name:raw.name.slice(0,80)}:{}),...(raw.inheritRules===false?{inheritRules:false}:{}), enabled: raw.enabled !== false, collapsed: raw.collapsed === true, ...(excluded.length ? { excluded } : {}),...(Object.keys(excludedBySource).length?{excludedBySource}:{}),...(Object.keys(replacements).length?{replacements}:{}),...(Object.keys(replacementsBySource).length?{replacementsBySource}:{}) }); }
         } else if (raw.kind === 'group') {
             boxes.push({ id, kind: 'group', name: typeof raw.name === 'string' ? raw.name.slice(0, 80) : '', ...(typeof raw.prefixId === 'string' ? {prefixId:raw.prefixId} : {}),...(raw.inheritRules===false?{inheritRules:false}:{}),...(typeof raw.prefixSnapshotId==='string'?{prefixSnapshotId:raw.prefixSnapshotId}:{}), ...(Array.isArray(raw.prefixIds)?{prefixIds:raw.prefixIds.filter((id:unknown)=>typeof id==='string').slice(0,100)}:{}), ...(ADD_MODES.some(mode => mode.value === raw.format) ? { format: raw.format as AddMode } : {}), chips: (Array.isArray(raw.chips) ? raw.chips : []).map(cleanChip).filter((chip): chip is Chip => !!chip), enabled: raw.enabled !== false, collapsed: raw.collapsed === true, chipsCollapsed: raw.chipsCollapsed === true });
         }
     }
-    if (!hasSource) boxes.push(sourceBox());
+    if (!seenSources.has('source_text')) boxes.push(sourceBox());
     return renumberBoxes({ version: 1, boxes, ...(Array.isArray(value.rulesets) ? {rulesets:value.rulesets as RuleBox[]} : {}), ...(value.hairPolicy===null?{hairPolicy:null}:isRecord(value.hairPolicy) ? { hairPolicy: value.hairPolicy as HairPolicy } : {}) });
 }
 
@@ -259,7 +270,7 @@ export const updateBox = (state: BoxState, id: string, patch: Partial<Omit<Group
     ({ ...state, boxes: state.boxes.map(box => box.id === id ? { ...box, ...patch } as PromptBox : box) });
 
 /** The source box cannot be removed; it can be disabled, collapsed and moved. */
-export const removeBox = (state: BoxState, id: string): BoxState => renumberBoxes({ ...state, boxes: state.boxes.filter(box => box.id !== id || box.kind === 'source') });
+export const removeBox = (state: BoxState, id: string): BoxState => renumberBoxes({ ...state, boxes: state.boxes.filter(box => box.id !== id || box.kind === 'source' && sourceInput(box)==='source_text') });
 
 export function moveItem<T extends { id: string }>(items: T[], id: string, delta: -1 | 1): T[] {
     const from = items.findIndex(item => item.id === id), to = from + delta;

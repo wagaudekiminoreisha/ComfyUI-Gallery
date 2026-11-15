@@ -1,3 +1,4 @@
+import {SOURCE_INPUTS,sourceInput,addSourceBox} from './PromptBoxes';
 import {installEncoderSerialization,repairEncoderValues,orderEncoderWidgets} from './EncoderSerialization';
 import {bindLegacySourceExclusions,sourceExclusionPayload,filteredSourceText} from './SourceExclusions';
 import {sourcePrefixRefs, sourcePrefixTerms} from './SourcePrefixes';
@@ -19,8 +20,8 @@ import { sourcePrompt, type ImageSourceManifest } from './ImageSourceGeometry';
 import { openPrefixManager } from './PrefixLibrary';
 
 /** What the connected `source_text` provides: known at edit time for Gallery Image Source, otherwise after a run. */
-export function sourcePromptInfo(node: any): SourceInfo {
-    const input = node.inputs?.find((item: any) => item.name === 'source_text');
+export function sourcePromptInfo(node: any, inputName = 'source_text'): SourceInfo {
+    const input = node.inputs?.find((item: any) => item.name === inputName);
     if (input?.link == null) return { connected: false };
     const graph = node.graph || getComfyApp()?.graph;
     const link = graph?.links?.get?.(input.link) || graph?.links?.[input.link];
@@ -68,12 +69,21 @@ export function sourcePromptInfo(node: any): SourceInfo {
         }
         catch { return { connected: true, note: 'Source settings unavailable' }; }
     }
-    return typeof node.__galleryRuntimeSource === 'string' ? { connected: true, text: node.__galleryRuntimeSource } : { connected: true, note: 'Connected prompt will be shown after execution.' };
+    const runtime=node.__galleryRuntimeSources?.[inputName] ?? (inputName==='source_text'?node.__galleryRuntimeSource:undefined);
+    return typeof runtime === 'string' ? { connected: true, text: runtime } : { connected: true, note: 'Connected prompt will be shown after execution.' };
+}
+
+export function sourcePromptInfos(node:any):Record<string,SourceInfo>{
+    return Object.fromEntries(SOURCE_INPUTS.map(input=>[input,sourcePromptInfo(node,input)]));
+}
+function ensureConnectedSources(state:BoxState,node:any):BoxState{
+    for(const input of SOURCE_INPUTS)if(sourcePromptInfo(node,input).connected)state=addSourceBox(state,input);
+    return state;
 }
 
 export function effectiveSourceText(node: any): string | undefined {
-    const info = sourcePromptInfo(node);
-    return info.connected ? info.text ?? info.note : undefined;
+    const infos=Object.values(sourcePromptInfos(node)).filter(info=>info.connected);
+    return infos.length?infos.map(info=>info.text??info.note??'').filter(Boolean).join(', '):undefined;
 }
 
 type Deps = SuggestDeps;
@@ -91,7 +101,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
     if (!node.inputs?.some((input: any) => input.name === 'source_text')) node.addInput?.('source_text', 'STRING');
     if (!node.widgets?.some((widget: any) => widget.name === 'source_mode')) node.addWidget?.('combo', 'source_mode', 'after', () => undefined, { values: ['after', 'before', 'replace', 'boxes'] });
     const widget = (name: string) => node.widgets?.find((item: any) => item.name === name);
-    const hasSource = () => sourcePromptInfo(node).connected;
+    const hasSource = () => Object.values(sourcePromptInfos(node)).some(info=>info.connected);
     repairEncoderValues(node);
     const saved = parseState(node.properties?.prompt_boxes);
     let state: BoxState = saved ?? stateFromText(String(widget('text')?.value ?? ''), String(widget('source_mode')?.value ?? 'after'), hasSource());
@@ -122,9 +132,18 @@ export function installPromptBoxes(node: any, deps: Deps) {
     /** Compilation leaves exclusions and compatibility decisions to the rules program. */
     const together = () => undefined;
     const syncSource=()=>{
-        const source=sourcePromptInfo(node);state=bindLegacySourceExclusions(state,source.segments);
+        const infos=sourcePromptInfos(node);
+        state={...state,boxes:state.boxes.map(box=>box.kind==='source'?bindLegacySourceExclusions({version:1,boxes:[box]},infos[sourceInput(box)]?.segments).boxes[0]:box)};
+        const edits:Record<string,unknown>={};
+        for(const box of state.boxes)if(box.kind==='source'){
+            const input=sourceInput(box),info=infos[input];
+            if(!node.inputs?.some((pin:any)=>pin.name===input))node.addInput?.(input,'STRING');
+            const pin=node.inputs?.find((pin:any)=>pin.name===input);if(pin)pin.label=box.name?box.name+' ('+input+')':input;
+            if(info?.connected){const payload=sourceExclusionPayload(box,info.segments);if(Object.keys(payload).length)edits[input]=payload;}
+        }
         node.properties||={};node.properties.prompt_boxes=state;
-        widget('source_image_exclusions').value=JSON.stringify(sourceExclusionPayload(state.boxes.find(box=>box.kind==='source'),source.segments));
+        const hasExtra=state.boxes.some(box=>box.kind==='source'&&sourceInput(box)!=='source_text');
+        widget('source_image_exclusions').value=JSON.stringify(hasExtra?{sources:edits}:edits.source_text||{});
     };
     widget('source_image_exclusions').serializeValue=()=>{syncSource();return widget('source_image_exclusions').value;};
     const compiledNow = () => {syncSource();return compileBoxes(state, together());};
@@ -137,11 +156,12 @@ export function installPromptBoxes(node: any, deps: Deps) {
         if (text && text.value !== compiled) { text.value = compiled; if (text.inputEl) text.inputEl.value = compiled; text.callback?.(compiled); node.setDirtyCanvas?.(true, true); }
     };
     const render = () => {
-        const source = sourcePromptInfo(node);
-        const rawPreview=composeWithSource(compiledNow(),filteredSourceText(state.boxes.find(box=>box.kind==='source'),source.segments,source.text)),filtered=filterHairPrompt(rawPreview,cleanHairPolicy(state.hairPolicy));
+        const sources=sourcePromptInfos(node),source=sources.source_text;
+        const texts=Object.fromEntries(state.boxes.filter(box=>box.kind==='source').map(box=>{const info=sources[sourceInput(box)]||{connected:false};return [sourceInput(box),filteredSourceText(box,info.segments,info.connected?info.text:'')||''];}));
+        const rawPreview=composeWithSource(compiledNow(),undefined,texts),filtered=filterHairPrompt(rawPreview,cleanHairPolicy(state.hairPolicy));
         let reviewed:ReturnType<typeof applyRulePreview>;
         try{reviewed=applyRulePreview(filtered,effectiveRules());}catch(error){reviewed={text:filtered,errors:[String(error)],notes:[],protectedTags:[]};}
-        root.render(<PromptBoxEditor snapshotReferences={node.properties?.gallery_prefix_snapshots||[]} onOpenSnapshot={row=>openPrefixManager({name:row.prefix_name,positive:row.terms,negative:row.negative_terms,snapshotId:row.snapshot_id||undefined})} ruleDefinitions={rulesLibrary.definitions} inheritedRules={availableRules(inheritedRules,disabled)} globalRules={globals} disabledRules={disabled} ruleErrors={reviewed.errors} ruleProtected={reviewed.protectedTags} rulesNotice={[rulesNotice,...reviewed.notes].filter(Boolean).join(' · ')} onReloadRules={()=>void loadRules()} state={state} source={source} unfilteredPreview={rawPreview} preview={reviewed.text} suggest={suggest} onChange={commit} lastEncodedPrompt={node.__galleryEffectivePrompt} notice={notice} />);
+        root.render(<PromptBoxEditor sources={sources} snapshotReferences={node.properties?.gallery_prefix_snapshots||[]} onOpenSnapshot={row=>openPrefixManager({name:row.prefix_name,positive:row.terms,negative:row.negative_terms,snapshotId:row.snapshot_id||undefined})} ruleDefinitions={rulesLibrary.definitions} inheritedRules={availableRules(inheritedRules,disabled)} globalRules={globals} disabledRules={disabled} ruleErrors={reviewed.errors} ruleProtected={reviewed.protectedTags} rulesNotice={[rulesNotice,...reviewed.notes].filter(Boolean).join(' · ')} onReloadRules={()=>void loadRules()} state={state} source={source} unfilteredPreview={rawPreview} preview={reviewed.text} suggest={suggest} onChange={commit} lastEncodedPrompt={node.__galleryEffectivePrompt} notice={notice} />);
     };
     function loadRules() {
         const requestId=++rulesRequestId;
@@ -155,15 +175,15 @@ export function installPromptBoxes(node: any, deps: Deps) {
             node.properties.gallery_global_rules=globals;
             node.properties.gallery_disabled_rulesets=[...disabled];
             if(!prefixes)throw new Error('Prefix library unavailable.');
-            const source=sourcePromptInfo(node);
-            const sourceEnabled=state.boxes.some(box=>box.kind==='source'&&box.enabled&&box.inheritRules!==false);
-            const ids=new Set<string>([...(sourceEnabled&&!source.negative?source.prefixes?.map(prefix=>prefix.id)||[]:[]),...state.boxes.flatMap(box=>box.kind==='group'&&box.enabled&&box.inheritRules!==false?[...(box.prefixId?[box.prefixId]:[]),...(box.prefixIds||[])]:[])]);
+            const infos=sourcePromptInfos(node);
+            const inheritedSources=state.boxes.flatMap(box=>box.kind==='source'&&box.enabled&&box.inheritRules!==false&&infos[sourceInput(box)]?.connected&&!infos[sourceInput(box)]?.negative?[infos[sourceInput(box)]]:[]);
+            const ids=new Set<string>([...inheritedSources.flatMap(info=>info.prefixes?.map(prefix=>prefix.id)||[]),...state.boxes.flatMap(box=>box.kind==='group'&&box.enabled&&box.inheritRules!==false?[...(box.prefixId?[box.prefixId]:[]),...(box.prefixIds||[])]:[])]);
             // Nested @prefix references contribute their attached rules without losing their origin.
             const visited=new Set<string>();
             const visit=(id:string)=>{if(visited.has(id)||visited.size>=100)return;const prefix=prefixes.prefixes.find(item=>item.id===id);if(!prefix?.tags.length)return;visited.add(id);for(const tagId of prefix?.tags||[]){const text=prefixes.tags.find(tag=>tag.id===tagId)?.text.trim();if(text?.startsWith('@')){const child=prefixes.prefixes.find(item=>item.name.toLowerCase()===text.slice(1).toLowerCase());if(child)visit(child.id);}}};
             ids.forEach(visit);
             inheritedRules=[...visited].flatMap(id=>(rulesLibrary.prefixes[id]||[]).map(box=>({...box,id:'prefix:'+id+':'+box.id,origin:'prefix' as const,label:'Prefix '+(prefixes.prefixes.find(item=>item.id===id)?.name||id)})));
-            const snapshotIds=[...new Set([...state.boxes.flatMap(box=>box.kind==='group'&&box.enabled&&box.inheritRules!==false&&box.prefixSnapshotId?[box.prefixSnapshotId]:[]),...(sourceEnabled&&!source.negative?(source.snapshotTargets||[]).flatMap(target=>target.snapshotId?[target.snapshotId]:[]):[])])];
+            const snapshotIds=[...new Set([...state.boxes.flatMap(box=>box.kind==='group'&&box.enabled&&box.inheritRules!==false&&box.prefixSnapshotId?[box.prefixSnapshotId]:[]),...inheritedSources.flatMap(info=>(info.snapshotTargets||[]).flatMap(target=>target.snapshotId?[target.snapshotId]:[]))])];
             for(const id of snapshotIds){const snapshot=prefixes.snapshots?.[id];if(!snapshot)continue;const privateRules=rulesLibrary.prefixes['snapshot:'+id]||[];const overridden=new Set(privateRules.map(box=>box.definition.family+'\n'+box.scope));const chosen=[...snapshot.rules.filter(box=>box.origin!=='global'&&!overridden.has(box.definition.family+'\n'+box.scope)),...privateRules];inheritedRules.push(...chosen.map(box=>({...box,id:'snapshot:'+id+':'+box.id,origin:'snapshot' as const,label:'Snapshot '+id.slice(0,8)})));}
             node.properties ||= {};node.properties.gallery_inherited_rules=inheritedRules;node.properties.prompt_boxes=state;
             rulesNotice='';syncRules();render();sizing.request(false);
@@ -171,7 +191,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
         rulesPending=task;return task;
     }
     widget('rules_state').serializeValue=async()=>{let pending;do{pending=rulesPending;await pending;}while(pending!==rulesPending);if(state.rulesets===undefined)throw new Error('Rules library could not be loaded. Use Refresh rules before queuing this new encoder.');syncRules();return widget('rules_state').value;};
-    widget('prefix_snapshots').serializeValue=async()=>{let pending;do{pending=rulesPending;await pending;}while(pending!==rulesPending);syncSource();const references=await preparePrefixSnapshots(node,state,sourcePromptInfo(node),effectiveRules());widget('prefix_snapshots').value=JSON.stringify(references);render();return widget('prefix_snapshots').value;};
+    widget('prefix_snapshots').serializeValue=async()=>{let pending;do{pending=rulesPending;await pending;}while(pending!==rulesPending);syncSource();const references=await preparePrefixSnapshots(node,state,{sources:sourcePromptInfos(node)},effectiveRules());widget('prefix_snapshots').value=JSON.stringify(references);render();return widget('prefix_snapshots').value;};
     const rulesChanged=()=>{void loadRules();};window.addEventListener(RULES_CHANGED,rulesChanged);window.addEventListener('gallery-prefix-library-changed',rulesChanged);
     /** Shown under the boxes after an edit, e.g. which tags "Exclusive tags" turned off. */
     let inheritedPrefixSignature:unknown[]=[];
@@ -182,6 +202,10 @@ export function installPromptBoxes(node: any, deps: Deps) {
         const removedTail = !!tail && !next.boxes.some(box=>box.id===tail.id);
         const removedRule = !!state.hairPolicy&&!next.hairPolicy || (state.rulesets||[]).some(box=>!(next.rulesets||[]).some(candidate=>candidate.id===box.id));
         notice = '';
+        for(const box of state.boxes)if(box.kind==='source'&&!next.boxes.some(item=>item.id===box.id)){
+            const index=node.inputs?.findIndex((pin:any)=>pin.name===sourceInput(box));
+            if(index>=0){node.disconnectInput?.(index);node.inputs[index].label=sourceInput(box);}
+        }
         state = next;syncRules();
         const hair = widget('hair_policy'); if (hair) hair.value = JSON.stringify(cleanHairPolicy(state.hairPolicy));
         node.properties ||= {}; node.properties.prompt_boxes = state;
@@ -196,6 +220,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
     }
     /** Re-read the stored text: if something else changed it (an API call, another extension) the boxes follow it. */
     const refresh = () => {
+        const connected=ensureConnectedSources(state,node);if(connected!==state){commit(connected);return;}
         const text = widget('text');
         if (text && typeof text.value === 'string') {
             const next = reconcileText(state, text.value, String(widget('source_mode')?.value ?? 'boxes'), hasSource(), together());
@@ -219,6 +244,13 @@ export function installPromptBoxes(node: any, deps: Deps) {
         const previous = node[key];
         node[key] = function (...args: any[]) {
             const result = previous?.apply(this, args);
+            if(key==='onConnectionsChange'&&args[0]===1){
+                const input=node.inputs?.[args[1]]?.name;
+                if(SOURCE_INPUTS.includes(input)){
+                    if(node.__galleryRuntimeSources)delete node.__galleryRuntimeSources[input];
+                    if(input==='source_text')delete node.__galleryRuntimeSource;
+                }
+            }
             if (key === 'onConfigure') {
                 repairEncoderValues(node);
                 state=parseState(node.properties?.prompt_boxes)??state;
@@ -235,6 +267,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
     node.onExecuted = function (data: any) {
         const result = executed?.call(this, data);
         if (Array.isArray(data?.effective_prompt) && typeof data.effective_prompt[0] === 'string') node.__galleryEffectivePrompt = data.effective_prompt[0];
+        if(data?.source_texts?.[0]&&typeof data.source_texts[0]==='object')node.__galleryRuntimeSources=data.source_texts[0];
         if (Array.isArray(data?.source_text) && typeof data.source_text[0] === 'string') node.__galleryRuntimeSource = data.source_text[0];
         render();
         return result;
@@ -251,6 +284,6 @@ export function installPromptBoxes(node: any, deps: Deps) {
     };
 
     node.setSize?.([Math.max(400, node.size?.[0] || 0), Math.max(node.size?.[1] || 0, node.computeSize?.()[1] || 0, 460)]);
-    if (saved) refresh(); else commit(state);
+    if (saved) refresh(); else commit(ensureConnectedSources(state,node));
     void loadRules();
 }

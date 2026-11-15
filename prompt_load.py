@@ -54,6 +54,7 @@ def project_text(text, keys, keep=True, depth=0):
 
 
 def prompt_groups(extra_pnginfo, unique_id, source_text):
+    sources = source_text if isinstance(source_text, dict) else {'source_text': source_text}
     nodes = (extra_pnginfo or {}).get('workflow', {}).get('nodes', [])
     node = next((node for node in nodes if str(node.get('id')) == str(unique_id)), {})
     boxes = node.get('properties', {}).get('prompt_boxes', {}).get('boxes', [])
@@ -62,11 +63,13 @@ def prompt_groups(extra_pnginfo, unique_id, source_text):
         if not box.get('enabled', True):
             continue
         if box.get('kind') == 'source':
-            if source_text:
-                groups.append({'name': 'Source tags', 'kind': 'source', 'syntax': source_text})
-                for index, part in enumerate(split_top(source_text)):
+            text = sources.get(box.get('input', 'source_text'))
+            name = box.get('name') or ('Source' if box.get('input', 'source_text') == 'source_text' else box['input'])
+            if text:
+                groups.append({'name': name + ' tags', 'kind': 'source', 'syntax': text})
+                for index, part in enumerate(split_top(text)):
                     if '{' in part:
-                        groups.append({'name': 'Source group ' + str(index + 1), 'kind': 'group', 'syntax': part.strip()})
+                        groups.append({'name': name + ' group ' + str(index + 1), 'kind': 'group', 'syntax': part.strip()})
         elif box.get('kind') == 'group':
             syntax = []
             name = box.get('name') or 'Tag box'
@@ -85,8 +88,9 @@ def prompt_groups(extra_pnginfo, unique_id, source_text):
             if syntax:
                 groups.append({'name': name, 'kind': 'box', 'syntax': ', '.join(syntax)})
     # External text providers and old workflows still get meaningful top-level groups.
-    if not groups and source_text:
-        groups.append({'name': 'Source tags', 'kind': 'source', 'syntax': source_text})
+    if not groups:
+        groups.extend({'name': 'Source tags' if key == 'source_text' else key, 'kind': 'source', 'syntax': text}
+                      for key, text in sources.items() if text)
     return groups
 
 

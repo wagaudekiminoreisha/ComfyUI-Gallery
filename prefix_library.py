@@ -269,13 +269,14 @@ class GalleryPromptLibrary:
 # when the workflow runs and the source text is finally known.
 SOURCE_MARKER = '\u27e6source\u27e7'
 SOURCE_MODES = ('after', 'before', 'replace', 'boxes')
+SOURCE_INPUT_NAMES = ('source_text',) + tuple('source_text_' + str(index) for index in range(2, 9))
 # Saved images get a `gallery_prompts` text chunk: per encoder node, the prompt before and after
 # {a|b|c} choices were made. It travels into the Hydrus note with the rest of the metadata.
 RESOLVED_KEY = 'gallery_prompts'
 
 
 # Tags removed from the source box ride inside the marker: ⟦source -["tag a","tag b"]⟧ (a JSON list).
-SOURCE_MARKER_PATTERN = re.compile('⟦source(?: -(\\[[^⟧]*\\]))?⟧')
+SOURCE_MARKER_PATTERN = re.compile(r'⟦source(?::(?P<input>source_text(?:_[2-8])?))?(?: -(?P<excluded>\[[^⟧]*\]))?⟧')
 
 
 def split_top(text, separator=','):
@@ -301,7 +302,7 @@ def source_key(tag):
 
 def marker_excluded(match):
     try:
-        value = json.loads(match.group(1)) if match.group(1) else []
+        value = json.loads(match.group('excluded')) if match.group('excluded') else []
     except ValueError:
         return []
     return [item for item in value if isinstance(item, str)] if isinstance(value, list) else []
@@ -340,11 +341,15 @@ def apply_source_exclusions(source, raw):
     return ', '.join(text for segment in segments if (text:=edit_source_text(segment['text'],segment['excluded'],segment.get('replacements',{})).strip()))
 
 
-def compose_prompt(text, source_text=None, source_mode='after'):
+def compose_prompt(text, source_text=None, source_mode='after', sources=None):
     if source_mode not in SOURCE_MODES: raise ValueError('Invalid source prompt order.')
     if source_mode == 'boxes':
         source = (source_text or '').strip().strip(',').strip()
-        joined = SOURCE_MARKER_PATTERN.sub(lambda match: filter_source(source, marker_excluded(match)).strip(), text or '')
+        def resolve_source(match):
+            name = match.group('input') or 'source_text'
+            value = sources.get(name, '') if sources is not None else source if name == 'source_text' else ''
+            return filter_source(value or '', marker_excluded(match)).strip()
+        joined = SOURCE_MARKER_PATTERN.sub(resolve_source, text or '')
         joined = re.sub(r'(?:\s*,\s*){2,}', ', ', joined)
         return joined.strip().strip(',').strip()
     return text if source_text is None else source_text if source_mode == 'replace' else ', '.join(part.strip() for part in ([source_text, text] if source_mode == 'before' else [text, source_text]) if part.strip())
@@ -383,7 +388,7 @@ class GalleryPromptEncode:
     @classmethod
     def INPUT_TYPES(cls):
         return {'required': {'clip': ('CLIP',), 'text': ('STRING', {'multiline': True, 'dynamicPrompts': True, 'default': ''})},
-                'optional': {'source_text': ('STRING', {'forceInput': True}), 'source_mode': (list(SOURCE_MODES), {'default': 'after'}), 'hair_policy': ('STRING', {'default': '{}'}), 'rules_state': ('STRING', {'default': '[]'}), 'prefix_snapshots': ('STRING', {'default': '[]'}), 'source_image_exclusions': ('STRING', {'default': '{}'}), 'rules_policy': ('STRING', {'default': '', 'advanced': True})},
+                'optional': {'source_text': ('STRING', {'forceInput': True}), **{name: ('STRING', {'forceInput': True}) for name in SOURCE_INPUT_NAMES[1:]}, 'source_mode': (list(SOURCE_MODES), {'default': 'after'}), 'hair_policy': ('STRING', {'default': '{}'}), 'rules_state': ('STRING', {'default': '[]'}), 'prefix_snapshots': ('STRING', {'default': '[]'}), 'source_image_exclusions': ('STRING', {'default': '{}'}), 'rules_policy': ('STRING', {'default': '', 'advanced': True})},
                 'hidden': {'extra_pnginfo': 'EXTRA_PNGINFO', 'unique_id': 'UNIQUE_ID'}}
 
     RETURN_TYPES = ('CONDITIONING', 'STRING')
@@ -394,15 +399,28 @@ class GalleryPromptEncode:
     @classmethod
     def IS_CHANGED(cls, text='', source_text=None, source_mode='after', **kwargs):
         # Unresolved {a|b} groups are picked here each run, so the result must not be cached.
-        return float('nan') if '{' in (text or '') + (source_text or '') or 'one' in str(kwargs.get('hair_policy','')) else ''
+        return float('nan') if '{' in (text or '') + (source_text or '') + ''.join(kwargs.get(name) or '' for name in SOURCE_INPUT_NAMES[1:]) or 'one' in str(kwargs.get('hair_policy','')) else ''
 
-    def encode(self, clip, text, source_text=None, source_mode='after', extra_pnginfo=None, unique_id=None, hair_policy='{}', rules_state='[]', prefix_snapshots='[]', source_image_exclusions='{}', rules_policy=''):
+    def encode(self, clip, text, source_text=None, source_mode='after', extra_pnginfo=None, unique_id=None, hair_policy='{}', rules_state='[]', prefix_snapshots='[]', source_image_exclusions='{}', rules_policy='', **sources):
         snapshots=json.loads(prefix_snapshots) if isinstance(prefix_snapshots,str) else prefix_snapshots
         if not isinstance(snapshots,list) or len(snapshots)>100 or any(not isinstance(row,dict) or not isinstance(row.get('prefix_id'),str) or row.get('snapshot_id') is not None and (not isinstance(row['snapshot_id'],str) or not re.fullmatch('[a-f0-9]{64}',row['snapshot_id'])) for row in snapshots):raise ValueError('Invalid prefix snapshot list.')
         if clip is None:
             raise ValueError('Connect a CLIP text encoder to Gallery Prompt Encode.')
-        scoped_source=apply_source_exclusions(source_text,source_image_exclusions) if source_mode=='boxes' else source_text
-        composed = compose_prompt(text, scoped_source, source_mode)
+        raw_sources = {'source_text': source_text, **{name: sources[name] for name in SOURCE_INPUT_NAMES[1:] if name in sources}}
+        scoped_sources = dict(raw_sources)
+        edits = json.loads(source_image_exclusions) if isinstance(source_image_exclusions, str) else source_image_exclusions
+        if source_mode == 'boxes':
+            if isinstance(edits, dict) and 'sources' in edits:
+                if not isinstance(edits['sources'], dict) or any(name not in SOURCE_INPUT_NAMES for name in edits['sources']):
+                    raise ValueError('Invalid named source edits.')
+                for name, value in raw_sources.items():
+                    if value is not None:
+                        scoped_sources[name] = apply_source_exclusions(value, edits['sources'].get(name, {}))
+            elif source_text is not None:
+                scoped_sources['source_text'] = apply_source_exclusions(source_text, edits)
+        raw_source = ', '.join(value for value in raw_sources.values() if value) if any(value is not None for value in raw_sources.values()) else None
+        scoped_source = ', '.join(value for value in scoped_sources.values() if value) if raw_source is not None else None
+        composed = compose_prompt(text, scoped_source, source_mode, scoped_sources)
         try: from .hair_policy import sample_policy
         except ImportError: from hair_policy import sample_policy
         policy = sample_policy(hair_policy)
@@ -422,7 +440,7 @@ class GalleryPromptEncode:
                                                 if box.get('origin') != 'global' and box['definition']['id'] not in disabled]
         before_rules = effective
         effective, rules_trace = apply_rules(effective, rules)
-        record_resolution(extra_pnginfo, unique_id, composed, effective, choices, source_text, source_exclusions(text) if source_mode == 'boxes' else None)
+        record_resolution(extra_pnginfo, unique_id, composed, effective, choices, raw_source, source_exclusions(text) if source_mode == 'boxes' else None)
         if isinstance(extra_pnginfo, dict) and isinstance(extra_pnginfo.get(RESOLVED_KEY), dict) and str(unique_id) in extra_pnginfo[RESOLVED_KEY]:
             extra_pnginfo[RESOLVED_KEY][str(unique_id)]['hair_policy'] = policy
             extra_pnginfo[RESOLVED_KEY][str(unique_id)]['rules_applied'] = rules_trace
@@ -435,7 +453,7 @@ class GalleryPromptEncode:
         load = encoder_load(clip, effective, tokens)
         try: from .prompt_load import prompt_groups
         except ImportError: from prompt_load import prompt_groups
-        groups = prompt_groups(extra_pnginfo, unique_id, scoped_source)
+        groups = prompt_groups(extra_pnginfo, unique_id, scoped_sources)
         if not groups:
             groups = [{'name': 'Encoder prompt', 'kind': 'box', 'syntax': composed}]
         diagnostic_context = {'effective': effective, 'before_rules': before_rules, 'rules': rules, 'groups': groups}
@@ -446,7 +464,7 @@ class GalleryPromptEncode:
         if isinstance(conditioning, list):
             conditioning = [[row[0], {**row[1], 'gallery_load': {'node_id': str(unique_id), 'token_streams': load, 'rules_applied': len(rules_trace.get('rulesets', [])), 'diagnostic_context': diagnostic_context}}]
                             if isinstance(row, (list, tuple)) and len(row) == 2 and isinstance(row[1], dict) else row for row in conditioning]
-        return {'ui': {'effective_prompt': [effective], 'source_text': [source_text or ''], 'token_load': [load]}, 'result': (conditioning, effective)}
+        return {'ui': {'effective_prompt': [effective], 'source_text': [source_text or ''], 'source_texts': [raw_sources], 'token_load': [load]}, 'result': (conditioning, effective)}
 
 
 def record_resolution(extra_pnginfo, unique_id, composed, effective, choices, source_text=None, source_excluded=None):

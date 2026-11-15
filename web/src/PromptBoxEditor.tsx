@@ -1,5 +1,5 @@
 import {exclusionsFor,replacementsFor,type SourceSegment} from './SourceExclusions';
-import {emptyGroup} from './PromptBoxes';
+import {emptyGroup,sourceInput,addSourceBox,SOURCE_INPUTS} from './PromptBoxes';
 import {resolvedTagNames,tagIdentity} from './LocalImageSearch';
 import {RuleImpact,useRuleImpact,promptLeaves,PromptRelations,tagCount} from './RuleImpact';
 import {LogicBadge} from './LogicBadge';
@@ -535,7 +535,7 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
     };
     const effective=useRuleImpact();const leaves=promptLeaves(sourceChips.map(entry=>compileChip(entry.chip)).join(', '));const retained=leaves.filter(tag=>!effective||effective.has(ruleTag(tag))).length;
     const status = !source.connected ? 'not connected' : sourceText ? (retained<leaves.length?retained+'/'+leaves.length+' retained':leaves.length+' tags') + (kept.length < parts.length ? ` · ${parts.length - kept.length} left out` : '') : 'connected';
-    return <div data-prompt-drop ref={ref}
+    return <div data-prompt-drop data-source-input={sourceInput(box)} ref={ref}
         onClick={event => { if (!(event.target as HTMLElement).closest('button,input,select,[data-chip-id]')) ref.current?.querySelector<HTMLInputElement>('[data-add-input] input')?.focus(); }}
         onDragOver={event => { if (dragging?.kind === 'chip' && source.append && selectedPrefix && !saving) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; } else if (dragging?.kind === 'box' && dragging.id !== box.id) { event.preventDefault(); setMark(lower(event) ? 'after' : 'before'); } }}
         onDragLeave={() => setMark(undefined)}
@@ -545,7 +545,7 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
             <BoxGrip id={box.id} name="Source" boxRef={ref} onEnd={() => setMark(undefined)} />
             <Btn label={box.collapsed ? 'Expand source box' : 'Collapse source box'} onClick={() => patch({ collapsed: !box.collapsed })}>{box.collapsed ? '▸' : '▾'}</Btn>
             <input type="checkbox" aria-label="Use source box" title="Use the connected source text" checked={box.enabled} onChange={event => patch({ enabled: event.target.checked })} />
-            <strong>Source</strong><Btn label="Copy source box syntax" onClick={()=>void navigator.clipboard.writeText(sourceChips.map(entry=>compileChip(entry.chip)).join(', '))}>⧉</Btn>
+            <strong>Source</strong><input aria-label="Source label" placeholder={sourceInput(box)} value={box.name||''} onChange={event=>patch({name:event.target.value.slice(0,80)})} style={{...S.input,width:110}}/><small>{sourceInput(box)}</small>{sourceInput(box)!=='source_text'&&<Btn label="Remove source input" onClick={()=>onChange(removeBox(state,box.id))}>×</Btn>}<Btn label="Copy source box syntax" onClick={()=>void navigator.clipboard.writeText(sourceChips.map(entry=>compileChip(entry.chip)).join(', '))}>⧉</Btn>
             <small style={{ opacity: .6 }}>{status}</small>
             <span style={{ flex: 1 }} />
             <Btn label="Move source box up" disabled={index === 0} onClick={() => onChange(moveBox(state, box.id, -1))}>▲</Btn>
@@ -563,7 +563,7 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
             </div>}
             {statusMessage && <div role="status" style={S.muted}>{statusMessage}</div>}
             {!source.connected
-                ? <div style={S.muted}>Connect a text output (for example a Gallery Image Source prompt) to <code>source_text</code>. Its tags appear here and are placed where this box sits.</div>
+                ? <div style={S.muted}>Connect a text output (for example a Gallery Image Source prompt) to <code>{sourceInput(box)}</code>. Its tags appear here and are placed where this box sits.</div>
                 : !sourceText
                     ? <div style={S.muted}>{source.note || 'Connected prompt will be shown after execution.'}</div>
                     : <div style={{ ...S.body, ...S.chips, padding: '0 6px 6px' }}>{sourceChips.map(({part,chip},at)=><span key={chip.id} style={{display:'contents'}}>{at>0&&<LogicBadge name="AND"/>}<ChipView chip={chip} selected={selectedChip===chip.id} onSelect={()=>{setSelectedMember(undefined);setSelectedChip(chip.id);}} onMemberEdit={(option,index)=>{setSelectedChip(chip.id);setSelectedMember({option,index});}} onRemove={()=>removeChip(part,chip)} suggest={suggest} onKind={mode=>changeKind(part,chip,mode)} onItems={items=>editPart(part,chips=>chips.flatMap(item=>item.id===chip.id?(withItems(item,items)?[withItems(item,items)!]:[]):[item]))}/>{Object.prototype.hasOwnProperty.call(replacements,sourceKey(part))&&<Btn label={'Reset source tag '+part} onClick={()=>{const next={...replacements};delete next[sourceKey(part)];setReplacements(next);setSelectedChip(undefined);}}>↺</Btn>}</span>)}</div>}
@@ -614,13 +614,14 @@ function PromptTrash({ owner }: { owner: string }) {
     </div>,document.body);
 }
 
-export function PromptBoxEditor({ state, source, preview, suggest, onChange, notice, lastEncodedPrompt, unfilteredPreview, ruleDefinitions = [], inheritedRules = [], globalRules = [], disabledRules = new Set(), ruleErrors = [], ruleProtected = [], onReloadRules, rulesNotice,snapshotReferences=[],onOpenSnapshot }: { state: BoxState; source: SourceInfo; preview: string; suggest: (query: string) => Promise<Suggestion[]>; onChange: (state: BoxState) => void; notice?: string; lastEncodedPrompt?: string; unfilteredPreview?: string; ruleDefinitions?: Ruleset[]; inheritedRules?: RuleBox[]; globalRules?: RuleBox[]; disabledRules?: ReadonlySet<string>; ruleErrors?: string[]; ruleProtected?: string[]; onReloadRules?: ()=>void; rulesNotice?: string;snapshotReferences?:import('./EncoderSnapshots').SnapshotReference[];onOpenSnapshot?:(reference:import('./EncoderSnapshots').SnapshotReference)=>void }) {
+export function PromptBoxEditor({ state, source, sources, preview, suggest, onChange, notice, lastEncodedPrompt, unfilteredPreview, ruleDefinitions = [], inheritedRules = [], globalRules = [], disabledRules = new Set(), ruleErrors = [], ruleProtected = [], onReloadRules, rulesNotice,snapshotReferences=[],onOpenSnapshot }: { state: BoxState; source: SourceInfo; sources?:Record<string,SourceInfo>; preview: string; suggest: (query: string) => Promise<Suggestion[]>; onChange: (state: BoxState) => void; notice?: string; lastEncodedPrompt?: string; unfilteredPreview?: string; ruleDefinitions?: Ruleset[]; inheritedRules?: RuleBox[]; globalRules?: RuleBox[]; disabledRules?: ReadonlySet<string>; ruleErrors?: string[]; ruleProtected?: string[]; onReloadRules?: ()=>void; rulesNotice?: string;snapshotReferences?:import('./EncoderSnapshots').SnapshotReference[];onOpenSnapshot?:(reference:import('./EncoderSnapshots').SnapshotReference)=>void }) {
     const owner = useId();
     return <RuleImpact.Provider value={new Set(promptLeaves(preview).map(ruleTag))}><RuleProtection.Provider value={ruleProtected}><div data-prompt-editor={owner} style={S.root} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
         <PromptTrash owner={owner} />
         {state.boxes.map((box, index) => box.kind === 'source'
-            ? <SourceView key={box.id} box={box} index={index} count={state.boxes.length} state={state} onChange={onChange} source={source} suggest={suggest} />
+            ? <SourceView key={box.id} box={box} index={index} count={state.boxes.length} state={state} onChange={onChange} source={sources?.[sourceInput(box)]||(sourceInput(box)==='source_text'?source:{connected:false})} suggest={suggest} />
             : <GroupView key={box.id} box={box} index={index} count={state.boxes.length} state={state} onChange={onChange} suggest={suggest} />)}
+        <Btn label="Add source input" disabled={state.boxes.filter(box=>box.kind==='source').length>=SOURCE_INPUTS.length} onClick={()=>onChange(addSourceBox(state))}>＋ Source</Btn>
         <div style={{display:'flex'}}><AddInput placeholder="New box: type tags and press Enter" suggest={suggest} onText={text => onChange(addBoxWithChip(state, parseTyped(text)))}
             onGroup={(mode, tags) => { const made = groupChips(mode, tags); if (made.length) onChange(addBoxWithChip(state, made)); }}
             onPrefix={(item, head) => { const next=addBox(head ? addBox(state, undefined, head) : state,item.label,(item.terms||[]).join(', ')); onChange({...next,boxes:next.boxes.map(box=>box.kind==='group'&&box.name===item.label?{...box,prefixId:item.prefixId}:box)}); }} /></div>

@@ -683,6 +683,13 @@ The [ComfyUI dynamic prompt extension](https://github.com/Comfy-Org/ComfyUI_fron
 
 ## Hardware-aware operation load report
 
+Gallery Prompt Encode can receive several independently editable source prompts.
+For separate ControlNet and IPAdapter references, connect their Gallery source
+prompts to `source_text` and `source_text_2`, then name the cards Pose and
+Appearance. **＋ Source** adds cards, up to eight. See
+[Multiple encoder sources](docs/MULTIPLE_ENCODER_SOURCES.md) for wiring, per-card
+edits, rule inheritance and workflow compatibility.
+
 Add **Gallery Load Report** (`utils/gallery`) after VAE Decode or the final image
 operation. Connect its required **images** input; its IMAGE output passes the same
 batch through to Save Image. The report appears inside the node after execution,

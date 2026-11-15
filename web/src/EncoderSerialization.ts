@@ -15,7 +15,7 @@ export function encoderWidgetValues(info:any):Record<string,any>{
   if(typeof value==='string'&&modes.has(value)){result.source_mode=value;continue;}
   const parsed=object(value);if(!parsed)continue;
   if(!Array.isArray(parsed)&&['natural','specific','minimal'].includes(parsed.mode)){result.hair_policy=encoded(value);continue;}
-  if(!Array.isArray(parsed)&&Array.isArray(parsed.segments)){result.source_image_exclusions=encoded(value);continue;}
+  if(!Array.isArray(parsed)&&(Array.isArray(parsed.segments)||parsed.sources||parsed.replacements)){result.source_image_exclusions=encoded(value);continue;}
   if(Array.isArray(parsed)){
    if(parsed.length&&parsed.every(row=>row&&typeof row==='object'&&row.definition)){result.rules_state=encoded(value);rulesFound=true;continue;}
    if(parsed.length&&parsed.every(row=>row&&typeof row==='object'&&typeof row.prefix_id==='string')){result.prefix_snapshots=encoded(value);snapshotsFound=true;continue;}
