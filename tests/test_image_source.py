@@ -24,6 +24,16 @@ def manifest(*names, **kwargs):
 
 
 class CompositionTests(unittest.TestCase):
+    def test_metadata_above_old_limit_is_accepted_and_new_limit_is_enforced(self):
+        from image_source import MAX_MANIFEST_BYTES
+        value = manifest('red.png')
+        value['images'][0]['metadata'] = {'workflow': '界' * (1024 * 1024)}
+        serialized = json.dumps(value, ensure_ascii=False)
+        self.assertGreater(len(serialized.encode('utf-8')), 2 * 1024 * 1024)
+        self.assertEqual(parse_manifest(serialized)['images'][0]['metadata'], value['images'][0]['metadata'])
+        with self.assertRaisesRegex(ImageSourceError, '32 MiB'):
+            parse_manifest(' ' * (MAX_MANIFEST_BYTES + 1))
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

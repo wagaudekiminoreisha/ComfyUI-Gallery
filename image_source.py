@@ -19,7 +19,7 @@ MAX_IMAGES = 32
 MAX_PIXELS = 64 * 1024 * 1024
 MAX_DIMENSION = 32768
 MAX_SOURCE_BYTES = 256 * 1024 * 1024
-MAX_MANIFEST_BYTES = 2 * 1024 * 1024
+MAX_MANIFEST_BYTES = 32 * 1024 * 1024
 DEFAULT_MANIFEST = json.dumps({"version": 1, "images": [], "layout": "single",
                                "columns": 2, "gap": 0, "background": "#ffffff"})
 
@@ -58,7 +58,7 @@ def _integer(value, label, low, high):
 def parse_manifest(value):
     if isinstance(value, str):
         if len(value.encode("utf-8")) > MAX_MANIFEST_BYTES:
-            raise ImageSourceError("Image source settings are too large.")
+            raise ImageSourceError("Image source settings exceed the 32 MiB metadata limit.")
         try:
             value = json.loads(value)
         except (ValueError, RecursionError):

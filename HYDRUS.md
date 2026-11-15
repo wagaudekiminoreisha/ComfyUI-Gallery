@@ -474,6 +474,11 @@ image's prompt output later. Direct prompt-target writes happen on append only.
 
 An image can be paired with several saved prefixes, such as a pose and a character look. **Append images and prompts** lets you choose which recipes to load, including an optional snapshot for each. Saving edits to a shared prefix refreshes the source's enabled prompt terms and any Gallery Prompt Encode connected to its positive or negative output. Snapshot recipes stay frozen.
 
+Each Gallery Image Source supports up to **32 images** and **32 MiB of serialized
+source settings and metadata**, measured as UTF-8 bytes. The size check includes
+existing sources when appending more images. This limit is separate from image
+file sizes and the Hydrus generation-note limit.
+
 Image Hydrus-tag controls start with all known tags. **Load selected Hydrus tags into the positive prompt** independently enables tag-to-prompt loading. Remove individual tags, add
 vocabulary terms, or expand prefixes. The optional sync checkbox **adds** selected
 tags to the corresponding hash using the configured Hydrus tag service; omitted

@@ -18,6 +18,7 @@ export function readSourceHistory(node: any) {
     return mergeSourceHistory(node.properties?.gallery_source_history, readSourceManifest(node).images);
 }
 let target: any;
+const MAX_SOURCE_METADATA_BYTES = 32 * 1024 * 1024;
 let sourceConstructor: any;
 export const registerSourceConstructor = (value: any) => { sourceConstructor = value; };
 const children = new Set<Window>();
@@ -94,8 +95,10 @@ export function saveSourceManifest(node: any, manifest: ImageSourceManifest, rec
     try {
         const previous = readSourceManifest(node);
         manifest = assignImageOutputs(manifest);
+        const serialized = JSON.stringify(manifest);
+        if (new TextEncoder().encode(serialized).byteLength > MAX_SOURCE_METADATA_BYTES) throw new Error('Image source settings exceed the 32 MiB metadata limit. Remove sources or use another node.');
         const history = mergeSourceHistory(readSourceHistory(node), manifest.images);
-        widget.value = JSON.stringify(manifest); widget.callback?.(widget.value);
+        widget.value = serialized; widget.callback?.(widget.value);
         if (readSourceManifest(node).images.length !== manifest.images.length) throw new Error('ComfyUI did not retain the appended sources. Check this node’s sources input.');
         node.properties ||= {}; node.properties.gallery_source_history = history;
         syncImageOutputs(node, manifest, previous);
@@ -440,7 +443,7 @@ function localCommand(command: string, payload: any): any {
     const apply: PromptApply | undefined = Array.isArray(payload) ? undefined : payload?.apply;
     payload = Array.isArray(payload) ? payload : payload?.images;
     if (!Array.isArray(payload) || !payload.length || payload.length > 32 || payload.some(image => typeof image?.input_name !== 'string' || !image.input_name || image.input_name.length > 2048)) throw new Error('Append between 1 and 32 input images.');
-    if (JSON.stringify(payload).length > 1800000) throw new Error('Image metadata is too large for this workflow; use fewer images.');
+    if (new TextEncoder().encode(JSON.stringify(payload)).byteLength > MAX_SOURCE_METADATA_BYTES) throw new Error('Image metadata exceeds the 32 MiB limit; use fewer images.');
     const updates = (['positive', 'negative'] as const).flatMap(side => {
         if (!apply?.[side]) return [];
         const [id, index] = JSON.parse(apply[side]!);
