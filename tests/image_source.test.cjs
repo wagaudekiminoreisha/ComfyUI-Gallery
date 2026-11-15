@@ -5,6 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const ts = require('../web/node_modules/typescript');
 function compile(name, globals = {}, imports = {}) {
+    globals = { TextEncoder, ...globals };
     const file = path.resolve(__dirname, '../web/src/' + name + '.ts');
     const output = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
     const module = { exports: {} };

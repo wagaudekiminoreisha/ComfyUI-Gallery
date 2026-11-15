@@ -39,3 +39,11 @@ test('non encoder nodes, links and unrelated widget objects stay intact',()=>{
 test('source markers recover boxes mode when old exports omitted node properties',()=>{
  const values=encoderWidgetValues({widgets_values:['⟦source⟧',hair('natural'),'[]']});assert.equal(values.source_mode,'boxes');assert.equal(JSON.parse(values.hair_policy).mode,'natural');
 });
+
+test('named source edit payloads survive positional and named widget serialization',()=>{
+ const edits={sources:{source_text_2:{replacements:{'blue eyes':'green eyes'}}}};
+ const values=encoderWidgetValues({widgets_values:['⟦source:source_text_2⟧','boxes','{}','[]','[]',JSON.stringify(edits)]});
+ assert.deepEqual(JSON.parse(values.source_image_exclusions),edits);
+ const named=encoderWidgetValues({properties:{gallery_encoder_widgets:{version:1,values}}});
+ assert.deepEqual(JSON.parse(named.source_image_exclusions),edits);
+});
