@@ -1,3 +1,6 @@
+import {mergePromptContributions} from './PromptDeduplication';
+import {SharedPromptCard} from './SharedPromptCard';
+import {sharedEditorPrompt} from './SharedPrompt';
 import { PopupMenu } from './PopupMenu';
 import { inheritedRuleIdentity, isInheritedRuleIgnored, selectedInheritedRules } from './InheritedRules';
 import { omittedSourceGroups, restoreAllSourceGroups } from './SourceGroupRestore';
@@ -422,7 +425,7 @@ function GroupView({ box, index, count, state, onChange, suggest, bare, placehol
     const tagsHidden=box.collapsed||box.chipsCollapsed;
     const relation=box.format==='alternatives'||box.format==='optional'?'OR':'AND';
     const effective=useRuleImpact(),savedCount=tagCount(box.chips),retainedCount=box.enabled?promptLeaves(box.chips.filter(chip=>chip.enabled).map(compileChip).join(', ')).filter(tag=>!effective||effective.has(ruleTag(tag))).length:0;
-    return <div data-prompt-drop ref={ref} tabIndex={0} aria-label={bare ? 'Prefix tag box' : 'Tag box ' + box.name}
+    return <div data-prompt-drop data-shared-contribution-id={box.id} ref={ref} tabIndex={0} aria-label={bare ? 'Prefix tag box' : 'Tag box ' + box.name}
         onKeyDownCapture={event => {
             const element = event.target as HTMLElement;
             const textField = element.matches('input,textarea,select');
@@ -512,6 +515,19 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
         finally { setSaving(false); }
     };
     const [sourceKeySelected,setSourceKeySelected]=useState('');
+    useEffect(()=>{
+        const reveal=(event:Event)=>{
+            const detail=(event as CustomEvent<{id:string;syntax:string}>).detail;
+            if(detail.id!==box.id)return;
+            const owner=source.segments?.find(segment=>{
+                const text=filteredSourceText(box,[segment],segment.text)||'';
+                return !mergePromptContributions([{text:detail.syntax},{text,source:true}]).rows[0].text.trim();
+            });
+            if(owner)setSourceKeySelected(owner.key);
+        };
+        window.addEventListener('gallery-reveal-shared-contribution',reveal);
+        return()=>window.removeEventListener('gallery-reveal-shared-contribution',reveal);
+    },[box,source]);
     const segment=source.segments?.find(row=>row.key===sourceKeySelected)||source.segments?.[0];
     const sourceText=segment?.text??source.text;
     const excluded = exclusionsFor(box,segment);
@@ -567,7 +583,7 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
     const effective=useRuleImpact();const leaves=promptLeaves(localFilter.text);const retained=leaves.filter(tag=>!effective||effective.has(ruleTag(tag))).length;
     const leftOutCount=parts.length-kept.length+omittedGroups.length;
     const status = !source.connected ? 'not connected' : sourceText ? (retained<leaves.length?retained+'/'+leaves.length+' retained':leaves.length+' tags') + (leftOutCount ? ` · ${leftOutCount} left out` : '') : 'connected';
-    return <div data-prompt-drop data-source-input={sourceInput(box)} ref={ref}
+    return <div data-prompt-drop data-shared-contribution-id={box.id} data-source-input={sourceInput(box)} ref={ref}
         onClick={event => { if (!(event.target as HTMLElement).closest('button,input,select,[data-chip-id]')) ref.current?.querySelector<HTMLInputElement>('[data-add-input] input')?.focus(); }}
         onDragOver={event => { if (dragging?.kind === 'chip' && source.append && selectedPrefix && !saving) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; } else if (dragging?.kind === 'box' && dragging.id !== box.id) { event.preventDefault(); setMark(lower(event) ? 'after' : 'before'); } }}
         onDragLeave={() => setMark(undefined)}
@@ -654,15 +670,41 @@ function PromptTrash({ owner }: { owner: string }) {
 }
 
 export function PromptBoxEditor({ state, source, sources, preview, suggest, onChange, notice, lastEncodedPrompt, unfilteredPreview, ruleDefinitions = [], inheritedRules: allInheritedRules = [], globalRules = [], disabledRules = new Set(), ruleErrors = [], ruleProtected = [], onReloadRules, rulesNotice,snapshotReferences=[],onOpenSnapshot }: { state: BoxState; source: SourceInfo; sources?:Record<string,SourceInfo>; preview: string; suggest: (query: string) => Promise<Suggestion[]>; onChange: (state: BoxState) => void; notice?: string; lastEncodedPrompt?: string; unfilteredPreview?: string; ruleDefinitions?: Ruleset[]; inheritedRules?: RuleBox[]; globalRules?: RuleBox[]; disabledRules?: ReadonlySet<string>; ruleErrors?: string[]; ruleProtected?: string[]; onReloadRules?: ()=>void; rulesNotice?: string;snapshotReferences?:import('./EncoderSnapshots').SnapshotReference[];onOpenSnapshot?:(reference:import('./EncoderSnapshots').SnapshotReference)=>void }) {
+    const [showContributions,setShowContributions]=useState(false);
+    const [reveal,setReveal]=useState<{id:string;syntax:string}>();
+    const editor=useRef<HTMLDivElement>(null);
+    const infos=sources||{source_text:source};
+    const shared=useMemo(()=>sharedEditorPrompt(state,infos),[state,sources,source]);
+    const editShared=(id:string,syntax:string)=>{
+        setShowContributions(true);setReveal({id,syntax});
+        const box=state.boxes.find(box=>box.id===id);
+        if(box?.collapsed||box?.kind==='group'&&box.chipsCollapsed)onChange({...state,boxes:state.boxes.map(box=>box.id===id?{...box,collapsed:false,...(box.kind==='group'?{chipsCollapsed:false}:{})}:box)});
+    };
+    useEffect(()=>{
+        if(!reveal||!showContributions)return;
+        window.dispatchEvent(new CustomEvent('gallery-reveal-shared-contribution',{detail:reveal}));
+        const frame=requestAnimationFrame(()=>{
+            const box=[...editor.current!.querySelectorAll<HTMLElement>('[data-shared-contribution-id]')].find(el=>el.dataset.sharedContributionId===reveal.id);
+            box?.scrollIntoView({block:'nearest'});
+            const chips=[...box?.querySelectorAll<HTMLElement>('[data-chip-id] [role="button"][aria-label^="Edit "]')||[]];
+            const target=chips.find(el=>el.getAttribute('aria-label')==='Edit '+reveal.syntax)||chips[0];
+            target?.click();target?.focus({preventScroll:true});setReveal(undefined);
+        });
+        return()=>cancelAnimationFrame(frame);
+    },[reveal,showContributions]);
+    const contributionCards=state.boxes.map((box,index)=>box.kind==='source'
+        ? <SourceView key={box.id} box={box} index={index} count={state.boxes.length} state={state} onChange={onChange} source={infos[sourceInput(box)]||{connected:false}} suggest={suggest}/>
+        : <GroupView key={box.id} box={box} index={index} count={state.boxes.length} state={state} onChange={onChange} suggest={suggest}/>);
     const owner = useId();
     const inheritedRules=selectedInheritedRules(allInheritedRules,state.excludedInheritedRules);
     const ignoredRules=[...new Map(allInheritedRules.filter(box=>box.origin!=='global'&&isInheritedRuleIgnored(box,state.excludedInheritedRules)).map(box=>[inheritedRuleIdentity(box),box])).values()];
     const restoreInherited=(box:RuleBox)=>onChange({...state,excludedInheritedRules:(state.excludedInheritedRules||[]).filter(key=>key!==inheritedRuleIdentity(box)&&key!==box.id)});
-    return <RuleImpact.Provider value={new Set(promptLeaves(preview).map(ruleTag))}><RuleProtection.Provider value={ruleProtected}><div data-prompt-editor={owner} style={S.root} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
+    return <RuleImpact.Provider value={new Set(promptLeaves(preview).map(ruleTag))}><RuleProtection.Provider value={ruleProtected}><div ref={editor} data-prompt-editor={owner} style={S.root} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
         <PromptTrash owner={owner} />
-        {state.boxes.map((box, index) => box.kind === 'source'
-            ? <SourceView key={box.id} box={box} index={index} count={state.boxes.length} state={state} onChange={onChange} source={sources?.[sourceInput(box)]||(sourceInput(box)==='source_text'?source:{connected:false})} suggest={suggest} />
-            : <GroupView key={box.id} box={box} index={index} count={state.boxes.length} state={state} onChange={onChange} suggest={suggest} />)}
+        {shared.references.length>0&&<SharedPromptCard merged={shared} onEdit={editShared} compact={showContributions} onMergedView={()=>setShowContributions(false)} renderChip={(chip,onSelect)=><ChipView chip={chip} selected={false} onSelect={onSelect}/>}/>}
+        <details key="original-contributions" open={!shared.references.length||showContributions} onToggle={event=>{if(shared.references.length)setShowContributions(event.currentTarget.open);}}>
+            <summary hidden={!shared.references.length}>Original contributions · edit sources and groups</summary>{contributionCards}
+        </details>
         <Btn label="Add source input" disabled={state.boxes.filter(box=>box.kind==='source').length>=SOURCE_INPUTS.length} onClick={()=>onChange(addSourceBox(state))}>＋ Source</Btn>
         <div style={{display:'flex'}}><AddInput placeholder="New box: type tags and press Enter" suggest={suggest} onText={text => onChange(addBoxWithChip(state, parseTyped(text)))}
             onGroup={(mode, tags) => { const made = groupChips(mode, tags); if (made.length) onChange(addBoxWithChip(state, made)); }}

@@ -16,6 +16,7 @@ const assert=require('node:assert/strict');
    graph.add(node);window.qaExtension.nodeCreated(node);window.qaSource=source;window.qaEncoder=node;
   });
   const editor=page.locator('#qa-source-groups');
+  const originals=editor.locator('summary').filter({hasText:'Original contributions · edit sources and groups'});await originals.waitFor({state:'attached'});if(await originals.isVisible()){await originals.click();await editor.getByRole('button',{name:'Show merged tags',exact:true}).waitFor();}
   const source=editor.getByRole('combobox',{name:'Source image for tag exclusions',exact:true});
   await source.waitFor();
   const originalSource=await page.evaluate(()=>window.qaSource.widgets[0].value);

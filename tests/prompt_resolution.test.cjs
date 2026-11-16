@@ -61,3 +61,9 @@ test('hair filtering is reflected in reusable templates and effective metadata t
  assert.equal(R.promptTemplates(metadata)['6'].resolved,'1girl, blue eyes');
  assert.equal(R.promptResolutions(metadata).length,0,'hair alternatives were not encoded');
 });
+
+test('shared optional expressions use the recorded sampling template instead of inventing independent rolls',()=>{
+ const metadata={gallery_prompts:{'1':{text:'{blue eyes|}, {blue eyes|}',sampling_template:'{blue eyes|}',resolved:'blue eyes',choices:[{options:['blue eyes',''],chosen:'blue eyes'}]}}};
+ const [row]=R.promptResolutions(metadata);assert.equal(row.template,'{blue eyes|}');assert.equal(row.choices.length,1);assert.equal(row.choices[0].chosen,'blue eyes');
+ assert.equal(R.promptTemplates(metadata)['1'].text,'{blue eyes|}, {blue eyes|}');
+});

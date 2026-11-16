@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from prompt_deduplication import deduplicate_prompt
-from prefix_library import GalleryPromptEncode, RESOLVED_KEY
+from prefix_library import GalleryPromptEncode, RESOLVED_KEY, compose_shared_prompt
 
 
 class Clip:
@@ -42,13 +42,13 @@ class PromptDeduplicationTests(unittest.TestCase):
         self.assertEqual(deduplicate_prompt('[a:b:0.5], a'), '[a:b:0.5], a')
         self.assertEqual(deduplicate_prompt('(broken, a, a'), '(broken, a, a')
 
-    def test_sampling_is_independent_then_duplicates_are_removed(self):
+    def test_different_optional_contexts_keep_independent_choices_and_occurrences(self):
         clip, metadata = Clip(), {}
         template = '{blue eyes|green eyes}, {{blue eyes|red eyes}, smile|}'
         with patch('random.choice', side_effect=lambda options: options[0]):
             result = GalleryPromptEncode().encode(clip, template, extra_pnginfo=metadata, unique_id='1')
-        self.assertEqual(result['result'], ('blue eyes, smile', 'blue eyes, smile'))
-        self.assertEqual(clip.text, 'blue eyes, smile')
+        self.assertEqual(result['result'], ('blue eyes, blue eyes, smile', 'blue eyes, blue eyes, smile'))
+        self.assertEqual(clip.text, 'blue eyes, blue eyes, smile')
         record = metadata[RESOLVED_KEY]['1']
         self.assertEqual(record['text'], template)
         self.assertEqual(len(record['choices']), 3)
@@ -58,6 +58,23 @@ class PromptDeduplicationTests(unittest.TestCase):
             result = GalleryPromptEncode().encode(clip, template)
         self.assertEqual(result['result'][1], 'blue eyes, red eyes, smile')
 
+    def test_matching_optional_groups_share_one_roll_and_source_owns_the_tag(self):
+        self.assertEqual(compose_shared_prompt('blue eyes, style', 'blue eyes, pose'), 'style, blue eyes, pose')
+        self.assertEqual(compose_shared_prompt('{blue eyes|}, style', '{blue eyes|}, pose'), 'style, {blue eyes|}, pose')
+        self.assertEqual(compose_shared_prompt('blue eyes, {blue eyes|}'), 'blue eyes, {blue eyes|}')
+        self.assertEqual(compose_shared_prompt('({a|b}:1.2), ⟦source⟧', '({a|b}:1.2)', 'boxes'), '({a|b}:1.2)')
+        with patch('random.choice', side_effect=lambda options: options[0]) as choose:
+            metadata={}
+            result=GalleryPromptEncode().encode(Clip(), '{blue eyes|}, style', source_text='{blue eyes|}, pose',extra_pnginfo=metadata,unique_id='1')
+        self.assertEqual(result['result'][1], 'style, blue eyes, pose')
+        self.assertEqual(choose.call_count, 1)
+        self.assertEqual(metadata[RESOLVED_KEY]['1']['sampling_template'],'style, {blue eyes|}, pose')
+        with patch('random.choice', return_value='blue eyes') as choose:
+            result=GalleryPromptEncode().encode(Clip(), 'blue eyes, {blue eyes|}')
+        self.assertEqual(result['result'][1], 'blue eyes, blue eyes')
+        self.assertEqual(choose.call_count, 1)
+        self.assertFalse(GalleryPromptEncode.INPUT_TYPES()['required']['text'][1]['dynamicPrompts'])
+
     def test_sources_rules_and_metadata_use_the_same_final_prompt(self):
         clip, metadata = Clip(), {}
         rules = [{'id': 'safety', 'definition': {'version': 1, 'id': 'safety', 'name': 'Safety', 'family': 'safety',
@@ -66,7 +83,7 @@ class PromptDeduplicationTests(unittest.TestCase):
             source_mode='boxes', source_text='(blue eyes, smile:1.2), gore',
             source_text_2='(blue eyes, long hair:1.2)', rules_state=json.dumps(rules),
             extra_pnginfo=metadata, unique_id='1')
-        self.assertEqual(result['result'][1], '(blue eyes:1.2), (smile:1.2), (long hair:1.2)')
+        self.assertEqual(result['result'][1], '(blue eyes, smile:1.2), (long hair:1.2)')
         self.assertEqual(metadata[RESOLVED_KEY]['1']['diagnostic_context']['effective'], clip.text)
         self.assertIn('gore', metadata[RESOLVED_KEY]['1']['diagnostic_context']['before_rules'])
         self.assertEqual(metadata[RESOLVED_KEY]['1']['source_text'], '(blue eyes, smile:1.2), gore, (blue eyes, long hair:1.2)')

@@ -25,6 +25,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');const asse
    graph.add(node);window.qaExtension.nodeCreated(node);window.qaMulti=node;window.qaMultiSources=sources;
   },prefixes);
   const editor=page.locator('#qa-multi-source'),first=editor.locator('[data-source-input="source_text"]'),second=editor.locator('[data-source-input="source_text_2"]');
+  const originals=editor.locator('summary').filter({hasText:'Original contributions · edit sources and groups'});await originals.waitFor({state:'attached'});if(await originals.isVisible()){await originals.click();await editor.getByRole('button',{name:'Show merged tags',exact:true}).waitFor();}
   await second.waitFor();await first.getByRole('textbox',{name:'Source label',exact:true}).fill('Pose');await second.getByRole('textbox',{name:'Source label',exact:true}).fill('Appearance');
   const rules=()=>page.evaluate(async()=>JSON.parse(await window.qaMulti.widgets.find(w=>w.name==='rules_state').serializeValue()));
   assert.deepEqual((await rules()).map(box=>box.definition.name).sort(),['Look rule','Pose rule']);

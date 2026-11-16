@@ -1,4 +1,4 @@
-"""Remove repeated resolved tags without changing their attention syntax."""
+"""Merge matching symbolic contributions before sampling their choices."""
 import re
 
 _WEIGHT = re.compile(r'(:[+-]?(?:\d+(?:\.\d*)?|\.\d+))$')
@@ -60,41 +60,68 @@ def _wrapper(text):
     return None
 
 
-def deduplicate_prompt(text):
-    """Keep the first exact tag in each attention context, after choices resolve.
+def merge_prompt_contributions(contributions):
+    """Coalesce matching expressions before sampling, preferring source owners.
 
-    Case, underscores, explicit weights and nesting remain distinct. BREAK resets
-    the lookup so intentional repetitions in separate CLIP chunks survive.
+    Alternatives are atomic: matching complete expressions share one roll, while
+    different optional/alternative parents retain their independent behavior.
     """
-    seen = set()
+    owners, nodes, epoch = {}, [], 0
 
-    def visit(value, context=(), depth=0):
+    def parse(value, entry, context=(), depth=0):
+        nonlocal epoch
+        result = []
         if depth > 64:
-            return value
-        result, changed = [], False
+            return [('opaque', value)]
         for raw in _parts(value):
             part = raw.strip()
             wrapper = _wrapper(part)
             if wrapper is not None:
                 inner, suffix = wrapper
-                kept = visit(inner, (*context, (part[0], suffix)), depth + 1)
-                if kept == inner:
-                    result.append(raw)
-                    continue
-                changed = True
-                if kept.strip():
-                    result.append(part[0] + kept.strip() + suffix + part[-1])
+                result.append(('group', raw, part, inner, suffix,
+                               parse(inner, entry, (*context, (part[0], suffix)), depth + 1)))
             elif _BREAK.search(part):
-                seen.clear()
-                result.append(raw)
+                epoch += 1
+                result.append(('opaque', raw))
+            elif part:
+                key = (epoch, context, part)
+                node = ('tag', raw, key, entry)
+                previous = owners.get(key)
+                if previous is None or contributions[entry].get('source', False) and not contributions[previous[3]].get('source', False):
+                    owners[key] = node
+                result.append(node)
             else:
-                key = (context, part)
-                if part and key in seen:
-                    changed = True
-                else:
-                    if part:
-                        seen.add(key)
-                    result.append(raw)
-        return ', '.join(part.strip() for part in result if part.strip()) if changed else value
+                result.append(('opaque', raw))
+        return result
 
-    return visit(text)
+    for index, row in enumerate(contributions):
+        nodes.append(parse(row['text'], index))
+
+    def render(tree):
+        output, changed = [], False
+        for node in tree:
+            if node[0] == 'opaque':
+                output.append(node[1])
+            elif node[0] == 'tag':
+                if owners[node[2]] is node:
+                    output.append(node[1])
+                else:
+                    changed = True
+            else:
+                _, raw, part, inner, suffix, children = node
+                kept = render(children)
+                if kept == inner:
+                    output.append(raw)
+                else:
+                    changed = True
+                    if kept.strip():
+                        output.append(part[0] + kept.strip() + suffix + part[-1])
+        return ', '.join(part.strip() for part in output if part.strip()) if changed else ''.join(
+            raw if at == 0 else ',' + raw for at, raw in enumerate(output))
+
+    return [{**row, 'text': render(tree)} for row, tree in zip(contributions, nodes)]
+
+
+def deduplicate_prompt(text):
+    """Coalesce matching template expressions without sampling their choices."""
+    return merge_prompt_contributions([{'text': text}])[0]['text']

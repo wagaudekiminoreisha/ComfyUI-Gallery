@@ -3,11 +3,9 @@ import re
 import time
 
 try:
-    from .prompt_deduplication import deduplicate_prompt
     from .prefix_library import split_top
     from .prompt_rules import tag_key, apply_rules, active_boxes
 except ImportError:
-    from prompt_deduplication import deduplicate_prompt
     from prefix_library import split_top
     from prompt_rules import tag_key, apply_rules, active_boxes
 
@@ -147,7 +145,6 @@ def diagnose_prompt(context, clip, expected_streams, max_groups=64, max_rules=32
                'scope': box.get('scope', 'main'), 'origin': box.get('origin', 'encoder')}
         try:
             without, _ = apply_rules(context.get('before_rules', ''), [other for other in rules if other is not box])
-            without = deduplicate_prompt(without)
             row['delta'] = differences(measure(without))
             row['without_text'] = without
         except ValueError as error:

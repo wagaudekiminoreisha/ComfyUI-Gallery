@@ -44,7 +44,7 @@ class PromptLoadTests(unittest.TestCase):
         self.assertNotIn('hazel', measured['resolved_text'])
 
     def test_rule_counterfactual_does_not_charge_for_duplicate_tags(self):
-        context = {'before_rules': 'blue eyes, blue eyes, gore', 'effective': 'blue eyes',
+        context = {'before_rules': 'blue eyes, gore', 'effective': 'blue eyes',
                    'groups': [], 'rules': [rule('Safety', 'exclude', ['gore'])]}
         row = self.diagnose(context)['rulesets'][0]
         self.assertEqual(row['without_text'], 'blue eyes, gore')

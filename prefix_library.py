@@ -368,12 +368,42 @@ def compose_prompt(text, source_text=None, source_mode='after', sources=None):
     return text if source_text is None else source_text if source_mode == 'replace' else ', '.join(part.strip() for part in ([source_text, text] if source_mode == 'before' else [text, source_text]) if part.strip())
 
 
+def compose_shared_prompt(text, source_text=None, source_mode='after', sources=None):
+    """The editor's source-first merge, repeated for runtime-only source values."""
+    try: from .prompt_deduplication import merge_prompt_contributions
+    except ImportError: from prompt_deduplication import merge_prompt_contributions
+    rows = []
+    if source_mode == 'boxes':
+        start = 0
+        for match in SOURCE_MARKER_PATTERN.finditer(text or ''):
+            # Unusual API templates may place a marker inside an attention group.
+            # Keep that whole expression intact rather than splitting its syntax.
+            left, right = (text or '')[:match.start()].rstrip(), (text or '')[match.end():].lstrip()
+            if left and left[-1] != ',' or right and right[0] != ',':
+                return merge_prompt_contributions([{'text': compose_prompt(text, source_text, source_mode, sources)}])[0]['text']
+            rows.append({'text': text[start:match.start()].strip().strip(',').strip()})
+            name = match.group('input') or 'source_text'
+            value = sources.get(name, '') if sources is not None else source_text if name == 'source_text' else ''
+            rows.append({'text': filter_source(value or '', marker_excluded(match)).strip(), 'source': True})
+            start = match.end()
+        rows.append({'text': (text or '')[start:].strip().strip(',').strip()})
+    elif source_mode == 'replace' and source_text is not None:
+        rows = [{'text': source_text, 'source': True}]
+    elif source_mode in ('before', 'after') and source_text is not None:
+        rows = [{'text': text}, {'text': source_text, 'source': True}]
+        if source_mode == 'before':
+            rows.reverse()
+    else:
+        rows = [{'text': compose_prompt(text, source_text, source_mode, sources)}]
+    return ', '.join(row['text'].strip() for row in merge_prompt_contributions(rows) if row['text'].strip())
+
+
 def resolve_dynamic(text, rng=None):
     """Pick one option of every {a|b|c} group, innermost first, like ComfyUI's dynamic prompts.
 
-    ComfyUI resolves the encoder's own text in the browser when it queues a workflow, but text that
-    arrives through `source_text` (or from a node without dynamic prompts) would otherwise reach CLIP
-    with the braces still in it. Returns the resolved text and the choices that were made here.
+    The encoder keeps both its own template and runtime source templates unresolved
+    until source-first merging has completed. Returns the resolved text and the
+    choices made here, so matching expressions share one recorded roll.
     """
     import random
     rng = rng or random
@@ -400,7 +430,7 @@ class GalleryPromptEncode:
     """Prompt boxes + shared library picker, compatible with standard CLIP conditioning."""
     @classmethod
     def INPUT_TYPES(cls):
-        return {'required': {'clip': ('CLIP',), 'text': ('STRING', {'multiline': True, 'dynamicPrompts': True, 'default': ''})},
+        return {'required': {'clip': ('CLIP',), 'text': ('STRING', {'multiline': True, 'dynamicPrompts': False, 'default': ''})},
                 'optional': {'source_text': ('STRING', {'forceInput': True}), **{name: ('STRING', {'forceInput': True}) for name in SOURCE_INPUT_NAMES[1:]}, 'source_mode': (list(SOURCE_MODES), {'default': 'after'}), 'hair_policy': ('STRING', {'default': '{}'}), 'rules_state': ('STRING', {'default': '[]'}), 'prefix_snapshots': ('STRING', {'default': '[]'}), 'source_image_exclusions': ('STRING', {'default': '{}'}), 'rules_policy': ('STRING', {'default': '', 'advanced': True})},
                 'hidden': {'extra_pnginfo': 'EXTRA_PNGINFO', 'unique_id': 'UNIQUE_ID'}}
 
@@ -438,7 +468,8 @@ class GalleryPromptEncode:
         try: from .hair_policy import sample_policy
         except ImportError: from hair_policy import sample_policy
         policy = sample_policy(hair_policy)
-        effective, choices = resolve_dynamic(composed)
+        sampling_template = compose_shared_prompt(text, scoped_source, source_mode, scoped_sources)
+        effective, choices = resolve_dynamic(sampling_template)
         effective = filter_hair_prompt(effective, policy)
         try: from .prompt_rules import apply_rules, validate_boxes
         except ImportError: from prompt_rules import apply_rules, validate_boxes
@@ -454,11 +485,9 @@ class GalleryPromptEncode:
                                                 if box.get('origin') != 'global' and box['definition']['id'] not in disabled]
         before_rules = effective
         effective, rules_trace = apply_rules(effective, rules)
-        try: from .prompt_deduplication import deduplicate_prompt
-        except ImportError: from prompt_deduplication import deduplicate_prompt
-        effective = deduplicate_prompt(effective)
         record_resolution(extra_pnginfo, unique_id, composed, effective, choices, raw_source, source_exclusions(text) if source_mode == 'boxes' else None)
         if isinstance(extra_pnginfo, dict) and isinstance(extra_pnginfo.get(RESOLVED_KEY), dict) and str(unique_id) in extra_pnginfo[RESOLVED_KEY]:
+            extra_pnginfo[RESOLVED_KEY][str(unique_id)]['sampling_template'] = sampling_template
             extra_pnginfo[RESOLVED_KEY][str(unique_id)]['hair_policy'] = policy
             extra_pnginfo[RESOLVED_KEY][str(unique_id)]['rules_applied'] = rules_trace
             extra_pnginfo[RESOLVED_KEY][str(unique_id)]['rules_program'] = rules

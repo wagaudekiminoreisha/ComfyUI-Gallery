@@ -1,4 +1,4 @@
-import {deduplicatePromptPreview,hasUnresolvedChoices} from './PromptDeduplication';
+import {composeSharedPreview} from './SharedPrompt';
 import {SOURCE_INPUTS,sourceInput,addSourceBox} from './PromptBoxes';
 import { inheritedRuleKey, privateRuleBoxes, selectedInheritedRules, snapshotRuleBoxes } from './InheritedRules';
 import {installEncoderSerialization,repairEncoderValues,orderEncoderWidgets} from './EncoderSerialization';
@@ -95,7 +95,7 @@ type Deps = SuggestDeps;
  * Replace the encoder's two text boxes with the tag-box editor.
  *
  * The boxes live in `node.properties.prompt_boxes`. Every edit compiles them into the hidden `text`
- * widget (so ComfyUI still resolves {a|b|c} dynamic prompts when it queues the workflow) and switches
+ * widget without sampling dynamic choices, and switches
  * `source_mode` to "boxes", which makes the backend put the connected source text where the source box sits.
  */
 export function installPromptBoxes(node: any, deps: Deps) {
@@ -160,10 +160,10 @@ export function installPromptBoxes(node: any, deps: Deps) {
     const render = () => {
         const sources=sourcePromptInfos(node),source=sources.source_text;
         const texts=Object.fromEntries(state.boxes.filter(box=>box.kind==='source').map(box=>{const info=sources[sourceInput(box)]||{connected:false};return [sourceInput(box),filteredSourceText(box,info.segments,info.connected?info.text:'',info.merge)||''];}));
-        const rawPreview=composeWithSource(compiledNow(),undefined,texts),filtered=filterHairPrompt(rawPreview,cleanHairPolicy(state.hairPolicy));
+        const rawPreview=composeWithSource(compiledNow(),undefined,texts),filtered=filterHairPrompt(composeSharedPreview(compiledNow(),texts),cleanHairPolicy(state.hairPolicy));
         let reviewed:ReturnType<typeof applyRulePreview>;
         try{reviewed=applyRulePreview(filtered,effectiveRules());}catch(error){reviewed={text:filtered,errors:[String(error)],notes:[],protectedTags:[]};}
-        root.render(<PromptBoxEditor sources={sources} snapshotReferences={node.properties?.gallery_prefix_snapshots||[]} onOpenSnapshot={row=>openPrefixManager({name:row.prefix_name,positive:row.terms,negative:row.negative_terms,snapshotId:row.snapshot_id||undefined})} ruleDefinitions={rulesLibrary.definitions} inheritedRules={availableRules(inheritedRules,disabled)} globalRules={globals} disabledRules={disabled} ruleErrors={reviewed.errors} ruleProtected={reviewed.protectedTags} rulesNotice={[rulesNotice,...reviewed.notes,hasUnresolvedChoices(reviewed.text)?'Matching repeated tags are removed after choices resolve.':''].filter(Boolean).join(' · ')} onReloadRules={()=>void loadRules()} state={state} source={source} unfilteredPreview={rawPreview} preview={deduplicatePromptPreview(reviewed.text)} suggest={suggest} onChange={commit} lastEncodedPrompt={node.__galleryEffectivePrompt} notice={notice} />);
+        root.render(<PromptBoxEditor sources={sources} snapshotReferences={node.properties?.gallery_prefix_snapshots||[]} onOpenSnapshot={row=>openPrefixManager({name:row.prefix_name,positive:row.terms,negative:row.negative_terms,snapshotId:row.snapshot_id||undefined})} ruleDefinitions={rulesLibrary.definitions} inheritedRules={availableRules(inheritedRules,disabled)} globalRules={globals} disabledRules={disabled} ruleErrors={reviewed.errors} ruleProtected={reviewed.protectedTags} rulesNotice={[rulesNotice,...reviewed.notes].filter(Boolean).join(' · ')} onReloadRules={()=>void loadRules()} state={state} source={source} unfilteredPreview={rawPreview} preview={reviewed.text} suggest={suggest} onChange={commit} lastEncodedPrompt={node.__galleryEffectivePrompt} notice={notice} />);
     };
     function loadRules() {
         const requestId=++rulesRequestId;
