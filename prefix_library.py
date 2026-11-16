@@ -454,6 +454,9 @@ class GalleryPromptEncode:
                                                 if box.get('origin') != 'global' and box['definition']['id'] not in disabled]
         before_rules = effective
         effective, rules_trace = apply_rules(effective, rules)
+        try: from .prompt_deduplication import deduplicate_prompt
+        except ImportError: from prompt_deduplication import deduplicate_prompt
+        effective = deduplicate_prompt(effective)
         record_resolution(extra_pnginfo, unique_id, composed, effective, choices, raw_source, source_exclusions(text) if source_mode == 'boxes' else None)
         if isinstance(extra_pnginfo, dict) and isinstance(extra_pnginfo.get(RESOLVED_KEY), dict) and str(unique_id) in extra_pnginfo[RESOLVED_KEY]:
             extra_pnginfo[RESOLVED_KEY][str(unique_id)]['hair_policy'] = policy

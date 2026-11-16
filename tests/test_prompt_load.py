@@ -43,6 +43,13 @@ class PromptLoadTests(unittest.TestCase):
         self.assertEqual(measured['without_group_delta'][0]['chunk_delta'], 1)
         self.assertNotIn('hazel', measured['resolved_text'])
 
+    def test_rule_counterfactual_does_not_charge_for_duplicate_tags(self):
+        context = {'before_rules': 'blue eyes, blue eyes, gore', 'effective': 'blue eyes',
+                   'groups': [], 'rules': [rule('Safety', 'exclude', ['gore'])]}
+        row = self.diagnose(context)['rulesets'][0]
+        self.assertEqual(row['without_text'], 'blue eyes, gore')
+        self.assertEqual(row['delta'][0]['token_delta'], -1)
+
     def test_rulesets_can_save_tokens_or_add_them(self):
         context = {'before_rules': 'blue eyes, gore', 'effective': 'blue eyes, long hair', 'groups': [],
                    'rules': [rule('Safety', 'exclude', ['gore']), rule('Look', 'require', ['long hair'])]}

@@ -1,3 +1,4 @@
+import {deduplicatePromptPreview,hasUnresolvedChoices} from './PromptDeduplication';
 import {SOURCE_INPUTS,sourceInput,addSourceBox} from './PromptBoxes';
 import { inheritedRuleKey, privateRuleBoxes, selectedInheritedRules, snapshotRuleBoxes } from './InheritedRules';
 import {installEncoderSerialization,repairEncoderValues,orderEncoderWidgets} from './EncoderSerialization';
@@ -162,7 +163,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
         const rawPreview=composeWithSource(compiledNow(),undefined,texts),filtered=filterHairPrompt(rawPreview,cleanHairPolicy(state.hairPolicy));
         let reviewed:ReturnType<typeof applyRulePreview>;
         try{reviewed=applyRulePreview(filtered,effectiveRules());}catch(error){reviewed={text:filtered,errors:[String(error)],notes:[],protectedTags:[]};}
-        root.render(<PromptBoxEditor sources={sources} snapshotReferences={node.properties?.gallery_prefix_snapshots||[]} onOpenSnapshot={row=>openPrefixManager({name:row.prefix_name,positive:row.terms,negative:row.negative_terms,snapshotId:row.snapshot_id||undefined})} ruleDefinitions={rulesLibrary.definitions} inheritedRules={availableRules(inheritedRules,disabled)} globalRules={globals} disabledRules={disabled} ruleErrors={reviewed.errors} ruleProtected={reviewed.protectedTags} rulesNotice={[rulesNotice,...reviewed.notes].filter(Boolean).join(' · ')} onReloadRules={()=>void loadRules()} state={state} source={source} unfilteredPreview={rawPreview} preview={reviewed.text} suggest={suggest} onChange={commit} lastEncodedPrompt={node.__galleryEffectivePrompt} notice={notice} />);
+        root.render(<PromptBoxEditor sources={sources} snapshotReferences={node.properties?.gallery_prefix_snapshots||[]} onOpenSnapshot={row=>openPrefixManager({name:row.prefix_name,positive:row.terms,negative:row.negative_terms,snapshotId:row.snapshot_id||undefined})} ruleDefinitions={rulesLibrary.definitions} inheritedRules={availableRules(inheritedRules,disabled)} globalRules={globals} disabledRules={disabled} ruleErrors={reviewed.errors} ruleProtected={reviewed.protectedTags} rulesNotice={[rulesNotice,...reviewed.notes,hasUnresolvedChoices(reviewed.text)?'Matching repeated tags are removed after choices resolve.':''].filter(Boolean).join(' · ')} onReloadRules={()=>void loadRules()} state={state} source={source} unfilteredPreview={rawPreview} preview={deduplicatePromptPreview(reviewed.text)} suggest={suggest} onChange={commit} lastEncodedPrompt={node.__galleryEffectivePrompt} notice={notice} />);
     };
     function loadRules() {
         const requestId=++rulesRequestId;

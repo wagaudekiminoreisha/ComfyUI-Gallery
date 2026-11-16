@@ -295,3 +295,5 @@ Prefix searches display associated Hydrus originals by their saved hashes and fo
 Hydrus Web's optional integration bridge can read this gallery, transfer media, preserve prompt/provenance metadata, and search saved prefixes and lineage. Uploaded videos use `/Gallery/source/provenance` to retain their metadata without changing their bytes. Restart ComfyUI after updating the Python routes.
 
 Scriptable rulesets: [Rules & protections](RULESETS.md) adds separate global, prefix-inherited and encoder policy boxes, deterministic Hair/Pose preferences, JSON scripts, and migration of batch blacklist entries into Protect rules.
+
+Gallery Prompt Encode removes repeated tags with identical attention syntax after optional choices, source merging, hair filtering and rulesets. The first occurrence remains; empty duplicate groups disappear. Different spellings, weights, nesting and tags on opposite sides of `BREAK` remain distinct. Source cards and saved templates keep their original groups, while the final encoded prompt, metadata and token report use the cleaned text. Optional choices remain independent; the preview defers cleanup until those choices resolve.
