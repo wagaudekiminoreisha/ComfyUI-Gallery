@@ -86,6 +86,18 @@ def tag_groups():
     return {key: {**group, 'tags': frozenset(lookup[tag] for tag in group['tags'] if tag in lookup)} for key, group in source['groups'].items()}
 
 
+@lru_cache(maxsize=1)
+def refinement_groups():
+    """Reuse source-transfer membership; expose canonical browseable names only."""
+    try:
+        from .source_prompt_policy import CATALOG, CATEGORY_TAGS
+    except ImportError:
+        from source_prompt_policy import CATALOG, CATEGORY_TAGS
+    lookup = dictionary()
+    return {row['id']: {**row, 'tags': frozenset(lookup[tag] for tag in CATEGORY_TAGS[row['id']] if tag in lookup)}
+            for row in CATALOG['categories']}
+
+
 def browse_vocabulary(data):
     groups = tag_groups()
     # `categories` (a list) replaces the single `category`; the old key still works.
@@ -96,6 +108,13 @@ def browse_vocabulary(data):
     if not isinstance(categories, list) or len(categories) > 500 or any(not isinstance(value, str) for value in categories): raise ValueError('Invalid wiki categories')
     if any(value not in groups for value in categories): raise ValueError('Unknown wiki category')
     allowed = frozenset().union(*(groups[value]['tags'] for value in categories)) if categories else None
+    refinements = data.get('refinements', [])
+    refined = refinement_groups()
+    if not isinstance(refinements, list) or len(refinements)>100 or any(not isinstance(value,str) or value not in refined for value in refinements):
+        raise ValueError('Invalid tag subcategories')
+    if refinements:
+        subset = frozenset().union(*(refined[value]['tags'] for value in refinements))
+        allowed = subset if allowed is None else allowed & subset
     query = normalize(str(data.get('query', ''))[:256])
     favorites = data.get('favorites')
     if favorites is not None and (not isinstance(favorites, list) or len(favorites) > 10000 or any(not isinstance(value, str) for value in favorites)):
@@ -105,7 +124,9 @@ def browse_vocabulary(data):
     rows.sort(key=(lambda row: row['name']) if data.get('sort') == 'alphabetical' else (lambda row: (-row['count'], row['name'])))
     offset = max(0, min(200000, int(data.get('offset', 0))))
     limit = max(1, min(10000 if data.get('selection') is True else 100, int(data.get('limit', 60))))
-    return {'items': [{'name': row['name'], 'count': row['count']} for row in rows[offset:offset + limit]], 'total': len(rows), 'categories': [{'value': key, 'label': group['label'], 'count': len(group['tags']), 'source': group['source']} for key, group in sorted(groups.items()) if group['tags']]}
+    return {'items': [{'name': row['name'], 'count': row['count']} for row in rows[offset:offset + limit]], 'total': len(rows),
+            'categories': [{'value': key, 'label': group['label'], 'count': len(group['tags']), 'source': group['source']} for key, group in sorted(groups.items()) if group['tags']],
+            'refinements': [{'value': key, 'label': group['label'], 'count': len(group['tags']), **({'parent': group['parent']} if group.get('parent') else {})} for key, group in refined.items()]}
 
 
 @lru_cache(maxsize=1)

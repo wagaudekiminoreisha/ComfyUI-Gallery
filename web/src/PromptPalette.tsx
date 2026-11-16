@@ -1,12 +1,13 @@
 import { defaultInsertion, type PromptInsertion } from './PromptInsertion';
 import { PrefixImages } from './PrefixImages';
+import {VocabularyCategories,type VocabularyCategory} from './VocabularyCategories';
 import { useEffect, useState } from 'react';
 import { Alert, Button, Checkbox, Input, InputNumber, Select, Space, Tabs, Typography } from 'antd';
 import { hydrusRequest } from './HydrusApi';
 import { conflicts, exclusiveMode } from './TagConflicts';
 import { expandPrefix, loadPrefixes, matchesPolarity, POLARITY_OPTIONS, type PrefixPolarity, type SharedLibrary } from './PrefixLibrary';
 
-type Vocabulary = { items: { name: string; count: number }[]; total: number; categories: { value: string; label: string; count: number; source: string }[] };
+type Vocabulary = { items: { name: string; count: number }[]; total: number; categories: { value: string; label: string; count: number; source: string }[];refinements?:VocabularyCategory[] };
 const FAVORITES = 'gallery-vocabulary-favorites';
 /** An explicit browseable vocabulary, separate from autocomplete suggestions. */
 export function PromptPalette({ onChoose, onSearch, onAppend, onEdit, chooseSearches = false }: { chooseSearches?: boolean; onEdit?: (prefixId: string) => void; onAppend?: (groups: string[][], options: PromptInsertion, meta?: { name?: string;prefixIds?:string[] }) => Promise<void>; onChoose: (terms: string[], prefixId?: string, negativeTerms?: string[]) => void; onSearch?: (terms: string[]) => void }) {
@@ -20,6 +21,7 @@ export function PromptPalette({ onChoose, onSearch, onAppend, onEdit, chooseSear
     const [tab, setTab] = useState('tags');
     const [query, setQuery] = useState('');
     const [categories, setCategories] = useState<string[]>([]);
+    const [refinements,setRefinements]=useState<string[]>([]);
     const [sort, setSort] = useState('popular');
     const [onlyFavorites, setOnlyFavorites] = useState(false);
     const [polarity, setPolarity] = useState<PrefixPolarity>('all');
@@ -30,19 +32,19 @@ export function PromptPalette({ onChoose, onSearch, onAppend, onEdit, chooseSear
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     useEffect(() => { const load = () => { void loadPrefixes().then(setLibrary).catch(error => setError(String(error))); }; load(); window.addEventListener('gallery-prefix-library-changed', load); return () => window.removeEventListener('gallery-prefix-library-changed', load); }, []);
-    useEffect(() => { setOffset(0); }, [query, categories, sort, onlyFavorites, tab, polarity]);
+    useEffect(() => { setOffset(0); }, [query, categories, refinements,sort, onlyFavorites, tab, polarity]);
     useEffect(() => {
         if (tab !== 'tags') { setBusy(false); return; }
         let live = true; setBusy(true);
-        const timer = setTimeout(() => { void hydrusRequest<Vocabulary>('dictionary', { browse: true, query, categories, sort, offset, limit: 60, ...(onlyFavorites ? { favorites: favorites.filter(value => value.startsWith('tag:')).map(value => value.slice(4)) } : {}) }).then(value => { if (live) { setData(value); setError(''); } }).catch(error => { if (live) setError(String(error)); }).finally(() => { if (live) setBusy(false); }); }, 150);
+        const timer = setTimeout(() => { void hydrusRequest<Vocabulary>('dictionary', { browse: true, query, categories, refinements,sort, offset, limit: 60, ...(onlyFavorites ? { favorites: favorites.filter(value => value.startsWith('tag:')).map(value => value.slice(4)) } : {}) }).then(value => { if (live) { setData(value); setError(''); } }).catch(error => { if (live) setError(String(error)); }).finally(() => { if (live) setBusy(false); }); }, 150);
         return () => { live = false; clearTimeout(timer); };
-    }, [tab, query, categories, sort, offset, onlyFavorites, favorites]);
+    }, [tab, query, categories, refinements,sort, offset, onlyFavorites, favorites]);
     const favorite = (key: string) => setFavorites(old => { const next = old.includes(key) ? old.filter(value => value !== key) : [...old, key]; localStorage.setItem(FAVORITES, JSON.stringify(next)); return next; });
     const prefixes = library.prefixes.filter(prefix => matchesPolarity(prefix, polarity) && (prefix.name + ' ' + expandPrefix(library, '@' + prefix.name).join(' ')).toLowerCase().includes(query.toLowerCase()) && (!onlyFavorites || favorites.includes('prefix:' + prefix.id))).sort((a, b) => sort === 'alphabetical' ? a.name.localeCompare(b.name) : Number(favorites.includes('prefix:' + b.id)) - Number(favorites.includes('prefix:' + a.id)) || a.name.localeCompare(b.name));
     const rows = tab === 'tags' ? data.items.map(item => ({ key: 'tag:' + item.name, label: item.name, detail: item.count.toLocaleString() + ' Danbooru snapshot uses', terms: [item.name], prefixId: undefined as string | undefined })) : prefixes.slice(offset, offset + 60).map(prefix => ({ key: 'prefix:' + prefix.id, label: prefix.name, detail: expandPrefix(library, '@' + prefix.name).join(', '), terms: expandPrefix(library, '@' + prefix.name), prefixId: prefix.id }));
     const allMatching = async (): Promise<Pick[]> => {
         if (tab === 'prefixes') return prefixes.map(prefix => ({ key: 'prefix:' + prefix.id, label: prefix.name, terms: expandPrefix(library, '@' + prefix.name), prefixId: prefix.id }));
-        const value = await hydrusRequest<Vocabulary>('dictionary', { browse: true, selection: true, query, categories, sort, offset: 0, limit: 10000, ...(onlyFavorites ? { favorites: favorites.filter(value => value.startsWith('tag:')).map(value => value.slice(4)) } : {}) });
+        const value = await hydrusRequest<Vocabulary>('dictionary', { browse: true, selection: true, query, categories, refinements,sort, offset: 0, limit: 10000, ...(onlyFavorites ? { favorites: favorites.filter(value => value.startsWith('tag:')).map(value => value.slice(4)) } : {}) });
         if (value.total > 10000) throw new Error('More than 10,000 tags match. Choose a category or narrow the search before selecting all.');
         return value.items.map(item => ({ key: 'tag:' + item.name, label: item.name, terms: [item.name] }));
     };
@@ -71,7 +73,8 @@ export function PromptPalette({ onChoose, onSearch, onAppend, onEdit, chooseSear
         <Tabs activeKey={tab} onChange={value => { setTab(value); setSelected({}); }} items={[{ key: 'tags', label: 'Tags' }, { key: 'prefixes', label: 'Prefixes' }]} />
         <Space wrap>
             <Input aria-label="Browse vocabulary" placeholder={tab === 'tags' ? 'Search common tags and aliases' : 'Search saved prefixes'} value={query} onChange={event => setQuery(event.target.value)} allowClear />
-            {tab === 'tags' && <Select mode="multiple" allowClear showSearch autoClearSearchValue={false} maxTagCount="responsive" optionFilterProp="label" aria-label="Danbooru wiki categories" placeholder="All wiki categories (pick several to combine)" style={{ minWidth: 300, maxWidth: 520 }} value={categories} onChange={setCategories} options={data.categories.map(item => ({ value: item.value, label: item.label + ' (' + item.count + ')' }))} />}
+            {tab === 'tags' && <VocabularyCategories categories={data.refinements||[]} value={refinements} onChange={setRefinements}/>}
+            {tab === 'tags' && <Select mode="multiple" allowClear showSearch autoClearSearchValue={false} maxTagCount="responsive" optionFilterProp="label" aria-label="Danbooru wiki categories" placeholder="Wiki groups (optional additional filter)" style={{ minWidth: 300, maxWidth: 520 }} value={categories} onChange={setCategories} options={data.categories.map(item => ({ value: item.value, label: item.label + ' (' + item.count + ')' }))} />}
             <Select aria-label="Vocabulary order" value={sort} onChange={setSort} options={[{ value: 'popular', label: tab === 'tags' ? 'Most common' : 'Favorites first' }, { value: 'alphabetical', label: 'Alphabetical' }]} />
             {tab === 'prefixes' && <Select aria-label="Prefix polarity filter" value={polarity} onChange={setPolarity} options={POLARITY_OPTIONS} style={{ width: 190 }} />}
             <Checkbox checked={onlyFavorites} onChange={event => setOnlyFavorites(event.target.checked)}>Favorites only</Checkbox>
@@ -89,7 +92,7 @@ export function PromptPalette({ onChoose, onSearch, onAppend, onEdit, chooseSear
             <Input aria-label="Insertion suffix" placeholder="Text after insertion" value={insertion.suffix} onChange={event => setInsertion(old => ({ ...old, suffix: event.target.value }))} style={{width:175}} />
             {tab === 'prefixes' && <Select aria-label="Prefix polarity to append" value={prefixSide} onChange={setPrefixSide} options={[{value:'auto',label:'Automatic: positive, or negative if empty'},{value:'positive',label:'Positive prefix terms'},{value:'negative',label:'Negative prefix terms'}]} />}
             {tab === 'prefixes' && <Select aria-label="Prefix grouping" value={grouping} onChange={setGrouping} options={[{value:'separate',label:'Separate groups, same rule'},{value:'combined',label:'One combined group'},{value:'individual',label:'Separate groups, individual rules'}]} />}
-        </Space><div><Typography.Text type="secondary">Selection spans pages. Pick one or more wiki categories, then “Select all matching” takes their combined tags (the tag search and favorites filter still apply). Choose separate groups to preserve each prefix as its own box, or one combined group to format the selection together. Automatic polarity uses positive terms when present and otherwise negative terms. Optional alternatives add an empty choice (one tag/prefix or nothing). An optional group keeps the selected tags together as one optional unit {'{a, b, c|}'}; append several selections one after another to give each its own weight. Braces use your workflow's dynamic-prompt handling.</Typography.Text></div></>}
+        </Space><div><Typography.Text type="secondary">Selection spans pages. Pick tag subcategories to combine their vocabulary. Wiki groups further narrow those results; search and favorites still apply. “Select all matching” uses these filters across pages. Choose separate groups to preserve each prefix as its own box, or one combined group to format the selection together. Automatic polarity uses positive terms when present and otherwise negative terms. Optional alternatives add an empty choice (one tag/prefix or nothing). An optional group keeps the selected tags together as one optional unit {'{a, b, c|}'}; append several selections one after another to give each its own weight. Braces use your workflow's dynamic-prompt handling.</Typography.Text></div></>}
         <div style={{ maxHeight: 235, overflowY: 'auto', marginTop: 8 }} aria-busy={busy}>
             {rows.map(row => <div key={row.key} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, padding: '6px 0',minHeight:32 }}>
                 {onAppend && <><Checkbox aria-label={'Pick ' + row.label} checked={!!selected[row.key]} disabled={busy || inserting} onChange={event => setSelected(old => {
@@ -107,7 +110,7 @@ export function PromptPalette({ onChoose, onSearch, onAppend, onEdit, chooseSear
             {!rows.length && !busy && <Typography.Text type="secondary">No matches. Create a prefix below or change the filters.</Typography.Text>}
         </div>
         <Space><Button size="small" disabled={!offset || busy} onClick={() => setOffset(value => Math.max(0, value - 60))}>Previous vocabulary page</Button><span>{total ? offset + 1 : 0}–{Math.min(offset + 60, total)} / {total.toLocaleString()}</span><Button size="small" disabled={offset + 60 >= total || busy} onClick={() => setOffset(value => value + 60)}>Next vocabulary page</Button></Space>
-        <div><Typography.Text type="secondary">Wiki categories use an offline snapshot; tags may belong to several groups. Favorites are saved in this browser. Counts are Danbooru usage, not your Hydrus database.</Typography.Text></div>
+        <div><Typography.Text type="secondary">Tag subcategories share the source-filter vocabulary. Checked parents include all their children; choose only children for narrower results. Wiki groups use an offline snapshot. Tags may belong to several groups. Favorites are saved in this browser. Counts are Danbooru usage, not your Hydrus database.</Typography.Text></div>
         {error && <Alert type="error" message={error} />}
     </div>;
 }
