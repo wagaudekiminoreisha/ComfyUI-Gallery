@@ -49,7 +49,7 @@ const S: Record<string, CSSProperties> = {
     orChip: { borderStyle: 'dashed', borderRadius: 6 },
     selected: { outline: `2px solid ${accent}` },
     handle: { cursor: 'grab', opacity: .7, padding: '0 2px', userSelect: 'none' },
-    x: { border: 0, background: 'transparent', color: 'inherit', cursor: 'pointer', padding: '0 3px', fontSize: 14, lineHeight: 1 },
+    x: { border: 0, background: 'transparent', color: 'inherit', cursor: 'pointer', padding: '0 3px', minWidth:24, minHeight:24, fontSize: 14, lineHeight: 1 },
     btn: { border: `1px solid ${border}`, background: 'transparent', color: 'inherit', borderRadius: 4, cursor: 'pointer', padding: '0 6px', minHeight: 20, fontSize: 11 },
     input: { background: field, color: 'inherit', border: `1px solid ${border}`, borderRadius: 4, padding: '2px 6px', font: 'inherit' },
     editor: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: 6, border: `1px solid ${border}`, borderRadius: 6 },
@@ -148,7 +148,7 @@ function ChipView({ chip, selected, picked, onSelect, onPick, onRemove, onDrop, 
     const weighted = chip.weight !== undefined && chip.weight !== 1;
     const mode = addModeOf(chip), color = modeColor(mode);
     const grouped = chip.kind === 'or';
-    const remove = onRemove && <button type="button" aria-label="Remove tag" title="Remove" onClick={event => { event.stopPropagation(); onRemove(); }} style={{ ...S.x, color: grouped ? '#fff' : 'inherit' }}>×</button>;
+    const remove = onRemove && <button type="button" aria-label={'Remove '+compileChip({...chip,enabled:true})} title={grouped?'Remove entire group':'Remove tag'} onClick={event => { event.stopPropagation(); onRemove(); }} style={{ ...S.x, color: grouped ? '#fff' : 'inherit' }}>×</button>;
     const select = (event: { shiftKey: boolean; ctrlKey: boolean; metaKey: boolean }) => { if ((event.shiftKey || event.ctrlKey || event.metaKey) && onPick) onPick(event.shiftKey); else onSelect(); };
     const label = <span role="button" tabIndex={0} aria-label={'Edit ' + compileChip({ ...chip, enabled: true })} onClick={select}
         onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(event); } else if (onRemove && (event.key === 'Backspace' || event.key === 'Delete')) { event.preventDefault(); event.stopPropagation(); if (!event.repeat) onRemove(); } }} style={{ cursor: 'grab' }}>
@@ -157,14 +157,14 @@ function ChipView({ chip, selected, picked, onSelect, onPick, onRemove, onDrop, 
             : <>{chip.emphasis === 'round' && '('}{chip.emphasis === 'square' && '['}{chip.text}{chip.emphasis === 'round' && ')'}{chip.emphasis === 'square' && ']'}</>}
         {weighted && !grouped && <small style={{ opacity: .7 }}> ×{chip.weight}</small>}
     </span>;
-    return <span data-prompt-drop data-rule-omitted={omitted||undefined} data-chip-id={chip.id} onClick={event => { if (!(event.target as HTMLElement).closest('button,select,input,[role="button"]')) select(event); }} draggable={false} title={onDrop ? 'Click to edit · double-click to remove · Shift/Ctrl-click to pick several · drag to move within this editor or copy to another' : 'Drag to copy' + (onRemove ? ' · double-click to remove' : '')}
+    return <span data-prompt-drop data-rule-omitted={omitted||undefined} data-chip-id={chip.id} onClick={event => { if (!(event.target as HTMLElement).closest('button,select,input,[role="button"]')) select(event); }} draggable={false} title={onDrop ? 'Click to edit · × or Delete to remove · Shift/Ctrl-click to pick several · drag to move within this editor or copy to another' : 'Drag to copy' + (onRemove ? ' · × or Delete to remove' : '')}
         onPointerDownCapture={event => {
             if ((event.target as HTMLElement).closest('button,select,input,textarea,[data-part-drag]')||!transferable.enabled) return;
             event.stopPropagation();
             startPromptPointerDrag(event.nativeEvent,event.currentTarget,compileChip({...transferable,enabled:true}),PROMPT_CHIP_TYPE,JSON.stringify(transferable),onRemove,
                 ()=>{dragging={kind:'chip',id:transferable.id,chip:transferable};},()=>{dragging=undefined;setMark(undefined);});
         }}
-        onDoubleClick={event => { if (onRemove && !(event.target as HTMLElement).closest('button,select,input,[data-part-drag]')) { event.stopPropagation(); onRemove(); } }}
+        onDoubleClick={event => { event.stopPropagation(); if (!(event.target as HTMLElement).closest('button,select,input,[data-part-drag]')) select(event); }}
         onDragStart={event => { event.stopPropagation(); dragging = { kind: 'chip', id: chip.id, chip }; event.dataTransfer.effectAllowed = 'copyMove'; event.dataTransfer.setData(PROMPT_CHIP_TYPE, JSON.stringify(chip)); event.dataTransfer.setData('text/plain', compileChip({ ...chip, enabled: true })); }}
         onContextMenu={event=>{event.preventDefault();event.stopPropagation();setCopyMenu({x:event.clientX,y:event.clientY});}}
         onDragEnd={() => { dragging = undefined; setMark(undefined); }}
@@ -584,7 +584,7 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
             <BoxGrip id={box.id} name="Source" boxRef={ref} onEnd={() => setMark(undefined)} />
             <Btn label={box.collapsed ? 'Expand source box' : 'Collapse source box'} onClick={() => patch({ collapsed: !box.collapsed })}>{box.collapsed ? '▸' : '▾'}</Btn>
             <input type="checkbox" aria-label="Use source box" title="Use the connected source text" checked={box.enabled} onChange={event => patch({ enabled: event.target.checked })} />
-            <strong>Source</strong><input aria-label="Source label" placeholder={sourceInput(box)} value={box.name||''} onChange={event=>patch({name:event.target.value.slice(0,80)})} style={{...S.input,width:110}}/><small>{sourceInput(box)}</small>{sourceInput(box)!=='source_text'&&<Btn label="Remove source input" onClick={()=>onChange(removeBox(state,box.id))}>×</Btn>}<Btn label="Copy source box syntax" onClick={()=>void navigator.clipboard.writeText(sourceChips.map(entry=>compileChip(entry.chip)).join(', '))}>⧉</Btn>
+            <strong>Source</strong><input aria-label="Source label" placeholder={sourceInput(box)} value={box.name||''} onChange={event=>patch({name:event.target.value.slice(0,80)})} title={box.name||sourceInput(box)} style={{...S.input,width:240,maxWidth:'50%',minWidth:110,flex:'1 1 140px'}}/><small>{sourceInput(box)}</small>{sourceInput(box)!=='source_text'&&<Btn label="Remove source input" onClick={()=>onChange(removeBox(state,box.id))}>×</Btn>}<Btn label="Copy source box syntax" onClick={()=>void navigator.clipboard.writeText(sourceChips.map(entry=>compileChip(entry.chip)).join(', '))}>⧉</Btn>
             <small style={{ opacity: .6 }}>{status}</small>
             <span style={{ flex: 1 }} />
             <Btn label="Move source box up" disabled={index === 0} onClick={() => onChange(moveBox(state, box.id, -1))}>▲</Btn>
@@ -611,7 +611,7 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
                 ? <div style={S.muted}>Connect a text output (for example a Gallery Image Source prompt) to <code>{sourceInput(box)}</code>. Its tags appear here and are placed where this box sits.</div>
                 : !sourceText
                     ? <div style={S.muted}>{source.note || 'Connected prompt will be shown after execution.'}</div>
-                    : <div style={{ ...S.body, ...S.chips, padding: '0 6px 6px' }}>{sourceChips.map(({part,chip},at)=><span key={chip.id} style={{display:'contents'}}>{at>0&&<LogicBadge name="AND"/>}<ChipView chip={chip} selected={selectedChip===chip.id} onSelect={()=>{setSelectedMember(undefined);setSelectedChip(chip.id);}} onMemberEdit={(option,index)=>{setSelectedChip(chip.id);setSelectedMember({option,index});}} onRemove={()=>removeChip(part,chip)} suggest={suggest} onKind={mode=>changeKind(part,chip,mode)} onItems={items=>editPart(part,chips=>chips.flatMap(item=>item.id===chip.id?(withItems(item,items)?[withItems(item,items)!]:[]):[item]))}/>{Object.prototype.hasOwnProperty.call(replacements,sourceKey(part))&&<Btn label={'Reset source tag '+part} onClick={()=>{const next={...replacements};delete next[sourceKey(part)];setReplacements(next);setSelectedChip(undefined);}}>↺</Btn>}</span>)}</div>}
+                    : <div data-source-chips style={{ ...S.body, ...S.chips, flexDirection: 'row', alignItems: 'flex-start', padding: '0 6px 6px' }}>{sourceChips.map(({part,chip},at)=><span key={chip.id} style={{display:'contents'}}>{at>0&&<LogicBadge name="AND"/>}<ChipView chip={chip} selected={selectedChip===chip.id} onSelect={()=>{setSelectedMember(undefined);setSelectedChip(chip.id);}} onMemberEdit={(option,index)=>{setSelectedChip(chip.id);setSelectedMember({option,index});}} onRemove={()=>removeChip(part,chip)} suggest={suggest} onKind={mode=>changeKind(part,chip,mode)} onItems={items=>editPart(part,chips=>chips.flatMap(item=>item.id===chip.id?(withItems(item,items)?[withItems(item,items)!]:[]):[item]))}/>{Object.prototype.hasOwnProperty.call(replacements,sourceKey(part))&&<Btn label={'Reset source tag '+part} onClick={()=>{const next={...replacements};delete next[sourceKey(part)];setReplacements(next);setSelectedChip(undefined);}}>↺</Btn>}</span>)}</div>}
             {selected&&!memberChip&&<ChipEditor chip={selected.chip} onClose={()=>setSelectedChip(undefined)} onKind={mode=>changeKind(selected.part,selected.chip,mode)} onRemove={()=>removeChip(selected.part,selected.chip)} onSplit={()=>editPart(selected.part,chips=>chips.flatMap(chip=>chip.id===selected.chip.id?parsePrompt(chipTerms(chip).join(', ')):[chip]))} onMove={delta=>editPart(selected.part,chips=>moveItem(chips,selected.chip.id,delta))} onChange={next=>editPart(selected.part,chips=>chips.map(chip=>chip.id===selected.chip.id?next:chip))}/>}
             {memberChip&&<ChipEditor chip={memberChip} onClose={()=>setSelectedMember(undefined)} onKind={mode=>editMember(chips=>{const group=emptyGroup('Member',chips);return (convertChip({version:1,boxes:[group]},group.id,memberChip.id,mode).boxes[0] as GroupBox).chips;})} onRemove={()=>{editMember(chips=>chips.filter(chip=>chip.id!==memberChip.id));setSelectedMember(undefined);}} onSplit={()=>editMember(chips=>chips.flatMap(chip=>chip.id===memberChip.id?parsePrompt(chipTerms(chip).join(', ')):[chip]))} onMove={delta=>editMember(chips=>moveItem(chips,memberChip.id,delta))} onChange={next=>editMember(chips=>chips.map(chip=>chip.id===memberChip.id?next:chip))}/>}
             {!!(excluded.length+omittedGroups.length) && <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, padding: '0 6px 6px' }} aria-label="Source tags left out">
@@ -660,13 +660,27 @@ function PromptTrash({ owner }: { owner: string }) {
     </div>,document.body);
 }
 
-export function PromptBoxEditor({ state, source, sources, preview, suggest, onChange, notice, lastEncodedPrompt, unfilteredPreview, ruleDefinitions = [], inheritedRules: allInheritedRules = [], globalRules = [], disabledRules = new Set(), ruleErrors = [], ruleProtected = [], onReloadRules, rulesNotice,snapshotReferences=[],onOpenSnapshot }: { state: BoxState; source: SourceInfo; sources?:Record<string,SourceInfo>; preview: string; suggest: (query: string) => Promise<Suggestion[]>; onChange: (state: BoxState) => void; notice?: string; lastEncodedPrompt?: string; unfilteredPreview?: string; ruleDefinitions?: Ruleset[]; inheritedRules?: RuleBox[]; globalRules?: RuleBox[]; disabledRules?: ReadonlySet<string>; ruleErrors?: string[]; ruleProtected?: string[]; onReloadRules?: ()=>void; rulesNotice?: string;snapshotReferences?:import('./EncoderSnapshots').SnapshotReference[];onOpenSnapshot?:(reference:import('./EncoderSnapshots').SnapshotReference)=>void }) {
+export function PromptBoxEditor({ state, source, sources, preview, suggest, onChange: onCommit, notice, lastEncodedPrompt, unfilteredPreview, ruleDefinitions = [], inheritedRules: allInheritedRules = [], globalRules = [], disabledRules = new Set(), ruleErrors = [], ruleProtected = [], onReloadRules, rulesNotice,snapshotReferences=[],onOpenSnapshot }: { state: BoxState; source: SourceInfo; sources?:Record<string,SourceInfo>; preview: string; suggest: (query: string) => Promise<Suggestion[]>; onChange: (state: BoxState) => void; notice?: string; lastEncodedPrompt?: string; unfilteredPreview?: string; ruleDefinitions?: Ruleset[]; inheritedRules?: RuleBox[]; globalRules?: RuleBox[]; disabledRules?: ReadonlySet<string>; ruleErrors?: string[]; ruleProtected?: string[]; onReloadRules?: ()=>void; rulesNotice?: string;snapshotReferences?:import('./EncoderSnapshots').SnapshotReference[];onOpenSnapshot?:(reference:import('./EncoderSnapshots').SnapshotReference)=>void }) {
     const owner = useId();
+    const [undo,setUndo]=useState<{boxes:BoxState['boxes'];after:string;label:string}>();
+    const tagCount=(value:BoxState)=>value.boxes.reduce((count,box)=>{
+        if(box.kind==='group')return count+promptLeaves(box.chips.map(chip=>compileChip({...chip,enabled:true})).join(', ')).length;
+        const info=sources?.[sourceInput(box)]||(sourceInput(box)==='source_text'?source:undefined);
+        return count+promptLeaves(filteredSourceText(box,info?.segments,info?.text,info?.merge)||'').length;
+    },0);
+    const onChange=(next:BoxState)=>{
+        const removedGroup=state.boxes.some(box=>box.kind==='group'&&!next.boxes.some(other=>other.id===box.id));
+        if(state.boxes!==next.boxes&&(removedGroup||tagCount(next)<tagCount(state)))setUndo({boxes:structuredClone(state.boxes),after:JSON.stringify(next.boxes),label:removedGroup?'Group removed':'Tags updated'});
+        else setUndo(undefined);
+        onCommit(next);
+    };
+    const canUndo=undo&&undo.after===JSON.stringify(state.boxes);
     const inheritedRules=selectedInheritedRules(allInheritedRules,state.excludedInheritedRules);
     const ignoredRules=[...new Map(allInheritedRules.filter(box=>box.origin!=='global'&&isInheritedRuleIgnored(box,state.excludedInheritedRules)).map(box=>[inheritedRuleIdentity(box),box])).values()];
     const restoreInherited=(box:RuleBox)=>onChange({...state,excludedInheritedRules:(state.excludedInheritedRules||[]).filter(key=>key!==inheritedRuleIdentity(box)&&key!==box.id)});
     return <RuleImpact.Provider value={new Set(promptLeaves(preview).map(ruleTag))}><RuleProtection.Provider value={ruleProtected}><div data-prompt-editor={owner} style={S.root} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
         <PromptTrash owner={owner} />
+        {canUndo&&<div role="status" style={{position:'sticky',top:0,zIndex:3,display:'flex',alignItems:'center',gap:8,padding:8,border:'1px solid #5489bd',borderRadius:6,background:'var(--comfy-menu-bg,#333)'}}><span>{undo.label}</span><button type="button" style={S.btn} aria-label="Undo last prompt change" onClick={()=>{if(undo){onCommit({...state,boxes:undo.boxes});setUndo(undefined);}}}>Undo</button><button type="button" style={S.x} aria-label="Dismiss undo" onClick={()=>setUndo(undefined)}>×</button></div>}
         {state.boxes.map((box, index) => box.kind === 'source'
             ? <SourceView key={box.id} box={box} index={index} count={state.boxes.length} state={state} onChange={onChange} source={sources?.[sourceInput(box)]||(sourceInput(box)==='source_text'?source:{connected:false})} suggest={suggest} />
             : <GroupView key={box.id} box={box} index={index} count={state.boxes.length} state={state} onChange={onChange} suggest={suggest} />)}

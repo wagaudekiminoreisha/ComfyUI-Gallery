@@ -99,7 +99,7 @@ const GalleryModal = () => {
             <div className="cg-filters">
                 {searchMode === 'local' && <>
                     {gallery.settings.extraFolders?.length > 0 && <Select aria-label="Local library root" value={gallery.settings.relativePath} style={{ width: 190 }} onChange={relativePath => { void gallery.setSettings({ ...gallery.settings, relativePath }).catch(error => message.error(String(error))); }} options={[...new Set(['./', gallery.settings.relativePath, ...gallery.settings.extraFolders])].map(value => ({ value, label: value === './' ? 'ComfyUI output' : value }))} />}
-                    <Select disabled={gallery.archiveView} aria-label="Local folder" value={gallery.currentFolder} onChange={value => { gallery.setCurrentFolder(value); gallery.setLibrarySearch(null); changeSource('local'); }} style={{ width: 180 }} options={Object.keys(gallery.data?.folders || {}).map(value => ({ value, label: value || 'Root folder' }))} />
+                    <Select className="cg-local-folder-picker" disabled={gallery.archiveView} aria-label="Local folder" value={gallery.currentFolder} onChange={value => { gallery.setCurrentFolder(value); gallery.setLibrarySearch(null); changeSource('local'); }} style={{ width: 180 }} options={Object.keys(gallery.data?.folders || {}).map(value => ({ value, label: value || 'Root folder' }))} />
                     <LocalPromptSearch onLocalSearch={() => { changeSource('local'); gallery.setLibrarySearch(null); }} />
                     <Button aria-label="Filters & tools" icon={<FilterOutlined />} onClick={() => setTools(true)}>Filters & tools</Button>
                 </>}
