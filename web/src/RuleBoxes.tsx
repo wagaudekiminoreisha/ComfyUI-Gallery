@@ -10,7 +10,7 @@ import {cleanHairPolicy,type HairPolicy} from './HairPolicy';
 import {RulesetTags} from './RulesetTags';
 
 type HairBox={value:HairPolicy|null;onChange:(value:HairPolicy|null)=>void};
-export function RuleBoxes({value,onChange,definitions,origin='encoder',inherited=[],background=[],promote=false,template='',hairPrompting,onEdit}:{value:RuleBox[];onChange:(value:RuleBox[])=>void;definitions:Ruleset[];origin?:RuleBox['origin'];inherited?:RuleBox[];background?:RuleBox[];promote?:boolean;template?:string;hairPrompting?:HairBox;onEdit?:(id:string)=>void}){
+export function RuleBoxes({value,onChange,definitions,origin='encoder',inherited=[],background=[],promote=false,template='',hairPrompting,onEdit,onRemoveInherited}:{value:RuleBox[];onChange:(value:RuleBox[])=>void;definitions:Ruleset[];origin?:RuleBox['origin'];inherited?:RuleBox[];background?:RuleBox[];promote?:boolean;template?:string;hairPrompting?:HairBox;onEdit?:(id:string)=>void;onRemoveInherited?:(box:RuleBox)=>void}){
  const [folded,setFolded]=useState<Record<string,boolean>>({}),[channel,setChannel]=useState<{boxId:string;name:string}>();
  const all=[...inherited,...value],active=new Set(activeRuleBoxes([...background,...all]));
  const patch=(id:string,changes:Partial<RuleBox>,preference=false)=>onChange(patchRuleBox(value,id,{...changes,...(promote&&preference?{origin:'encoder' as const,label:'Encoder override'}:{})}));
@@ -21,6 +21,7 @@ export function RuleBoxes({value,onChange,definitions,origin='encoder',inherited
    <button type="button" aria-label={((readOnly?folded[box.id]??box.collapsed:box.collapsed)?'Expand ruleset ':'Collapse ruleset ')+box.definition.name} aria-expanded={!(readOnly?folded[box.id]??box.collapsed:box.collapsed)} title={(readOnly?folded[box.id]??box.collapsed:box.collapsed)?'Expand':'Collapse'} onClick={()=>readOnly?setFolded({...folded,[box.id]:!(folded[box.id]??box.collapsed)}):patch(box.id,{collapsed:!box.collapsed})}>{(readOnly?folded[box.id]??box.collapsed:box.collapsed)?'▸':'▾'}</button>
    {!readOnly&&<><button type="button" aria-label="Move ruleset up" disabled={!index} onClick={()=>move(index,-1)}>▲</button><button type="button" aria-label="Move ruleset down" disabled={index===value.length-1} onClick={()=>move(index,1)}>▼</button><button type="button" aria-label="Remove ruleset box" onClick={()=>onChange(value.filter(item=>item.id!==box.id))}>×</button></>}
    {readOnly&&<button type="button" disabled={hasActiveRuleset(value.filter(item=>item.origin==='encoder'),box.definition.id,box.scope)} onClick={()=>onChange(insertRuleBox(value,{...newRuleBox(box.definition),scope:box.scope,preferences:{...box.preferences},label:'Override '+(box.label||'prefix')},true))}>Override on encoder</button>}
+   {readOnly&&onRemoveInherited&&<button type="button" aria-label={'Remove inherited ruleset '+box.definition.name} title="Ignore this inherited rule on this encoder" onClick={()=>onRemoveInherited(box)}>×</button>}
    {!readOnly&&onEdit&&<button type="button" onClick={()=>onEdit(box.id)}>Edit rules</button>}
   </div>
   {!(readOnly?folded[box.id]??box.collapsed:box.collapsed)&&<div>

@@ -1,4 +1,5 @@
 import { PopupMenu } from './PopupMenu';
+import { inheritedRuleIdentity, isInheritedRuleIgnored, selectedInheritedRules } from './InheritedRules';
 import { suggestionPlacement } from './PopupGeometry';
 import {SOURCE_CATEGORIES,SOURCE_PRESETS,filterSourceCategories} from './SourceTagPolicy';
 import {exclusionsFor,replacementsFor,filteredSourceText,type SourceSegment} from './SourceExclusions';
@@ -634,8 +635,11 @@ function PromptTrash({ owner }: { owner: string }) {
     </div>,document.body);
 }
 
-export function PromptBoxEditor({ state, source, sources, preview, suggest, onChange, notice, lastEncodedPrompt, unfilteredPreview, ruleDefinitions = [], inheritedRules = [], globalRules = [], disabledRules = new Set(), ruleErrors = [], ruleProtected = [], onReloadRules, rulesNotice,snapshotReferences=[],onOpenSnapshot }: { state: BoxState; source: SourceInfo; sources?:Record<string,SourceInfo>; preview: string; suggest: (query: string) => Promise<Suggestion[]>; onChange: (state: BoxState) => void; notice?: string; lastEncodedPrompt?: string; unfilteredPreview?: string; ruleDefinitions?: Ruleset[]; inheritedRules?: RuleBox[]; globalRules?: RuleBox[]; disabledRules?: ReadonlySet<string>; ruleErrors?: string[]; ruleProtected?: string[]; onReloadRules?: ()=>void; rulesNotice?: string;snapshotReferences?:import('./EncoderSnapshots').SnapshotReference[];onOpenSnapshot?:(reference:import('./EncoderSnapshots').SnapshotReference)=>void }) {
+export function PromptBoxEditor({ state, source, sources, preview, suggest, onChange, notice, lastEncodedPrompt, unfilteredPreview, ruleDefinitions = [], inheritedRules: allInheritedRules = [], globalRules = [], disabledRules = new Set(), ruleErrors = [], ruleProtected = [], onReloadRules, rulesNotice,snapshotReferences=[],onOpenSnapshot }: { state: BoxState; source: SourceInfo; sources?:Record<string,SourceInfo>; preview: string; suggest: (query: string) => Promise<Suggestion[]>; onChange: (state: BoxState) => void; notice?: string; lastEncodedPrompt?: string; unfilteredPreview?: string; ruleDefinitions?: Ruleset[]; inheritedRules?: RuleBox[]; globalRules?: RuleBox[]; disabledRules?: ReadonlySet<string>; ruleErrors?: string[]; ruleProtected?: string[]; onReloadRules?: ()=>void; rulesNotice?: string;snapshotReferences?:import('./EncoderSnapshots').SnapshotReference[];onOpenSnapshot?:(reference:import('./EncoderSnapshots').SnapshotReference)=>void }) {
     const owner = useId();
+    const inheritedRules=selectedInheritedRules(allInheritedRules,state.excludedInheritedRules);
+    const ignoredRules=[...new Map(allInheritedRules.filter(box=>box.origin!=='global'&&isInheritedRuleIgnored(box,state.excludedInheritedRules)).map(box=>[inheritedRuleIdentity(box),box])).values()];
+    const restoreInherited=(box:RuleBox)=>onChange({...state,excludedInheritedRules:(state.excludedInheritedRules||[]).filter(key=>key!==inheritedRuleIdentity(box)&&key!==box.id)});
     return <RuleImpact.Provider value={new Set(promptLeaves(preview).map(ruleTag))}><RuleProtection.Provider value={ruleProtected}><div data-prompt-editor={owner} style={S.root} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
         <PromptTrash owner={owner} />
         {state.boxes.map((box, index) => box.kind === 'source'
@@ -650,8 +654,11 @@ export function PromptBoxEditor({ state, source, sources, preview, suggest, onCh
             <RuleBoxes template={unfilteredPreview??preview} hairPrompting={{value:state.hairPolicy??null,onChange:hairPolicy=>onChange({...state,hairPolicy})}}
                 definitions={ruleDefinitions.filter(definition=>!disabledRules.has(definition.id))}
                 value={(state.rulesets||[]).filter(box=>box.origin!=='global'&&!disabledRules.has(box.definition.id))}
-                inherited={inheritedRules} background={globalRules} promote onChange={rulesets=>onChange({...state,
+                inherited={inheritedRules} background={globalRules} promote onRemoveInherited={box=>onChange({...state,excludedInheritedRules:[...new Set([...(state.excludedInheritedRules||[]),inheritedRuleIdentity(box)])]})} onChange={rulesets=>onChange({...state,
                     rulesets:[...rulesets,...(state.rulesets||[]).filter(box=>box.origin!=='global'&&disabledRules.has(box.definition.id))]})}/>
+            {!!state.excludedInheritedRules?.length&&<details className="cg-rule-controls"><summary>Ignored source rules · {state.excludedInheritedRules.length}</summary>
+                <div className="cg-rule-toolbar">{ignoredRules.map(box=><button type="button" key={box.id} aria-label={'Restore inherited ruleset '+box.definition.name} onClick={()=>restoreInherited(box)}>{box.definition.name} ↺</button>)}<button type="button" onClick={()=>onChange({...state,excludedInheritedRules:[]})}>Restore all inherited rules</button></div><small>Ignored on this encoder only. Global defaults still apply.</small>
+            </details>}
             <div className="cg-rule-controls cg-rule-toolbar"><button type="button" onClick={()=>openRules()}>Manage rulesets</button> <button type="button" onClick={onReloadRules}>Refresh rules</button></div>
             {rulesNotice&&<p role="status">{rulesNotice}</p>}
             {ruleErrors.map(error=><div role="alert" key={error}>{error} Encoding will stop until the rules agree.</div>)}

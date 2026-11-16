@@ -5,7 +5,7 @@ import pack from '../../data/global-tag-rules.json';
 export type RuleCondition={op:'tag';tag:string}|{op:'all'|'any'|'not';children:RuleCondition[]};
 export type Rule = { op: 'exclude'|'protect'|'require'|'select'|'exclusive'; tags:string[]; except_tags?:string[]; value?:string; if_all?:string[];condition?:RuleCondition };
 export type Ruleset = { version:1; id:string; name:string; family:string; rules:Rule[]; choices:{id:string;label:string;default:string;options:{id:string;label:string;rules:Rule[]}[]}[] };
-export type RuleBox = {id:string;definition:Ruleset;scope:string;origin:'global'|'prefix'|'snapshot'|'encoder';label?:string;preferences:Record<string,string>;enabled:boolean;collapsed:boolean};
+export type RuleBox = {id:string;definition:Ruleset;scope:string;origin:'global'|'prefix'|'snapshot'|'encoder';inheritanceKey?:string;label?:string;preferences:Record<string,string>;enabled:boolean;collapsed:boolean};
 export type RulesetMode = 'global' | 'on-demand' | 'disabled';
 export type RulesLibrary = {version:1;definitions:Ruleset[];globals:RuleBox[];prefixes:Record<string,RuleBox[]>;availability?:Record<string,RulesetMode>};
 export const ruleTag = (text:string) => {const key=text.trim().toLowerCase().replace(/\s+/g,'_');return (pack.aliases as Record<string,string>)[key]||key;};
