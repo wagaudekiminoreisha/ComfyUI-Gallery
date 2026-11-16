@@ -1,4 +1,5 @@
-import { visibleSessionOutputs } from './SessionOutputCollection';
+import { localMediaUrl } from './LocalMediaUrl';
+import { sessionOutputFile, visibleSessionOutputs } from './SessionOutputCollection';
 import { ReloadOutlined } from '@ant-design/icons';
 import { useSessionOutputs } from './SessionOutputs';
 import { useEffect, useState, useSyncExternalStore } from 'react';
@@ -40,7 +41,7 @@ export function GalleryAssetPane() {
     if (!element) return null;
     const indexed = Object.entries(gallery.data?.folders || {}).filter(([name]) => folder === '*' || name === folder).flatMap(([, files]) => Object.values(files))
         .filter(file => file.type === 'image' && file.name.toLowerCase().includes(query.toLowerCase())).sort((a,b) => b.timestamp - a.timestamp);
-    const files = (scope === 'session' ? visibleSessionOutputs(session, gallery.settings.showTemporaryPreviews === true).map(file => indexed.find(item => item.url === file.url) || file).filter(file => file.name.toLowerCase().includes(query.toLowerCase())) : indexed);
+    const files = (scope === 'session' ? visibleSessionOutputs(session, gallery.settings.showTemporaryPreviews === true).map(file => sessionOutputFile(file, indexed.find(item => item.url === file.url))).filter(file => file.name.toLowerCase().includes(query.toLowerCase())) : indexed);
     const action = (url: string, key: string) => window.dispatchEvent(new CustomEvent(ASSET_ACTION_EVENT, { detail: { url, key, urls: files.map(file => file.url) } }));
     return createPortal(<section className="cg-asset-pane" aria-label="Gallery assets" style={{ paddingTop: 10 + topInset, background:token.colorBgContainer,color:token.colorText,
         '--cg-border':token.colorBorder,'--cg-control':token.colorBgElevated,'--cg-text':token.colorText,'--cg-accent':token.colorPrimary,'--cg-panel':token.colorFillSecondary } as React.CSSProperties}>
@@ -71,7 +72,7 @@ export function GalleryAssetPane() {
         <div className="cg-asset-scroll"><div className="cg-asset-grid">{files.slice(0,limit).map(file => <Dropdown key={file.url} trigger={['contextMenu']} menu={{items:file.url.startsWith('/view?') ? [{key:'view',label:'Open in gallery'},{key:'download',label:'Download preview'}] : [
             {key:'view',label:'Open in gallery'},{key:'source',label:'Append image and prompts…'},{key:'prefix',label:'Prefix associations…'}, {key:'info',label:'Metadata'}, {key:'imagesearch',label:'Find related images…'}
         ],onClick:({key}) => action(file.url,key)}}><button className="cg-asset-card" onClick={() => action(file.url,'view')} aria-label={'View '+file.name}>
-            <img loading="lazy" src={file.url.startsWith('/view?') ? BASE_PATH + file.url : `${BASE_PATH}/Gallery/thumbnail?url=${encodeURIComponent(file.url)}&root=${encodeURIComponent(gallery.settings.relativePath)}&v=${file.timestamp}`} alt=""/><span title={file.name}>{file.name}</span>
+            <img loading="lazy" src={file.url.startsWith('/view?') ? BASE_PATH + localMediaUrl(file) : `${BASE_PATH}/Gallery/thumbnail?url=${encodeURIComponent(file.url)}&root=${encodeURIComponent(gallery.settings.relativePath)}&v=${encodeURIComponent(file.revision || String(file.timestamp))}`} alt=""/><span title={file.name}>{file.name}</span>
         </button></Dropdown>)}</div>{!files.length && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={scope === 'session' && !query ? 'Saved outputs appear here. Temporary previews are hidden unless enabled in Tools.' : gallery.loading ? 'Loading assets…' : 'No matching images'} />}
         {files.length > limit && <Button block onClick={() => setLimit(value => value + 100)}>Load more</Button>}</div>
     </section>,element);

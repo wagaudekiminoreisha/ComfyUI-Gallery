@@ -1,3 +1,4 @@
+import { localMediaUrl } from './LocalMediaUrl';
 import React, { useMemo, useCallback, useEffect, useRef } from 'react';
 import { Empty, Image, Spin } from 'antd';
 import { AutoSizer } from 'react-virtualized';
@@ -242,7 +243,7 @@ const GalleryImageGrid = () => {
                         <audio
                             key={image.name}
                             style={{ maxWidth: "-webkit-fill-available", width: "80%" }}
-                            src={`${BASE_PATH}${image.url}`}
+                            src={`${BASE_PATH}${localMediaUrl(image)}`}
                             autoPlay={true}
                             controls={true}
                             preload="none"
@@ -262,7 +263,7 @@ const GalleryImageGrid = () => {
                         onMouseDown={stopPropagation}
                         onTouchStart={stopPropagation}
                     >
-                        <ModelViewer url={`${BASE_PATH}${image.url}`} type={image.name.split('.').pop()?.toLowerCase() || ''} />
+                        <ModelViewer url={`${BASE_PATH}${localMediaUrl(image)}`} type={image.name.split('.').pop()?.toLowerCase() || ''} />
                     </div>
                 );
             }
@@ -274,7 +275,7 @@ const GalleryImageGrid = () => {
                             maxWidth: "fit-content", width: "80%",
                             maxHeight: "fit-content", height: "80%"
                         }}
-                        src={`${BASE_PATH}${image.url}`}
+                        src={`${BASE_PATH}${localMediaUrl(image)}`}
                         autoPlay={true}
                         controls={true}
                         preload="none"

@@ -1,3 +1,5 @@
+import { sessionOutputFile } from './SessionOutputCollection';
+import { localMediaUrl } from './LocalMediaUrl';
 import {loadLocalMetadata} from './LocalMetadata';
 import {quickSelectionClick,type ImageClick} from './GalleryClick';
 import { useViewState } from './ViewState';
@@ -30,7 +32,7 @@ import type { RemoteImage } from './HydrusBrowser';
 import { extendRandomGallery, galleryDate, orderGallery, type GalleryEntry, type GalleryOrder } from './GalleryOrder';
 
 function ModelThumbnail({ file }: { file: FileDetails }) {
-    const thumbnail = use3DThumbnail(BASE_PATH + file.url, file.name.split('.').pop()?.toLowerCase() || '');
+    const thumbnail = use3DThumbnail(BASE_PATH + localMediaUrl(file), file.name.split('.').pop()?.toLowerCase() || '');
     return thumbnail ? <img src={thumbnail} alt={file.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <div style={{ padding: 40, color: 'white' }}>3D · Open viewer</div>;
 }
 
@@ -106,7 +108,11 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
      */
     const [viewerUrls, setViewerUrls] = useState<string[]>();
     const [sourceImages, setSourceImages] = useState<ImageSourceImage[]>();
-    const knownFiles = useMemo(() => [...new Map([...session, ...Object.values(gallery.data?.folders || {}).flatMap(folder => Object.values(folder))].map(file => [file.url,file])).values()], [session,gallery.data]);
+    const knownFiles = useMemo(() => {
+        const files = new Map(Object.values(gallery.data?.folders || {}).flatMap(folder => Object.values(folder)).map(file => [file.url,file]));
+        for (const output of session) files.set(output.url,sessionOutputFile(output,files.get(output.url)));
+        return [...files.values()];
+    }, [session,gallery.data]);
     const viewerRequest = useRef(0);
     const viewerList = useMemo(() => {
         if (!viewerUrls && !sourceImages) return undefined;
@@ -118,8 +124,8 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
     const shownSelected = [...new Map((detached ? viewerList || [] : [...entries, ...(viewerList || [])]).map(entry => [entry.id, entry])).values()].filter(entry => selected.has(entry.id));
     const index = shown.findIndex(entry => entry.id === viewer);
     const current = shown[index];
-    const thumbnail = (entry: GalleryEntry) => entry.previewUrl ? BASE_PATH + entry.previewUrl : entry.source === 'node' ? BASE_PATH + entry.local!.url : entry.local ? `${BASE_PATH}/Gallery/thumbnail?url=${encodeURIComponent(entry.local.url)}&v=${entry.local.timestamp || 0}&root=${encodeURIComponent(gallery.settings.relativePath)}` : `${BASE_PATH}/Gallery/hydrus/thumbnail?hash=${entry.hash}&target=${encodeURIComponent(scope)}`;
-    const original = (entry: GalleryEntry) => entry.previewUrl ? BASE_PATH + entry.previewUrl : entry.local ? `${BASE_PATH}${entry.local.url}` : `${BASE_PATH}/Gallery/hydrus/original?hash=${entry.hash}&target=${encodeURIComponent(scope)}`;
+    const thumbnail = (entry: GalleryEntry) => entry.previewUrl ? BASE_PATH + entry.previewUrl : entry.source === 'node' ? BASE_PATH + localMediaUrl(entry.local!, gallery.settings.relativePath) : entry.local ? `${BASE_PATH}/Gallery/thumbnail?url=${encodeURIComponent(entry.local.url)}&v=${encodeURIComponent(entry.local.revision || String(entry.local.timestamp || 0))}&root=${encodeURIComponent(gallery.settings.relativePath)}` : `${BASE_PATH}/Gallery/hydrus/thumbnail?hash=${entry.hash}&target=${encodeURIComponent(scope)}`;
+    const original = (entry: GalleryEntry) => entry.previewUrl ? BASE_PATH + entry.previewUrl : entry.local ? `${BASE_PATH}${localMediaUrl(entry.local, gallery.settings.relativePath)}` : `${BASE_PATH}/Gallery/hydrus/original?hash=${entry.hash}&target=${encodeURIComponent(scope)}`;
     useEffect(() => { viewerClick.current=undefined;setZoom(1); setFailedOriginal(undefined); setMediaError(false); }, [viewer]);
     useEffect(() => {
         if (!viewerActive) { stopMedia(viewerRef.current); setViewer(undefined); }
@@ -229,7 +235,7 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
                 if (locals.length) {
                     const zip = new JSZip(); let bytes = 0;
                     for (const item of locals) {
-                        const response = await fetch(original(item));
+                        const response = await fetch(original(item), { cache: 'no-store' });
                         if (!response.ok) throw new Error('Could not download ' + item.name);
                         const blob = await response.blob(); bytes += blob.size;
                         if (bytes > 128 * 1024 * 1024) throw new Error('Select fewer local files: metadata ZIPs are limited to 128 MiB.');

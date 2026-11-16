@@ -112,6 +112,7 @@ def _scan_for_images(full_base_path, base_path, include_subfolders, allowed_exte
                             "name": entry_name,
                             "url": url_path,
                             "timestamp": timestamp,
+                            "revision": f"{stat.st_mtime_ns:x}-{stat.st_size:x}",
                             "date": date_str,
                             "metadata": {},  # Placeholder — filled in parallel below
                             "type": file_type

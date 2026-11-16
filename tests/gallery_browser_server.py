@@ -126,6 +126,8 @@ async def hydrus(request):
 
 upstream.router.add_route('*', '/{tail:.*}', hydrus)
 app = web.Application()
+from gallery_qa.media_cache import register_media_cache_policy
+register_media_cache_policy(app)
 routes = web.RouteTableDef()
 bridge = module.register_hydrus_routes(routes, lambda: str(MEDIA), storage_dir=MEMORY, get_input_root=lambda: str(INPUT),get_prefix_library_path=lambda request: MEMORY / "prompt-library.json")
 app.on_startup.append(bridge.sync.startup)
@@ -166,7 +168,10 @@ async def images(request):
                                                  '86': {'class_type': 'CLIPTextEncode', 'inputs': {'text': ['blurry, watermark', 'bad anatomy', 'low contrast', 'overexposed'][n % 4]}}}}}
                for n, p in enumerate(MEDIA.glob('*.png'))}
     from gallery_qa.catalogue_metadata import compact_metadata
-    for entry in entries.values():entry['metadata']=compact_metadata(entry['metadata'])
+    for entry in entries.values():
+        entry['metadata']=compact_metadata(entry['metadata'])
+        stamp=(MEDIA/entry['name']).stat()
+        entry['revision']=f'{stamp.st_mtime_ns:x}-{stamp.st_size:x}'
     return web.json_response({'folders': {'output': entries}})
 
 async def settings(request):
@@ -180,6 +185,31 @@ async def state(request):
 
 async def input_image(request):
     return web.FileResponse(INPUT / request.query.get('subfolder', '') / Path(request.query['filename']).name)
+
+cache_generation = ''
+async def replace_cache_output(request):
+    global cache_generation
+    data = await request.json()
+    cache_generation = data['color']
+    path = MEDIA / 'cache-reuse.png'
+    Image.new('RGB', (64, 64), cache_generation).save(path)
+    return web.json_response({'sha256': hashlib.sha256(path.read_bytes()).hexdigest()})
+
+async def delete_cache_output(request):
+    data = await request.json()
+    if data.get('image_path') != '/static_gallery/cache-reuse.png':
+        return web.json_response({'error':'Only the cache regression fixture can be deleted here.'},status=400)
+    (MEDIA / 'cache-reuse.png').unlink(missing_ok=True)
+    return web.json_response({})
+
+async def legacy_cache_headers(request, response):
+    # Simulate an already cached response from an older Gallery installation.
+    if request.path == '/static_gallery/cache-reuse.png' and cache_generation == 'red':
+        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+
+app.on_response_prepare.append(legacy_cache_headers)
+app.router.add_post('/qa-cache-output', replace_cache_output)
+app.router.add_post('/Gallery/delete', delete_cache_output)
 
 app.router.add_get('/', homepage)
 app.router.add_get('/Gallery/images', images)

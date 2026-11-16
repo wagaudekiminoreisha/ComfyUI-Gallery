@@ -1,3 +1,4 @@
+import { localMediaUrl } from './LocalMediaUrl';
 import { appendLocalImages } from './ImageSourceBridge';
 import { Button, Checkbox, Dropdown, Image, Tag, Typography, message } from 'antd';
 import { useHydrus } from './HydrusContext';
@@ -18,7 +19,7 @@ import { use3DThumbnail } from './GlobalModelRenderer';
 const ImageCard3DThumbnail = ({ image, onClick }: { image: FileDetails, onClick: () => void }) => {
     const typeMatch = image.url.match(/\.([^.]+)$/);
     const type = typeMatch ? typeMatch[1].toLowerCase() : '';
-    const thumbnail = use3DThumbnail(`${BASE_PATH}${image.url}`, type);
+    const thumbnail = use3DThumbnail(`${BASE_PATH}${localMediaUrl(image)}`, type);
 
     if (thumbnail) {
         return (
@@ -40,7 +41,7 @@ const ImageCard3DThumbnail = ({ image, onClick }: { image: FileDetails, onClick:
                 <Image
                     id={image.url}
                     style={{ display: 'none' }}
-                    src={`${BASE_PATH}${image.url}`}
+                    src={`${BASE_PATH}${localMediaUrl(image)}`}
                     onClick={onClick}
                 />
             </>
@@ -59,7 +60,7 @@ const ImageCard3DThumbnail = ({ image, onClick }: { image: FileDetails, onClick:
             <Image
                 id={image.url}
                 style={{ display: 'none' }}
-                src={`${BASE_PATH}${image.url}`}
+                src={`${BASE_PATH}${localMediaUrl(image)}`}
                 onClick={onClick}
             />
         </div>
@@ -110,8 +111,8 @@ const ImageCardView = memo(function ImageCardView({
     const [dragging, setDragging] = useState(false);
     const [targetCount, setTargetCount] = useState(1);
     const [failedThumbnail, setFailedThumbnail] = useState<string>();
-    const originalUrl = `${BASE_PATH}${image.url}`;
-    const thumbnailUrl = `${BASE_PATH}/Gallery/thumbnail?url=${encodeURIComponent(image.url)}&v=${image.timestamp || 0}&root=${encodeURIComponent(settings.relativePath)}`;
+    const originalUrl = `${BASE_PATH}${localMediaUrl(image)}`;
+    const thumbnailUrl = `${BASE_PATH}/Gallery/thumbnail?url=${encodeURIComponent(image.url)}&v=${encodeURIComponent(image.revision || String(image.timestamp || 0))}&root=${encodeURIComponent(settings.relativePath)}`;
 
     useDrag(
         {
@@ -158,8 +159,8 @@ const ImageCardView = memo(function ImageCardView({
         // Fallback to previous simple heuristic if we couldn't guess from extension
         const mimeType = guessed || (image.type === 'image' ? 'image/png' : image.type === 'audio' ? 'audio/wav' : 'video/mp4');
 
-        event.dataTransfer.setData('text/uri-list', `${BASE_PATH}${image.url}`);
-        event.dataTransfer.setData('DownloadURL', `${mimeType}:${image.name}:${window.location.origin + BASE_PATH + image.url}`);
+        event.dataTransfer.setData('text/uri-list', `${BASE_PATH}${localMediaUrl(image, settings.relativePath)}`);
+        event.dataTransfer.setData('DownloadURL', `${mimeType}:${image.name}:${window.location.origin + BASE_PATH + localMediaUrl(image, settings.relativePath)}`);
         // Optionally, set a drag image
         // event.dataTransfer.setDragImage(event.currentTarget, 10, 10);
     };
@@ -255,11 +256,11 @@ const ImageCardView = memo(function ImageCardView({
                     <Typography.Text style={{ marginBottom: '16px', padding: '0 16px', textAlign: 'center', maxWidth: '100%' }} ellipsis>
                         {image.name}
                     </Typography.Text>
-                    <audio controls style={{ width: '90%', height: '40px' }} src={`${BASE_PATH}${image.url}`} onClick={(e) => e.stopPropagation()} />
+                    <audio controls style={{ width: '90%', height: '40px' }} src={`${BASE_PATH}${localMediaUrl(image)}`} onClick={(e) => e.stopPropagation()} />
                     <Image
                         id={image.url}
                         style={{ display: 'none' }}
-                        src={`${BASE_PATH}${image.url}`}
+                        src={`${BASE_PATH}${localMediaUrl(image)}`}
                         loading="lazy"
                         alt={image.name}
                     />
@@ -277,7 +278,7 @@ const ImageCardView = memo(function ImageCardView({
                             : { maxWidth: ImageCardWidth }),
                         cursor: "pointer"
                     }}
-                    src={`${BASE_PATH}${image.url}`}
+                    src={`${BASE_PATH}${localMediaUrl(image)}`}
                     autoPlay={settings.autoPlayVideos}
                     loop={settings.autoPlayVideos}
                     muted={true}
@@ -294,7 +295,7 @@ const ImageCardView = memo(function ImageCardView({
                     style={{
                         display: "none"
                     }}
-                    src={`${BASE_PATH}${image.url}`}
+                    src={`${BASE_PATH}${localMediaUrl(image)}`}
                     loading="lazy"
                     // preview={false}
                     alt={image.name}
