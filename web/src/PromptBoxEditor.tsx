@@ -1,4 +1,5 @@
 import { PopupMenu } from './PopupMenu';
+import { omittedSourceGroups, restoreAllSourceGroups } from './SourceGroupRestore';
 import { suggestionPlacement } from './PopupGeometry';
 import {SOURCE_CATEGORIES,SOURCE_PRESETS,filterSourceCategories} from './SourceTagPolicy';
 import {exclusionsFor,replacementsFor,filteredSourceText,type SourceSegment} from './SourceExclusions';
@@ -518,6 +519,8 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
     const parts = sourceText ? splitTop(sourceText, ',').map(part => part.trim()).filter(Boolean) : [];
     const kept = parts.filter(part => !dropped.has(sourceKey(part)));
     const replacements=replacementsFor(box,segment);
+    const omittedGroups=kept.flatMap(part=>Object.prototype.hasOwnProperty.call(replacements,sourceKey(part))
+        ? omittedSourceGroups(part,replacements[sourceKey(part)]).map(group=>({...group,part})) : []);
     const [selectedChip,setSelectedChip]=useState<string>();
     const [selectedMember,setSelectedMember]=useState<{option:number;index:number}>();
     const chipsFor=(part:string)=>parsePrompt(Object.prototype.hasOwnProperty.call(replacements,sourceKey(part))?replacements[sourceKey(part)]:part).map((chip,index)=>({...chip,id:JSON.stringify([segment?.key,part,index])}));
@@ -526,6 +529,19 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
     const patch = (value: Partial<Omit<SourceBox,'id'|'kind'>>) => onChange(updateBox(state, box.id, value));
     const setExcluded = (next: string[]) => segment?patch({excludedBySource:{...box.excludedBySource,[segment.key]:next}}):patch({ excluded: next.length ? next : undefined });
     const setReplacements=(next:Record<string,string>)=>segment?patch({replacementsBySource:{...box.replacementsBySource,[segment.key]:next}}):patch({replacements:next});
+    const restoreGroup=(part:string,text:string)=>{
+        const next={...replacements};if(text===part)delete next[sourceKey(part)];else next[sourceKey(part)]=text;
+        setReplacements(next);setSelectedChip(undefined);setSelectedMember(undefined);
+    };
+    const restoreAll=()=>{
+        const next={...replacements};
+        for(const part of parts)if(Object.prototype.hasOwnProperty.call(next,sourceKey(part))){
+            const text=restoreAllSourceGroups(part,next[sourceKey(part)]);
+            if(text===part)delete next[sourceKey(part)];else next[sourceKey(part)]=text;
+        }
+        patch(segment?{excludedBySource:{...box.excludedBySource,[segment.key]:[]},replacementsBySource:{...box.replacementsBySource,[segment.key]:next}}:{excluded:undefined,replacements:next});
+        setSelectedChip(undefined);setSelectedMember(undefined);
+    };
     const editPart=(part:string,edit:(chips:Chip[])=>Chip[])=>{
         const text=edit(chipsFor(part)).map(compileChip).filter(Boolean).join(', ');
         if(!text){setExcluded([...excluded,part]);setSelectedChip(undefined);return;}
@@ -548,7 +564,8 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
     };
     const localFilter=filterSourceCategories(sourceChips.map(entry=>compileChip(entry.chip)).join(', '),box.categoryExclusions);
     const effective=useRuleImpact();const leaves=promptLeaves(localFilter.text);const retained=leaves.filter(tag=>!effective||effective.has(ruleTag(tag))).length;
-    const status = !source.connected ? 'not connected' : sourceText ? (retained<leaves.length?retained+'/'+leaves.length+' retained':leaves.length+' tags') + (kept.length < parts.length ? ` · ${parts.length - kept.length} left out` : '') : 'connected';
+    const leftOutCount=parts.length-kept.length+omittedGroups.length;
+    const status = !source.connected ? 'not connected' : sourceText ? (retained<leaves.length?retained+'/'+leaves.length+' retained':leaves.length+' tags') + (leftOutCount ? ` · ${leftOutCount} left out` : '') : 'connected';
     return <div data-prompt-drop data-source-input={sourceInput(box)} ref={ref}
         onClick={event => { if (!(event.target as HTMLElement).closest('button,input,select,[data-chip-id]')) ref.current?.querySelector<HTMLInputElement>('[data-add-input] input')?.focus(); }}
         onDragOver={event => { if (dragging?.kind === 'chip' && source.append && selectedPrefix && !saving) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; } else if (dragging?.kind === 'box' && dragging.id !== box.id) { event.preventDefault(); setMark(lower(event) ? 'after' : 'before'); } }}
@@ -589,11 +606,12 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
                     : <div style={{ ...S.body, ...S.chips, padding: '0 6px 6px' }}>{sourceChips.map(({part,chip},at)=><span key={chip.id} style={{display:'contents'}}>{at>0&&<LogicBadge name="AND"/>}<ChipView chip={chip} selected={selectedChip===chip.id} onSelect={()=>{setSelectedMember(undefined);setSelectedChip(chip.id);}} onMemberEdit={(option,index)=>{setSelectedChip(chip.id);setSelectedMember({option,index});}} onRemove={()=>removeChip(part,chip)} suggest={suggest} onKind={mode=>changeKind(part,chip,mode)} onItems={items=>editPart(part,chips=>chips.flatMap(item=>item.id===chip.id?(withItems(item,items)?[withItems(item,items)!]:[]):[item]))}/>{Object.prototype.hasOwnProperty.call(replacements,sourceKey(part))&&<Btn label={'Reset source tag '+part} onClick={()=>{const next={...replacements};delete next[sourceKey(part)];setReplacements(next);setSelectedChip(undefined);}}>↺</Btn>}</span>)}</div>}
             {selected&&!memberChip&&<ChipEditor chip={selected.chip} onClose={()=>setSelectedChip(undefined)} onKind={mode=>changeKind(selected.part,selected.chip,mode)} onRemove={()=>removeChip(selected.part,selected.chip)} onSplit={()=>editPart(selected.part,chips=>chips.flatMap(chip=>chip.id===selected.chip.id?parsePrompt(chipTerms(chip).join(', ')):[chip]))} onMove={delta=>editPart(selected.part,chips=>moveItem(chips,selected.chip.id,delta))} onChange={next=>editPart(selected.part,chips=>chips.map(chip=>chip.id===selected.chip.id?next:chip))}/>}
             {memberChip&&<ChipEditor chip={memberChip} onClose={()=>setSelectedMember(undefined)} onKind={mode=>editMember(chips=>{const group=emptyGroup('Member',chips);return (convertChip({version:1,boxes:[group]},group.id,memberChip.id,mode).boxes[0] as GroupBox).chips;})} onRemove={()=>{editMember(chips=>chips.filter(chip=>chip.id!==memberChip.id));setSelectedMember(undefined);}} onSplit={()=>editMember(chips=>chips.flatMap(chip=>chip.id===memberChip.id?parsePrompt(chipTerms(chip).join(', ')):[chip]))} onMove={delta=>editMember(chips=>moveItem(chips,memberChip.id,delta))} onChange={next=>editMember(chips=>chips.map(chip=>chip.id===memberChip.id?next:chip))}/>}
-            {!!excluded.length && <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, padding: '0 6px 6px' }} aria-label="Source tags left out">
+            {!!(excluded.length+omittedGroups.length) && <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, padding: '0 6px 6px' }} aria-label="Source tags left out">
                 <small style={{ opacity: .65 }} title="Removed here only: the source and the image lineage are unchanged">Left out:</small>
                 {excluded.map(tag => <button key={tag} type="button" title="Put this source tag back" aria-label={'Restore ' + tag} onClick={() => setExcluded(excluded.filter(item => item !== tag))}
-                    style={{ ...S.btn, textDecoration: 'line-through', opacity: sourceText && !parts.some(part => sourceKey(part) === sourceKey(tag)) ? .45 : .8 }}>{tag} ↺</button>)}
-                {excluded.length > 1 && <Btn label="Restore all source tags" onClick={() => setExcluded([])}>restore all</Btn>}
+                    style={{ ...S.btn, maxWidth:'100%', whiteSpace:'normal', overflowWrap:'anywhere', textDecoration: 'line-through', opacity: sourceText && !parts.some(part => sourceKey(part) === sourceKey(tag)) ? .45 : .8 }}>{tag} ↺</button>)}
+                {omittedGroups.map(group=><button key={group.part+group.key} type="button" title="Put this source group back; keep the other edits" aria-label={'Restore '+group.text} onClick={()=>restoreGroup(group.part,group.replacement)} style={{...S.btn,maxWidth:'100%',whiteSpace:'normal',overflowWrap:'anywhere',textDecoration:'line-through',opacity:.8}}>{group.text} ↺</button>)}
+                {excluded.length+omittedGroups.length > 1 && <Btn label="Restore all source tags" onClick={restoreAll}>restore all</Btn>}
             </div>}
         </>}
     </div>;
