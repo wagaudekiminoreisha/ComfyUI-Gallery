@@ -7,6 +7,24 @@ const h = c => c.repeat(64);
 const source = (hash, extra = {}) => ({ prompt: { '1': { class_type: 'GalleryImageSource', inputs: { sources: JSON.stringify({ version: 1, layout: 'single', active_index: 0, images: [{ input_name: 'gallery_sources/' + hash + '.png', ...extra }] }) } } } });
 const file = (url, metadata, timestamp = 1) => ({ name: url.split('/').pop(), url, type: 'image', timestamp, metadata });
 
+test('explicit pose selection prevents credit to character associations and nested ancestry', async () => {
+    const library = { tags: [], prefixes: ['pose', 'character'].map(id => ({id, name:id, tags:[]})),
+        associations: {['sha256:'+h('a')]: {prefix_id:'character',prefix_ids:['pose','character']}} };
+    const paired = new Map([[h('a'),new Set(['pose','character'])]]);
+    const selected = source(h('a'), {metadata:{...source(h('b'),{metadata:{gallery_prefix:{id:'character'}}}),gallery_prefix:{id:'pose'}}});
+    assert.deepEqual(L.imagePrefixIds(library,[],selected,paired),['pose']);
+    assert.deepEqual(L.sourceLinks(selected).hashes,[h('a')]); // physical ancestry is retained
+    const empty = source(h('a'), {metadata:{gallery_prefixes:[]}});
+    assert.deepEqual(L.imagePrefixIds(library,[],empty,paired),[]);
+    const files=[file('/pose.png',selected),file('/empty.png',empty),file('/legacy.png',source(h('a'))),file('/next.png',source(h('c')))];
+    const hashOf=async urls=>Object.fromEntries(urls.map(url=>[url,url==='/pose.png'?h('c'):h('d')]));
+    assert.deepEqual((await L.findLineage(files,library,'character',hashOf)).generated.map(row=>row.file.url),['/legacy.png']);
+    assert.deepEqual((await L.findLineage(files,library,'pose',hashOf)).generated.map(row=>row.file.url),['/pose.png','/legacy.png','/next.png']);
+    assert.deepEqual(L.imagePrefixIds(library,[],source(h('c'),{metadata:selected}),paired),['pose']);
+    // A later explicit choice also cuts off previous generations' prefix credit.
+    assert.deepEqual(L.imagePrefixIds(library,[],source(h('c'),{metadata:{...selected,gallery_prefixes:[]}}),paired),[]);
+});
+
 test('generations are linked to their source images by hash, and by the prefix id of an appended image', () => {
     assert.deepEqual(L.sourceLinks(source(h('a'))), { hashes: [h('a')], prefixIds: [] });
     assert.deepEqual(L.sourceLinks(source(h('b'), { metadata: { gallery_prefix: { id: 'p1' } } })).prefixIds, ['p1']);
@@ -58,14 +76,15 @@ test('strict mode needs every prefix tag in some spelling; {a|b} terms are not r
     assert.equal(L.hasAllTerms(tags, [['standing'], ['red hair']]), false);
 });
 
-test('an image belongs to the prefixes of the images it descends from', () => {
+test('physical ancestry stays complete while explicit recipes constrain prefix inheritance', () => {
     const inner = source(h('a'), { metadata: { gallery_prefix: { id: 'p2' } } });
     const outer = source(h('b'), { metadata: inner });
     const { hashes, prefixIds } = L.ancestry(outer);
     assert.deepEqual([...hashes].sort(), [h('a'), h('b')]);
     assert.deepEqual([...prefixIds], ['p2']);
     const library = { version: 2, tags: [], prefixes: [{ id: 'p1', name: 'A', tags: [] }, { id: 'p2', name: 'B', tags: [] }] };
-    assert.deepEqual(L.imagePrefixIds(library, [], outer, new Map([[h('a'), new Set(['p1'])]])).sort(), ['p1', 'p2']);
+    assert.deepEqual(L.imagePrefixIds(library, [], outer, new Map([[h('a'), new Set(['p1'])]])).sort(), ['p2']);
+    assert.deepEqual(L.imagePrefixIds(library, [], source(h('a')), new Map([[h('a'), new Set(['p1'])]])), ['p1']);
 });
 
 test('the lineage tree knows what each image was made from and which generations became sources', async () => {
