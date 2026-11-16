@@ -31,7 +31,7 @@ const assert = require('node:assert/strict');
   const surface=first.locator('[data-tag-surface]').first();const bounds=await surface.boundingBox();await surface.click({position:{x:bounds.width-4,y:bounds.height-4}});assert.equal(await add.evaluate(el=>el===document.activeElement),true);await page.keyboard.press('Backspace');
   await page.waitForFunction(()=>!window.qaControlNodes[0].widgets[0].value.includes('red'));
   await add.fill('{red|blue|}');await add.press('Enter');
-  await first.getByRole('button',{name:'Edit b',exact:true}).dblclick();
+  await first.getByRole('button',{name:'Edit b',exact:true}).press('Delete');
   await page.waitForFunction(()=>window.qaControlNodes[0].properties.prompt_boxes.boxes[0].chips.length===2);
   const grouped=first.getByRole('button',{name:'Edit {red|blue|}',exact:true});
   await grouped.dragTo(second.getByRole('button',{name:'Edit destination',exact:true}),{targetPosition:{x:1,y:4}});
