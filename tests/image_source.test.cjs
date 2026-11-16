@@ -13,7 +13,7 @@ function compile(name, globals = {}, imports = {}) {
     script(module.exports, module, key => imports[key]);
     return module.exports;
 }
-const geometry = compile('ImageSourceGeometry', { URLSearchParams });
+const geometry = compile('ImageSourceGeometry', { URLSearchParams }, {'./PromptBoxes':compile('PromptBoxes')});
 const sourceHistory = compile('SourceHistory', {}, { './ImageSourceGeometry': geometry });
 const search = compile('LocalImageSearch');
 const plain = value => JSON.parse(JSON.stringify(value));

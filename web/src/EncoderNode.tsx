@@ -16,7 +16,7 @@ import { makeSuggest, type SuggestDeps } from './PromptSuggest';
 import { hideWidget } from './NodeWidgets';
 import { compileBoxes, composeWithSource, compileChip, splitTop, parsePrompt, insertText, parseState, reconcileText, stateFromText, type BoxState } from './PromptBoxes';
 import { getComfyApp } from './ComfyAppApi';
-import { sourcePrompt, type ImageSourceManifest } from './ImageSourceGeometry';
+import { sourcePrompt, promptSourceImages, sourceMerge, type ImageSourceManifest } from './ImageSourceGeometry';
 import { openPrefixManager } from './PrefixLibrary';
 
 /** What the connected `source_text` provides: known at edit time for Gallery Image Source, otherwise after a run. */
@@ -30,8 +30,7 @@ export function sourcePromptInfo(node: any, inputName = 'source_text'): SourceIn
         try {
             const manifest = readSourceManifest(source);
             const side = link.origin_slot === 4 ? 'positive' : 'negative';
-            const usedImages = (state: ImageSourceManifest) => state.layout === 'single'
-                ? state.images.slice(state.active_index || 0, (state.active_index || 0) + 1) : state.images;
+            const usedImages = promptSourceImages;
             const images = usedImages(manifest);
             const refs = (image: typeof images[number]) => sourcePrefixRefs(image.metadata);
             const prefixes = new Map(images.flatMap(image => refs(image)
@@ -41,6 +40,7 @@ export function sourcePromptInfo(node: any, inputName = 'source_text'): SourceIn
                 connected: true,
                 negative: side === 'negative',
                 text: sourcePrompt(manifest, side),
+                merge:sourceMerge(manifest),
                 segments: images.map(image => ({ key: image.input_name + ':' + side, name: image.title || image.input_name.split('/').pop() || image.input_name, text: image.prompt?.[side] || '' })),
                 snapshotTargets: images.flatMap(image => {
                     const hash = /([a-f0-9]{64})/i.exec(image.input_name)?.[1]?.toLowerCase();
@@ -139,7 +139,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
             const input=sourceInput(box),info=infos[input];
             if(!node.inputs?.some((pin:any)=>pin.name===input))node.addInput?.(input,'STRING');
             const pin=node.inputs?.find((pin:any)=>pin.name===input);if(pin)pin.label=box.name?box.name+' ('+input+')':input;
-            if(info?.connected){const payload=sourceExclusionPayload(box,info.segments);if(Object.keys(payload).length)edits[input]=payload;}
+            if(info?.connected){const payload=sourceExclusionPayload(box,info.segments,info.merge);if(Object.keys(payload).length)edits[input]=payload;}
         }
         node.properties||={};node.properties.prompt_boxes=state;
         const hasExtra=state.boxes.some(box=>box.kind==='source'&&sourceInput(box)!=='source_text');
@@ -157,7 +157,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
     };
     const render = () => {
         const sources=sourcePromptInfos(node),source=sources.source_text;
-        const texts=Object.fromEntries(state.boxes.filter(box=>box.kind==='source').map(box=>{const info=sources[sourceInput(box)]||{connected:false};return [sourceInput(box),filteredSourceText(box,info.segments,info.connected?info.text:'')||''];}));
+        const texts=Object.fromEntries(state.boxes.filter(box=>box.kind==='source').map(box=>{const info=sources[sourceInput(box)]||{connected:false};return [sourceInput(box),filteredSourceText(box,info.segments,info.connected?info.text:'',info.merge)||''];}));
         const rawPreview=composeWithSource(compiledNow(),undefined,texts),filtered=filterHairPrompt(rawPreview,cleanHairPolicy(state.hairPolicy));
         let reviewed:ReturnType<typeof applyRulePreview>;
         try{reviewed=applyRulePreview(filtered,effectiveRules());}catch(error){reviewed={text:filtered,errors:[String(error)],notes:[],protectedTags:[]};}

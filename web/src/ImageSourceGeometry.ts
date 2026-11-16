@@ -1,3 +1,4 @@
+import {splitTop} from './PromptBoxes';
 export type ImageSourceCrop = { x: number; y: number; width: number; height: number };
 export type ImageSourceImage = { input_name: string; output_slot?: number; title?: string; crop?: ImageSourceCrop; metadata?: Record<string, any>; prompt?: { positive: string; negative: string; tags: string[] } };
 export type ImageOrigin = 'gallery' | 'hydrus' | 'external';
@@ -23,6 +24,9 @@ export type ImageSourceManifest = {
     active_index?: number;
     /** Selected inputs for the separate batch IMAGE output; omitted means all. */
     batch_indices?: number[];
+    prompt_selection?:'layout'|'active'|'batch'|'all';
+    prompt_merge?:'append'|'union'|'common'|'frequency';
+    prompt_min_percent?:number;
     images: ImageSourceImage[];
     layout: 'single' | 'horizontal' | 'vertical' | 'grid';
     columns: number;
@@ -102,6 +106,19 @@ export function mergePrompt(old: string, added: string, mode: PromptApply['mode'
 }
 
 export function sourcePrompt(manifest: ImageSourceManifest, side: 'positive' | 'negative'): string {
-    const images = manifest.layout === 'single' ? manifest.images.slice(manifest.active_index || 0, (manifest.active_index || 0) + 1) : manifest.images;
-    return images.map(image => image.prompt?.[side] || '').filter(Boolean).join(', ');
+    return mergeSourcePromptTexts(promptSourceImages(manifest).map(image=>image.prompt?.[side]||''),sourceMerge(manifest));
+}
+
+export type SourceMerge={mode:'append'|'union'|'common'|'frequency';min_percent:number};
+export const sourceMerge=(manifest:ImageSourceManifest):SourceMerge=>({mode:manifest.prompt_merge||'append',min_percent:manifest.prompt_min_percent||60});
+export function promptSourceImages(manifest:ImageSourceManifest):ImageSourceImage[]{
+ const mode=manifest.prompt_selection||'layout';
+ return mode==='batch'?batchSourceIndices(manifest).map(index=>manifest.images[index]):mode==='active'||mode==='layout'&&manifest.layout==='single'?manifest.images.slice(manifest.active_index||0,(manifest.active_index||0)+1):manifest.images;
+}
+export function mergeSourcePromptTexts(texts:string[],options:SourceMerge={mode:'append',min_percent:60}):string{
+ if(options.mode==='append')return texts.filter(Boolean).join(', ');
+ const terms=new Map<string,{text:string;count:number}>();
+ for(const text of texts){const seen=new Set<string>();for(const raw of splitTop(text,',')){const part=raw.trim();if(!part)continue;const key=part.toLowerCase().replace(/_/g,' ').replace(/\s+/g,' ');const record=terms.get(key)||{text:part,count:0};if(!seen.has(key)){record.count++;seen.add(key);}terms.set(key,record);}}
+ const threshold=options.mode==='union'?1:options.mode==='common'?texts.length:Math.ceil(texts.length*options.min_percent/100);
+ return [...terms.values()].filter(term=>term.count>=threshold).map(term=>term.text).join(', ');
 }

@@ -1,4 +1,5 @@
-import {exclusionsFor,replacementsFor,type SourceSegment} from './SourceExclusions';
+import {SOURCE_CATEGORIES,SOURCE_PRESETS,filterSourceCategories} from './SourceTagPolicy';
+import {exclusionsFor,replacementsFor,filteredSourceText,type SourceSegment} from './SourceExclusions';
 import {emptyGroup,sourceInput,addSourceBox,SOURCE_INPUTS} from './PromptBoxes';
 import {resolvedTagNames,tagIdentity} from './LocalImageSearch';
 import {RuleImpact,useRuleImpact,promptLeaves,PromptRelations,tagCount} from './RuleImpact';
@@ -23,7 +24,7 @@ import { addBox, addBoxWithChip, addChips, addModeOf, ADD_MODES, chipItems, conv
 
 export type Suggestion = { label: string; kind: 'tag' | 'prefix'; terms?: string[]; prefixId?: string };
 /** What the node's `source_text` input currently provides. `text` is known for Gallery Image Source and after a run. */
-export type SourceInfo = { connected: boolean; segments?:SourceSegment[];negative?: boolean;snapshotTargets?:import('./EncoderSnapshots').SnapshotTarget[]; text?: string; note?: string; prefixes?: { id: string; name: string }[]; append?: (prefixId: string, text: string) => Promise<void> };
+export type SourceInfo = { connected: boolean; merge?:import('./ImageSourceGeometry').SourceMerge; segments?:SourceSegment[];negative?: boolean;snapshotTargets?:import('./EncoderSnapshots').SnapshotTarget[]; text?: string; note?: string; prefixes?: { id: string; name: string }[]; append?: (prefixId: string, text: string) => Promise<void> };
 
 /** What is being dragged right now (dataTransfer contents are not readable while dragging over a target). */
 let dragging: { kind: 'chip'; id: string; chip: Chip } | { kind: 'box'; id: string } | undefined;
@@ -533,7 +534,8 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
             const next=withItems(chip,items);return next?[next]:[];
         }));
     };
-    const effective=useRuleImpact();const leaves=promptLeaves(sourceChips.map(entry=>compileChip(entry.chip)).join(', '));const retained=leaves.filter(tag=>!effective||effective.has(ruleTag(tag))).length;
+    const localFilter=filterSourceCategories(sourceChips.map(entry=>compileChip(entry.chip)).join(', '),box.categoryExclusions);
+    const effective=useRuleImpact();const leaves=promptLeaves(localFilter.text);const retained=leaves.filter(tag=>!effective||effective.has(ruleTag(tag))).length;
     const status = !source.connected ? 'not connected' : sourceText ? (retained<leaves.length?retained+'/'+leaves.length+' retained':leaves.length+' tags') + (kept.length < parts.length ? ` · ${parts.length - kept.length} left out` : '') : 'connected';
     return <div data-prompt-drop data-source-input={sourceInput(box)} ref={ref}
         onClick={event => { if (!(event.target as HTMLElement).closest('button,input,select,[data-chip-id]')) ref.current?.querySelector<HTMLInputElement>('[data-add-input] input')?.focus(); }}
@@ -553,6 +555,12 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
         </div>
         {!box.collapsed && <>
             {!!source.segments?.length&&<div style={S.body}><label>Source image <select aria-label="Source image for tag exclusions" value={segment?.key||''} onChange={event=>setSourceKeySelected(event.target.value)} style={S.input}>{source.segments.map(row=><option key={row.key} value={row.key}>{row.name}</option>)}</select></label><small style={S.muted}>Left out tags belong to this image only.</small></div>}
+            <div style={S.body}>
+                <label>Source filter <select aria-label="Source filter preset" value={Object.entries(SOURCE_PRESETS).find(([,categories])=>JSON.stringify([...categories].sort())===JSON.stringify([...(box.categoryExclusions||[])].sort()))?.[0]||'custom'} onChange={event=>{const preset=SOURCE_PRESETS[event.target.value as keyof typeof SOURCE_PRESETS];if(preset)patch({categoryExclusions:[...preset]});}} style={S.input}><option value="unfiltered">Unfiltered</option><option value="appearance">Appearance</option><option value="pose">Pose</option><option value="custom">Custom</option></select></label>
+                <details><summary>Categories this source can contribute</summary><div style={{display:'flex',flexWrap:'wrap',gap:8}}>{SOURCE_CATEGORIES.map(category=><label key={category.id}><input type="checkbox" aria-label={'Keep '+category.label} checked={!box.categoryExclusions?.includes(category.id)} onChange={event=>patch({categoryExclusions:event.target.checked?(box.categoryExclusions||[]).filter(id=>id!==category.id):[...(box.categoryExclusions||[]),category.id]})}/>{category.label}</label>)}</div><small>Uses known tags from the stock categories. Unrecognized tags stay. This filters incoming source tags; encoder-wide rules and manually added tags are applied afterward.</small></details>
+                {!!localFilter.removed.length&&<details><summary>Filtered here · {localFilter.removed.length} tags</summary>{localFilter.removed.map(row=><span key={row.tag} style={{...S.chip,textDecoration:'line-through'}} title={row.categories.join(', ')}>{row.tag}</span>)}</details>}
+                {(box.categoryExclusions?.length||source.merge&&source.merge.mode!=='append')&&<details><summary>Contribution after source filtering</summary><code aria-label="Source contribution" style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{filteredSourceText(box,source.segments,source.text,source.merge)||'No tags contributed'}</code><small> Before encoder-wide rules. The chips below remain editable per-image ingredients.</small></details>}
+            </div>
             {!!source.prefixes?.length && <div style={S.body}>
                 <select aria-label="Source prefix drop target" value={selectedPrefix?.id || ''} onChange={event => setPrefixId(event.target.value)} style={S.input}>
                     <option value="" disabled>Choose a prefix for added tags</option>

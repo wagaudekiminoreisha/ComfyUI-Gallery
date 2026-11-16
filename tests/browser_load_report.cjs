@@ -16,7 +16,7 @@ const assert=require('node:assert/strict');
   await panel.getByText(/Connect the final IMAGE/).waitFor();
   await page.evaluate(()=>window.qaLoadNode.onExecuted({load_report:[{
    hardware:{device:'QA GPU',device_total_bytes:8*1024**3,device_available_bytes:3*1024**3,ram_total_bytes:32*1024**3,ram_available_bytes:16*1024**3},
-   encoders:[{node_id:'2',side:'positive',token_streams:[{stream:'l',content_tokens:101,encoded_slots:154,chunks:2,chunk_sizes:[77,77]}],rules_applied:3,
+   encoders:[{node_id:'2',side:'positive',token_streams:[{stream:'l',content_tokens:101,encoded_slots:154,chunks:2,chunk_sizes:[77,77]}],rules_applied:3,source_filters:{source_text:{removed_tags:[{tag:'sitting',categories:['pose']}]}},
     diagnostics:{groups:[{name:'Character look',kind:'box',syntax:'{blue eyes|green eyes}',syntax_characters:22,resolved_text:'blue eyes',shared_tags:[],without_group_delta:[{stream:'l',token_delta:12,slot_delta:77,chunk_delta:1}]}],rulesets:[{id:'safety',name:'Safety filter',origin:'global',scope:'main',delta:[{stream:'l',token_delta:-3,slot_delta:0,chunk_delta:0}]}],coverage:{groups_analyzed:1,groups_total:1,rulesets_analyzed:1,rulesets_total:1},analysis_ms:2,notes:['Rows are not additive.']}}],
    model:{weight_bytes:6*1024**3,sampler_estimate_bytes:3*1024**3,base_estimate_bytes:9*1024**3,capacity_fraction:1.125,assessment:'Base estimate exceeds device capacity; offloading may be needed.',estimate_note:'Auxiliary models are not included.'},
    output_images:{shape:[2,768,512,3],bytes:2*768*512*3*4},
@@ -29,6 +29,8 @@ const assert=require('node:assert/strict');
   assert.equal(await panel.getByRole('cell',{name:'101',exact:true}).count(),1);
   await panel.getByText('Base estimate exceeds device capacity; offloading may be needed.',{exact:true}).waitFor();
   await panel.getByRole('cell',{name:'IPAdapterAdvanced',exact:true}).waitFor();
+  await panel.getByText('#2 · source_text · source filtering',{exact:true}).click();
+  await panel.getByRole('cell',{name:'sitting',exact:true}).waitFor();
   await panel.getByText('#2 positive · group and ruleset diagnosis',{exact:true}).click();
   await panel.getByRole('cell',{name:'Character look',exact:true}).waitFor();
   await panel.getByRole('cell',{name:'Safety filter',exact:true}).waitFor();

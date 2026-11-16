@@ -323,22 +323,35 @@ def edit_source_text(source, excluded, replacements):
     return ','.join(replacements.get(source_key(part), part) for part in split_top(filter_source(source, excluded)))
 
 
-def apply_source_exclusions(source, raw):
-    """Filter image segments before joining, so identical tags in other images survive."""
+def apply_source_exclusions(source, raw, trace=None):
+    """Edit images independently, then aggregate and filter this source only."""
     try: data=json.loads(raw) if isinstance(raw,str) else raw
     except ValueError: raise ValueError('Invalid per-image source exclusions.')
     if not data:return source
+    try: from .source_prompt_policy import merge_prompt_texts, filter_source_categories
+    except ImportError: from source_prompt_policy import merge_prompt_texts, filter_source_categories
     def valid_replacements(value):
         return isinstance(value,dict) and all(isinstance(key,str) and isinstance(text,str) for key,text in value.items())
-    if isinstance(data,dict) and 'segments' not in data and valid_replacements(data.get('replacements')):
-        return edit_source_text(source or '',[],data['replacements'])
-    if not isinstance(data,dict) or not isinstance(data.get('segments'),list) or len(data['segments'])>256:raise ValueError('Invalid per-image source exclusions.')
-    segments=data['segments']
-    for segment in segments:
-        if not isinstance(segment,dict) or not isinstance(segment.get('key'),str) or not isinstance(segment.get('text'),str) or not isinstance(segment.get('excluded'),list) or any(not isinstance(tag,str) for tag in segment['excluded']) or not valid_replacements(segment.get('replacements',{})):raise ValueError('Invalid per-image source exclusions.')
-    expected=', '.join(segment['text'] for segment in segments if segment['text'])
-    if (source or '')!=expected:raise ValueError('Source image prompts changed. Refresh the encoder before queuing again.')
-    return ', '.join(text for segment in segments if (text:=edit_source_text(segment['text'],segment['excluded'],segment.get('replacements',{})).strip()))
+    if not isinstance(data,dict):raise ValueError('Invalid per-image source exclusions.')
+    if 'segments' not in data and (valid_replacements(data.get('replacements')) or 'category_exclusions' in data):
+        if not valid_replacements(data.get('replacements',{})):raise ValueError('Invalid source replacements.')
+        result=edit_source_text(source or '',[],data.get('replacements',{}))
+    else:
+        if not isinstance(data.get('segments'),list) or len(data['segments'])>256:raise ValueError('Invalid per-image source exclusions.')
+        segments=data['segments']
+        for segment in segments:
+            if not isinstance(segment,dict) or not isinstance(segment.get('key'),str) or not isinstance(segment.get('text'),str) or not isinstance(segment.get('excluded'),list) or any(not isinstance(tag,str) for tag in segment['excluded']) or not valid_replacements(segment.get('replacements',{})):raise ValueError('Invalid per-image source exclusions.')
+        merge=data.get('merge',{})
+        if not isinstance(merge,dict):raise ValueError('Invalid source merge policy.')
+        mode,percent=merge.get('mode','append'),merge.get('min_percent',60)
+        expected=merge_prompt_texts([segment['text'] for segment in segments],mode,percent)
+        if (source or '')!=expected:raise ValueError('Source image prompts changed. Refresh the encoder before queuing again.')
+        result=merge_prompt_texts([edit_source_text(segment['text'],segment['excluded'],segment.get('replacements',{})).strip() for segment in segments],mode,percent)
+        if trace is not None and mode!='append':trace['merge']={'mode':mode,'min_percent':percent,'images':len(segments)}
+    result,removed=filter_source_categories(result,data.get('category_exclusions',[]))
+    if trace is not None and data.get('category_exclusions'):
+        trace.update(excluded_categories=data['category_exclusions'],removed_tags=removed)
+    return result
 
 
 def compose_prompt(text, source_text=None, source_mode='after', sources=None):
@@ -408,6 +421,7 @@ class GalleryPromptEncode:
             raise ValueError('Connect a CLIP text encoder to Gallery Prompt Encode.')
         raw_sources = {'source_text': source_text, **{name: sources[name] for name in SOURCE_INPUT_NAMES[1:] if name in sources}}
         scoped_sources = dict(raw_sources)
+        source_filters = {}
         edits = json.loads(source_image_exclusions) if isinstance(source_image_exclusions, str) else source_image_exclusions
         if source_mode == 'boxes':
             if isinstance(edits, dict) and 'sources' in edits:
@@ -415,9 +429,9 @@ class GalleryPromptEncode:
                     raise ValueError('Invalid named source edits.')
                 for name, value in raw_sources.items():
                     if value is not None:
-                        scoped_sources[name] = apply_source_exclusions(value, edits['sources'].get(name, {}))
+                        scoped_sources[name] = apply_source_exclusions(value, edits['sources'].get(name, {}), source_filters.setdefault(name,{}))
             elif source_text is not None:
-                scoped_sources['source_text'] = apply_source_exclusions(source_text, edits)
+                scoped_sources['source_text'] = apply_source_exclusions(source_text, edits, source_filters.setdefault('source_text',{}))
         raw_source = ', '.join(value for value in raw_sources.values() if value) if any(value is not None for value in raw_sources.values()) else None
         scoped_source = ', '.join(value for value in scoped_sources.values() if value) if raw_source is not None else None
         composed = compose_prompt(text, scoped_source, source_mode, scoped_sources)
@@ -446,6 +460,7 @@ class GalleryPromptEncode:
             extra_pnginfo[RESOLVED_KEY][str(unique_id)]['rules_applied'] = rules_trace
             extra_pnginfo[RESOLVED_KEY][str(unique_id)]['rules_program'] = rules
             extra_pnginfo[RESOLVED_KEY][str(unique_id)]['prefix_snapshots'] = snapshots
+            extra_pnginfo[RESOLVED_KEY][str(unique_id)]['source_filters'] = {name:trace for name,trace in source_filters.items() if trace}
             extra_pnginfo[RESOLVED_KEY][str(unique_id)]['source_excluded_by_image'] = json.loads(source_image_exclusions) if isinstance(source_image_exclusions,str) else source_image_exclusions
         tokens = clip.tokenize(effective)
         try: from .load_report import encoder_load
@@ -462,7 +477,7 @@ class GalleryPromptEncode:
             extra_pnginfo.get(RESOLVED_KEY, {}).get(str(unique_id), {})['diagnostic_context'] = diagnostic_context
         conditioning = clip.encode_from_tokens_scheduled(tokens)
         if isinstance(conditioning, list):
-            conditioning = [[row[0], {**row[1], 'gallery_load': {'node_id': str(unique_id), 'token_streams': load, 'rules_applied': len(rules_trace.get('rulesets', [])), 'diagnostic_context': diagnostic_context}}]
+            conditioning = [[row[0], {**row[1], 'gallery_load': {'node_id': str(unique_id), 'token_streams': load, 'rules_applied': len(rules_trace.get('rulesets', [])), 'diagnostic_context': diagnostic_context, 'source_filters': {name:trace for name,trace in source_filters.items() if trace}}}]
                             if isinstance(row, (list, tuple)) and len(row) == 2 and isinstance(row[1], dict) else row for row in conditioning]
         return {'ui': {'effective_prompt': [effective], 'source_text': [source_text or ''], 'source_texts': [raw_sources], 'token_load': [load]}, 'result': (conditioning, effective)}
 
