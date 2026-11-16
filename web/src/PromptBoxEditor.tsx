@@ -99,14 +99,16 @@ function PartInput({ chip, suggest, onAdd, onClose, onRemoveTag }: { chip: OrChi
     const [value, setValue] = useState('');
     const [items, setItems] = useState<Suggestion[]>([]);
     const [active, setActive] = useState(-1);
+    const menuId=useId();
+    const [menuOpen,setMenuOpen]=useState(false);
     const input = useRef<HTMLInputElement>(null);
     const request = useRef(0);
     const group = groupingKind(chip) === 'group';
     useEffect(() => { input.current?.focus(); }, []);
     useEffect(() => {
         const { token: query } = typingToken(value);
-        if (query.replace(/^@/, '').length < (query.startsWith('@') ? 0 : 2)) { setItems([]); return; }
         const id = ++request.current;
+        if (query.replace(/^@/, '').length < (query.startsWith('@') ? 0 : 2)) { setItems([]); return; }
         const timer = window.setTimeout(() => { suggest(query).then(found => { if (id === request.current) { setItems(found); setActive(-1); } }).catch(() => undefined); }, 150);
         return () => window.clearTimeout(timer);
     }, [value]);
@@ -119,15 +121,15 @@ function PartInput({ chip, suggest, onAdd, onClose, onRemoveTag }: { chip: OrChi
         add(before + item.label);
     };
     return <span onClick={event => event.stopPropagation()} style={{ display: 'inline-flex' }}>
-        <input onPaste={event=>{const text=event.clipboardData.getData('text/plain');if(/[{},|\n]/.test(text)){event.preventDefault();add(text);}}} ref={input} autoComplete="off" spellCheck={false} aria-label={group ? 'Add a tag to this group' : 'Add an option'} placeholder={group ? 'tag' : 'option'} value={value}
+        <input onPaste={event=>{const text=event.clipboardData.getData('text/plain');if(/[{},|\n]/.test(text)){event.preventDefault();add(text);}}} ref={input} role="combobox" aria-autocomplete="list" aria-expanded={menuOpen} aria-controls={menuOpen?menuId:undefined} aria-activedescendant={menuOpen&&active>=0?menuId+'-option-'+active:undefined} autoComplete="off" spellCheck={false} aria-label={group ? 'Add a tag to this group' : 'Add an option'} placeholder={group ? 'tag' : 'option'} value={value}
             onChange={event => setValue(event.target.value)} onBlur={() => { if (value.trim()) add(value); onClose(); }}
             onKeyDown={event => {
                 if (event.key === 'ArrowDown' && items.length) { event.preventDefault(); setActive(index => (index + 1) % items.length); }
                 else if (event.key === 'ArrowUp' && items.length) { event.preventDefault(); setActive(index => (index <= 0 ? items.length : index) - 1); }
                 else if (event.key === 'Enter') { event.preventDefault(); if (items[active]) pick(items[active]); else if (value.trim()) add(value); else onClose(); }
-                else if (event.key === 'Escape') { event.preventDefault(); onClose(); }
+                else if (event.key === 'Escape') { event.preventDefault(); request.current++; setItems([]); onClose(); }
             }} style={{ ...S.input, width: 110, padding: '0 4px', fontSize: 11 }} />
-        <SuggestionMenu anchor={input.current} items={items} active={active} onPick={pick} />
+        <SuggestionMenu id={menuId} onVisibility={setMenuOpen} anchor={input.current} items={items} active={active} onPick={pick} />
     </span>;
 }
 
@@ -227,7 +229,7 @@ function ChipEditor({ chip, onChange, onKind, onRemove, onSplit, onMove, onClose
 }
 
 /** Suggestions float above everything (the node's DOM widget scrolls and would clip them). */
-function SuggestionMenu({ anchor, items, active, onPick }: { anchor: HTMLElement | null; items: Suggestion[]; active: number; onPick: (item: Suggestion) => void }) {
+function SuggestionMenu({ id, onVisibility, anchor, items, active, onPick }: { id:string; onVisibility:(open:boolean)=>void; anchor: HTMLElement | null; items: Suggestion[]; active: number; onPick: (item: Suggestion) => void }) {
     const [rect, setRect] = useState<DOMRect>();
     useLayoutEffect(() => {
         if (!anchor || !items.length) return;
@@ -246,12 +248,15 @@ function SuggestionMenu({ anchor, items, active, onPick }: { anchor: HTMLElement
         window.addEventListener('scroll', update, true); window.addEventListener('resize', update); window.addEventListener('pointermove', update);
         return () => { observer.disconnect(); window.removeEventListener('scroll', update, true); window.removeEventListener('resize', update); window.removeEventListener('pointermove', update); };
     }, [anchor, items]);
+    const visible=!!(anchor&&items.length&&rect);
+    useEffect(()=>{onVisibility(visible);return()=>onVisibility(false);},[visible,onVisibility]);
+    useLayoutEffect(()=>{if(visible&&active>=0)document.getElementById(id+'-option-'+active)?.scrollIntoView({block:'nearest'});},[visible,active,id]);
     if (!anchor || !items.length || !rect || typeof document === 'undefined') return null;
     const placement = suggestionPlacement(rect, { width: innerWidth, height: innerHeight });
     // The menu lives in <body>, outside the editor: take the editor's look (node colours, or the gallery's) from the input.
     const look = getComputedStyle(anchor), value = (name: string) => look.getPropertyValue(name).trim() || undefined;
-    return createPortal(<div data-suggestion-menu role="listbox" onMouseDown={event => event.preventDefault()} style={{ ...S.menu, position: 'fixed', ...placement, boxSizing: 'border-box', overflowWrap: 'anywhere', right: 'auto', zIndex: 100000, color: value('--input-text') || '#ddd', background: value('--comfy-menu-bg') || '#353535', borderColor: value('--border-color'), font: look.font || '12px system-ui, sans-serif', ['--comfy-menu-hover-bg' as string]: value('--comfy-menu-hover-bg') } as CSSProperties}>
-        {items.map((item, index) => <div key={item.kind + item.label} role="option" aria-selected={index === active} onClick={() => onPick(item)} style={{ ...S.option, background: index === active ? 'var(--comfy-menu-hover-bg, #444)' : 'transparent' }}>
+    return createPortal(<div id={id} aria-label="Tag suggestions" data-suggestion-menu role="listbox" onMouseDown={event => event.preventDefault()} style={{ ...S.menu, position: 'fixed', ...placement, boxSizing: 'border-box', overflowWrap: 'anywhere', right: 'auto', zIndex: 100000, color: value('--input-text') || '#ddd', background: value('--comfy-menu-bg') || '#353535', borderColor: value('--border-color'), font: look.font || '12px system-ui, sans-serif', ['--comfy-menu-hover-bg' as string]: value('--comfy-menu-hover-bg') } as CSSProperties}>
+        {items.map((item, index) => <div key={item.kind + item.label} id={id+'-option-'+index} role="option" aria-selected={index === active} onClick={() => onPick(item)} style={{ ...S.option, background: index === active ? 'var(--comfy-menu-hover-bg, #444)' : 'transparent' }}>
             {item.kind === 'prefix' ? '@' : ''}{item.label}{item.kind === 'prefix' && <small style={{ opacity: .6 }}> · prefix</small>}
         </div>)}
     </div>, document.body);
@@ -269,6 +274,8 @@ function AddInput({ onBackspace, target, onTargetMode, placeholder, suggest, onT
     const [value, setValue] = useState('');
     const [items, setItems] = useState<Suggestion[]>([]);
     const [active, setActive] = useState(-1);
+    const menuId=useId();
+    const [menuOpen,setMenuOpen]=useState(false);
     const [mode, setMode] = useState<AddMode>('tag');
     useEffect(() => { if(target)setMode(addModeOf(target)); }, [target?.id, target && addModeOf(target)]);
     const [pending, setPending] = useState<string[]>([]);
@@ -278,13 +285,13 @@ function AddInput({ onBackspace, target, onTargetMode, placeholder, suggest, onT
     const modeInfo = ADD_MODES.find(item => item.value === mode)!;
     useEffect(() => {
         const { token: query } = typingToken(value);
+        const id = ++request.current;
         // No suggestions for a weight being typed (`red hair:1.`).
         if (/:[\d.]*$/.test(query) || query.replace(/^@/, '').length < (query.startsWith('@') ? 0 : 2)) { setItems([]); return; }
-        const id = ++request.current;
         const timer = window.setTimeout(() => { suggest(query).then(found => { if (id === request.current) { setItems(found); setActive(-1); } }).catch(() => { if (id === request.current) setItems([]); }); }, 150);
         return () => window.clearTimeout(timer);
     }, [value]);
-    const reset = () => { setValue(''); setItems([]); setActive(-1); };
+    const reset = () => { request.current++; setValue(''); setItems([]); setActive(-1); };
     const tagsOf = (text: string) => splitTop(text, ',').map(tag => tag.trim()).filter(Boolean);
     /** Enter: in tag mode add the text (keywords applied); in a grouping mode add the collected tags. */
     const commit = (text = value, refocus = true) => {
@@ -330,7 +337,7 @@ function AddInput({ onBackspace, target, onTargetMode, placeholder, suggest, onT
                 style={{ ...S.input, flex: '0 0 auto', borderColor: mode === 'tag' ? border : KIND_COLORS[mode === 'each' ? 'group' : mode] }}>
                 {ADD_MODES.map(item => <option key={item.value} value={item.value} title={item.hint}>{item.name}</option>)}
             </select>}
-            <input onPaste={event=>{const text=event.clipboardData.getData('text/plain');if(/[{},|\n]/.test(text)){event.preventDefault();onText(text);reset();}}} ref={input} autoComplete="off" spellCheck={false} aria-label={placeholder} title="Type tags, {a|b} syntax, or AND / OR / OPT between tags (e.g. red hair OR blue hair OPT)"
+            <input onPaste={event=>{const text=event.clipboardData.getData('text/plain');if(/[{},|\n]/.test(text)){event.preventDefault();onText(text);reset();}}} ref={input} role="combobox" aria-autocomplete="list" aria-expanded={menuOpen} aria-controls={menuOpen?menuId:undefined} aria-activedescendant={menuOpen&&active>=0?menuId+'-option-'+active:undefined} autoComplete="off" spellCheck={false} aria-label={placeholder} title="Type tags, {a|b} syntax, or AND / OR / OPT between tags (e.g. red hair OR blue hair OPT)"
                 placeholder={grouping ? (mode === 'each' ? 'Type tags; each becomes optional on its own' : `Type tags for one ${modeInfo.name.toLowerCase()} chip`) : placeholder} value={value} onChange={event => change(event.target.value)}
                 onBlur={event => { if (!(event.relatedTarget as HTMLElement | null)?.closest('[data-add-input],[data-suggestion-menu]')) commit(value, false); }}
                 onKeyDown={event => {
@@ -338,11 +345,11 @@ function AddInput({ onBackspace, target, onTargetMode, placeholder, suggest, onT
                     else if (event.key === 'ArrowDown' && items.length) { event.preventDefault(); setActive(index => (index + 1) % items.length); }
                     else if (event.key === 'ArrowUp' && items.length) { event.preventDefault(); setActive(index => (index <= 0 ? items.length : index) - 1); }
                     else if (event.key === 'Enter') { event.preventDefault(); if (items[active]) pick(items[active]); else commit(); }
-                    else if (event.key === 'Escape') { setItems([]); setActive(-1); }
+                    else if (event.key === 'Escape') { event.preventDefault(); request.current++; setItems([]); setActive(-1); }
                     else if (event.key === ',' && value.trim() && balanced(value)) { event.preventDefault(); if (grouping) collect(tagsOf(value)); else commit(); }
                 }} style={{ ...S.input, flex: 1, minWidth: 0, boxSizing: 'border-box' }} />
         </div>
-        <SuggestionMenu anchor={input.current} items={items} active={active} onPick={pick} />
+        <SuggestionMenu id={menuId} onVisibility={setMenuOpen} anchor={input.current} items={items} active={active} onPick={pick} />
     </div>;
 }
 

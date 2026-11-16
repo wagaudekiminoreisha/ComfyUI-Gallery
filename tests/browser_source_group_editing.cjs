@@ -37,7 +37,7 @@ const assert=require('node:assert/strict');
   assert.equal(await memberText.inputValue(),'green eyes');
   await editor.getByRole('button',{name:'Done',exact:true}).click();
   await editor.getByRole('button',{name:'Add an option',exact:true}).click();
-  const option=editor.getByRole('textbox',{name:'Add an option',exact:true});
+  const option=editor.getByRole('combobox',{name:'Add an option',exact:true});
   await option.fill('hazel eyes');await option.press('Enter');await option.press('Escape');
   await editor.getByRole('button',{name:'Remove green eyes',exact:true}).click();
   await editor.getByRole('combobox',{name:'Chip kind',exact:true}).selectOption('optional');

@@ -26,7 +26,7 @@ const assert = require('node:assert/strict');
    }
   },prefix);
   const first=page.locator('#qa-control-0'), second=page.locator('#qa-control-1');
-  const add=first.getByRole('textbox',{name:'Add tags (Enter)',exact:true});
+  const add=first.getByRole('combobox',{name:'Add tags (Enter)',exact:true});
   await add.waitFor();
   const surface=first.locator('[data-tag-surface]').first();const bounds=await surface.boundingBox();await surface.click({position:{x:bounds.width-4,y:bounds.height-4}});assert.equal(await add.evaluate(el=>el===document.activeElement),true);await page.keyboard.press('Backspace');
   await page.waitForFunction(()=>!window.qaControlNodes[0].widgets[0].value.includes('red'));
@@ -46,7 +46,7 @@ const assert = require('node:assert/strict');
   assert(p.tags.map(id=>updated.tags.find(t=>t.id===id).text).includes('{red|blue|}'));
   assert.deepEqual(p.negative_terms,['negative kept']);
   await second.getByRole('button',{name:'Edit destination',exact:true}).click();
-  await second.getByRole('textbox',{name:'Add tags (Enter)',exact:true}).press('Backspace');
+  await second.getByRole('combobox',{name:'Add tags (Enter)',exact:true}).press('Backspace');
   await page.waitForFunction(()=>!window.qaControlNodes[1].widgets[0].value.includes('destination'));
   assert.equal(await page.evaluate(()=>window.qaEscapedEvents),0);assert.deepEqual(errors,[]);
   console.log('PASS box focus, Backspace, double-click removal, cross-editor copies, grouped source-prefix persistence and polarity');

@@ -12,9 +12,9 @@ try{
  // An old workflow's text becomes box #1 with the source box after it.
  await expectText('a, b, c, '+M);
  // Comma-separated tags become individual chips; {q|r|} becomes one or-chip.
- const add=editor.getByRole('textbox',{name:/^Add tags/});
+ const add=editor.getByRole('combobox',{name:/^Add tags/});
  await add.fill('x, y');await add.press('Enter');await expectText('a, b, c, x, y, '+M);
- const newBox=editor.getByRole('textbox',{name:'New box: type tags and press Enter',exact:true});
+ const newBox=editor.getByRole('combobox',{name:'New box: type tags and press Enter',exact:true});
  await newBox.fill('p, {q|r|}');await newBox.press('Enter');await expectText('a, b, c, x, y, '+M+', p, {q|r|}');
  // Drag a chip from one box in front of a chip in another.
  await editor.getByRole('button',{name:'Edit p',exact:true}).dragTo(editor.getByRole('button',{name:'Edit a',exact:true}),{targetPosition:{x:1,y:4}});
