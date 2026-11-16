@@ -12,6 +12,12 @@ class Clip:
  def encode_from_tokens_scheduled(self,text):return text
 
 class SourcePromptPolicyTests(unittest.TestCase):
+ def test_fine_attire_filters_and_parent(self):
+  text='white shirt, blue skirt, armor, casual, sneakers, mysterious garment'
+  self.assertEqual(filter_source_categories(text,['clothing-tops'])[0],'blue skirt, armor, casual, sneakers, mysterious garment')
+  self.assertEqual(filter_source_categories(text,['clothing-bottoms','clothing-armor'])[0],'white shirt, casual, sneakers, mysterious garment')
+  self.assertEqual(filter_source_categories(text,['clothing-casual-style'])[0],'white shirt, blue skirt, armor, sneakers, mysterious garment')
+  self.assertEqual(filter_source_categories(text,['clothing'])[0],'mysterious garment')
  def test_presets_separate_pose_and_appearance_and_keep_unknowns(self):
   text='long hair, blue eyes, black dress, standing, arms up, from behind, unknown tag'
   pose,trace=filter_source_categories(text,CATALOG['presets']['pose'])

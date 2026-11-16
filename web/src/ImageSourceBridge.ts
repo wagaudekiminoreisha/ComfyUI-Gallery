@@ -96,10 +96,12 @@ export function saveSourceManifest(node: any, manifest: ImageSourceManifest, rec
     try {
         const previous = readSourceManifest(node);
         manifest = assignImageOutputs(manifest);
+        const focusedName = previous.images[node.__galleryViewIndex || 0]?.input_name;
         const serialized = JSON.stringify(manifest);
         if (new TextEncoder().encode(serialized).byteLength > MAX_SOURCE_METADATA_BYTES) throw new Error('Image source settings exceed the 32 MiB metadata limit. Remove sources or use another node.');
         const history = mergeSourceHistory(readSourceHistory(node), manifest.images);
         widget.value = serialized; widget.callback?.(widget.value);
+        if (focusedName) node.__galleryFocusImage?.(Math.max(0, manifest.images.findIndex(image => image.input_name === focusedName)));
         if (readSourceManifest(node).images.length !== manifest.images.length) throw new Error('ComfyUI did not retain the appended sources. Check this node’s sources input.');
         node.properties ||= {}; node.properties.gallery_source_history = history;
         syncImageOutputs(node, manifest, previous);
