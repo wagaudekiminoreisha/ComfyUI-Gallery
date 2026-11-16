@@ -10,6 +10,7 @@ try{
  await manager.getByLabel('Add ruleset',{exact:true}).selectOption('builtin-hair');
  const hair=manager.getByRole('group',{name:'Ruleset box Hair',exact:true});
  const length=hair.getByLabel('Hair length',{exact:true});await length.selectOption('short_hair');
+ await manager.locator('details[aria-label="Advanced rule tools"] > summary').click();
  await manager.getByRole('button',{name:'Import legacy blacklist as Protect rules',exact:true}).click();
  await manager.getByRole('button',{name:'Save rules library',exact:true}).click();
  await page.waitForFunction(async()=>{const data=await(await fetch('/Gallery/rulesets')).json();return data.library.globals.length===2;});await observer.waitForFunction(()=>window.rulesBroadcastSeen>0);await observer.close();

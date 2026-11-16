@@ -308,15 +308,16 @@ export function SourcePrefixPanel() {
     const total = positive.length + negative.length;
     return <>
         {drafts.dialog}
-        <FloatingPanel panelKey="source-prefix" focusKey={entries} title={'Prefix associations · ' + entries.length + ' image' + (entries.length === 1 ? '' : 's')} open={entries.length > 0} onCancel={close} width={980} zIndex={BASE_Z_INDEX + 30}
+        <FloatingPanel panelKey="source-prefix" focusKey={entries} title={'Prefix associations · ' + entries.length + ' image' + (entries.length === 1 ? '' : 's')+(drafts.dirty?' · Unsaved':'')} open={entries.length > 0} onCancel={close} width={980} zIndex={BASE_Z_INDEX + 30}
             footer={<Space wrap>
+                <Tag color={busy?'processing':drafts.dirty?'warning':prefix?'success':undefined}>{busy?'Saving…':drafts.dirty?'Unsaved':prefix?'Saved':'New'}</Tag>
                 <Button onClick={close}>Close</Button>
                 <Button onClick={() => { drafts.guard(() => { setAppending(entries); setEntries([]); }); }}>Append images and prompts…</Button>
                 <Button disabled={!prefix || busy} onClick={() => void pair()} title="Pair the image(s) with this prefix without changing its tags">Pair only</Button>
                 <Button type="link" onClick={() => { openPrefixManager({snapshotId:snapshot, name: prefix?.name || name, positive, negative, imageKeys: keys, imageRefs: refs }); setEntries([]); }}>Full prefix editor…</Button>
                 <Button disabled={!prefix||busy||!total} onClick={()=>void save(true)}>Create snapshot</Button><Button type="primary" loading={busy} disabled={!total || !(prefix || name.trim())} onClick={() => void save()}>{snapshot?'Save snapshot':prefix ? `Update shared “${prefix.name}” and pair` : name ? `Create “${name}” with ${total} tag(s)` : `Create prefix with ${total} tag(s)`}</Button>
             </Space>}>
-            <div className="cg-associations-layout"><SnapshotRail prefixId={prefix?.id} selected={snapshot} onSelect={row=>{const positive=row?.terms||(prefix?expandPrefix(library,'@'+prefix.name):[]),negative=row?.negative_terms||prefix?.negative_terms||[];drafts.markSaved({name:prefix?.name||name,positive,negative});setSnapshot(row?.id);setPositive(positive);setNegative(negative);}}/><div className="cg-associations-main">
+            <div className="cg-associations-layout"><SnapshotRail prefixId={prefix?.id} selected={snapshot} onSelect={row=>drafts.guard(()=>{const positive=row?.terms||(prefix?expandPrefix(library,'@'+prefix.name):[]),negative=row?.negative_terms||prefix?.negative_terms||[];drafts.markSaved({name:prefix?.name||name,positive,negative});setSnapshot(row?.id);setPositive(positive);setNegative(negative);})}/><div className="cg-associations-main">
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>{entries.slice(0, 8).map(entry => <img key={entry.id} src={thumb(entry)} alt={entry.name} style={{ width: 84, height: 84, objectFit: 'contain', background: '#8882', borderRadius: 4 }} />)}{entries.length > 8 && <Typography.Text type="secondary">+{entries.length - 8}</Typography.Text>}</div>
             {!!pairedWith.length && <div style={{ marginBottom: 8 }}><Typography.Text>Paired with: </Typography.Text>{pairedWith.map(id => <Tag key={id} closable onClose={event => { event.preventDefault(); void unpair(id); }}>{library.prefixes.find(item => item.id === id)?.name || 'deleted prefix'}</Tag>)}</div>}
             {/* One box: pick an existing prefix, or type a new name — it is kept (and shown) until the prefix is created. */}
@@ -324,8 +325,8 @@ export function SourcePrefixPanel() {
                 disabled={busy}
                 value={prefix ? prefix.id : name ? 'new:' + name : undefined} searchValue={typed} onSearch={setTyped} autoClearSearchValue
                 filterOption={(input, option) => String(option?.value).startsWith('new:') || String(option?.label).toLowerCase().includes(input.trim().toLowerCase())}
-                onChange={(value?: string) => {setSnapshot(undefined); setTyped(''); if (!value) { setPrefixId(undefined); setName(''); } else if (value.startsWith('new:')) { setPrefixId(undefined); setName(value.slice(4)); } else setPrefixId(value); }}
-                onBlur={() => { const match = matchOf(typedName); if (match) setPrefixId(match.id); else if (typedName) { setPrefixId(undefined); setName(typedName); } setTyped(''); }}
+                onChange={(value?: string) => {const apply=()=>{setSnapshot(undefined); setTyped(''); if (!value) { setPrefixId(undefined); setName(''); } else if (value.startsWith('new:')) { setPrefixId(undefined); setName(value.slice(4)); } else setPrefixId(value); };if(!prefix&&value?.startsWith('new:'))apply();else drafts.guard(apply);}}
+                onBlur={() => { if(!typedName)return;const match=matchOf(typedName),apply=()=>{setSnapshot(undefined);setPrefixId(match?.id);if(!match)setName(typedName);setTyped('');};if(prefix||match)drafts.guard(apply);else apply();}}
                 options={[
                     ...(typedName && !matchOf(typedName) ? [{ value: 'new:' + typedName, label: 'Create new prefix “' + typedName + '”' }] : []),
                     ...(!prefix && name && name !== typedName ? [{ value: 'new:' + name, label: 'New prefix “' + name + '” (created when you save)' }] : []),

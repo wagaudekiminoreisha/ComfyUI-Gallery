@@ -14,6 +14,9 @@ export const galleryStyles = `
 .cg-browser { padding:0 18px 12px; }
 .cg-hydrus-search { flex:none; max-height:45vh; overflow:auto; margin:12px 6px 0; padding:0 14px 12px; border:1px solid var(--cg-border); border-radius:10px; background:var(--cg-panel); }
 .cg-grid-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding:12px 6px; flex:none; }
+.cg-workspace:has(nav[data-collapsed="false"]) .cg-local-folder-picker { display:none; }
+.cg-thumbnail-slider { width:90px; margin:0 12px; }
+@media(max-width:1100px) { .cg-thumbnail-slider { width:55px; margin:0 4px; } }
 .cg-grid-summary { color:var(--cg-muted); margin-right:auto; font-variant-numeric:tabular-nums; }
 .cg-selection { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 6px 10px; padding:8px 12px; background:var(--cg-panel); border:1px solid var(--cg-border); border-radius:8px; flex:none; }
 .cg-workspace .ant-btn { font:inherit; min-height:30px; height:30px; line-height:1; padding:4px 12px; box-shadow:none; }

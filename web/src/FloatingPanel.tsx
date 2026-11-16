@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { Button, Space, theme, ConfigProvider, type ModalProps } from 'antd';
+import { Button, Dropdown, Space, theme, ConfigProvider, type ModalProps } from 'antd';
 import panelStyles from './FloatingPanel.css?inline';
 
 const panels = new Map<string, { base: number; order: number; setLayer: (value: number) => void }>();
@@ -57,7 +57,7 @@ export function FloatingPanel({ panelKey, title, open, onCancel, children, foote
     useEffect(() => { if (!open) return; setCollapsed(false); setMaximized(false); setBox(value => fit(value)); const frame = requestAnimationFrame(() => { raise(); root.current?.focus(); afterOpenChange?.(true); }); return () => cancelAnimationFrame(frame); }, [open]);
     useEffect(() => { const resize = () => setBox(value => fit(value)); window.addEventListener('resize', resize); return () => window.removeEventListener('resize', resize); }, []);
     const start = (event: PointerEvent<HTMLElement>, resize = false) => {
-        if (cover || event.button !== 0 || (!resize && (event.target as HTMLElement).closest('button,input,a'))) return;
+        if (!event.currentTarget.contains(event.target as Node) || cover || event.button !== 0 || (!resize && (event.target as HTMLElement).closest('button,input,a'))) return;
         event.preventDefault(); raise(); event.currentTarget.setPointerCapture(event.pointerId);
         drag.current = { x: event.clientX, y: event.clientY, box: latest.current, resize };
     };
@@ -75,9 +75,7 @@ export function FloatingPanel({ panelKey, title, open, onCancel, children, foote
         <div data-image-search-drop title="Drop an image here to search by provenance" onPointerDown={event => start(event)} onPointerMove={move} onPointerUp={stop} onPointerCancel={stop} onDoubleClick={event => { if (!cover && !(event.target as HTMLElement).closest('button')) collapse(); }} style={{ cursor: cover ? 'default' : 'move', touchAction:'none', display:'flex', alignItems:'center', gap:8, padding:'8px 12px', background:token.colorFillAlter, flexShrink:0 }}>
             <strong id={id} style={{ flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} title={cover ? undefined : 'Drag to move; double-click to collapse'}>{title}</strong>
             <Space size={3}>
-                {!cover && <Button size="small" title="Place on left half" aria-label="Place panel left" onClick={() => place({x:8,y:8,width:innerWidth/2-12,height:innerHeight-16})}>◧</Button>}
-                {!cover && <Button size="small" title="Place on right half" aria-label="Place panel right" onClick={() => place({x:innerWidth/2+4,y:8,width:innerWidth/2-12,height:innerHeight-16})}>◨</Button>}
-                {!cover && <Button size="small" title="Reset panel layout" aria-label="Reset panel layout" onClick={() => place(initial())}>↺</Button>}
+                {!cover && <Dropdown destroyOnHidden trigger={['click']} overlayStyle={{zIndex:layer+10}} menu={{items:[{key:'left',label:'Place panel left'},{key:'right',label:'Place panel right'},{key:'reset',label:'Reset panel layout'}],onClick:({key})=>key==='left'?place({x:8,y:8,width:innerWidth/2-12,height:innerHeight-16}):key==='right'?place({x:innerWidth/2+4,y:8,width:innerWidth/2-12,height:innerHeight-16}):place(initial())}}><Button size="small" title="Window layout" aria-label="Window layout">⋯</Button></Dropdown>}
                 {!coverSetting && <Button size="small" title={maximized ? 'Restore the floating window' : 'Cover the whole page'} aria-label={maximized ? 'Restore panel' : 'Maximize panel'} onClick={() => setMaximized(value => !value)}>{maximized ? '❐' : '⛶'}</Button>}
                 {!cover && <Button size="small" aria-label={collapsed ? 'Expand panel' : 'Collapse panel'} onClick={collapse}>{collapsed ? '+' : '−'}</Button>}
                 <Button size="small" aria-label="Close" onClick={onCancel}>×</Button>

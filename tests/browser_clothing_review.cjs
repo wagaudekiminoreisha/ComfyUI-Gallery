@@ -12,7 +12,7 @@ const assert=require('node:assert/strict');
     const node={comfyClass:'GalleryPromptEncode',title:'Clothing QA',widgets:[{name:'text',value:text},{name:'source_mode',value:'after'}],inputs:[{name:'source_text',link:null}],properties:{},setDirtyCanvas(){},addWidget(type,name,value,callback){this.widgets.push({type,name,value,callback});},addDOMWidget(name,type,el){host.append(el);return{name,type};}};
     window.comfyAPI.app.app.graph.add(node);window.qaExtension.nodeCreated(node);window.qaClothing=node;
    },text);
-   await page.locator('#qa-clothing').getByRole('textbox',{name:'New box: type tags and press Enter',exact:true}).waitFor();
+   await page.locator('#qa-clothing').getByRole('combobox',{name:'New box: type tags and press Enter',exact:true}).waitFor();
   };
   await create('skirt, tracksuit');
   let review=page.locator('#qa-clothing').getByLabel('Clothing review',{exact:true});

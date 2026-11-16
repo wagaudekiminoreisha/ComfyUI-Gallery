@@ -27,9 +27,9 @@ const assert=require('node:assert/strict');
   await from.getByRole('button',{name:'Edit {a, b|}',exact:true}).waitFor();
   await from.getByRole('button',{name:'Edit [soft]',exact:true}).waitFor();
   await flow.getByRole('button',{name:'Clear',exact:true}).click();
-  await from.getByRole('button',{name:'Edit {a, b|}',exact:true}).dragTo(flow.getByRole('textbox',{name:/^Terms: tags/}));
+  await from.getByRole('button',{name:'Edit {a, b|}',exact:true}).dragTo(flow.getByRole('combobox',{name:/^Terms: tags/}));
   await flow.locator('.cg-terms').getByRole('button',{name:'Edit {a, b|}',exact:true}).waitFor();
-  await flow.getByRole('textbox',{name:/^Terms: tags/}).press('Backspace');
+  await flow.getByRole('combobox',{name:/^Terms: tags/}).press('Backspace');
   await flow.locator('.cg-terms').getByRole('button',{name:'Edit {a, b|}',exact:true}).waitFor({state:'detached'});
   // Return to the saved empty draft so closing needs no discard confirmation.
   await flow.getByRole('button',{name:'Close',exact:true}).first().click();

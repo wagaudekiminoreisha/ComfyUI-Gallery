@@ -23,7 +23,7 @@ try{
  await format.selectOption('each');await text('{a|}, {b|}, {c|}');
  await format.selectOption('tag');await text('a, b, c');
  await format.selectOption('alternatives');await text('{a|b|c}');
- const add=editor.getByRole('textbox',{name:'Add tags (Enter)',exact:true});await add.fill('d');await add.press('Enter');await text('{a|b|c}, d');assert.equal(await format.inputValue(),'mixed');
+ const add=editor.getByRole('combobox',{name:'Add tags (Enter)',exact:true});await add.fill('d');await add.press('Enter');await text('{a|b|c}, d');assert.equal(await format.inputValue(),'mixed');
  await format.selectOption('tag');await text('a, b, c, d');
  await editor.getByRole('button',{name:'Select chips',exact:true}).click();
  await editor.getByRole('button',{name:'Edit a',exact:true}).click();
@@ -38,7 +38,7 @@ try{
  await page.evaluate(()=>document.querySelector('#qa-batch').remove());
  await page.getByAltText('study-1.png',{exact:true}).click({button:'right'});await page.getByRole('menuitem',{name:'Prefix associations… (1)',exact:true}).click();
  const flow=page.getByRole('dialog',{name:/^Prefix associations/});await flow.getByRole('button',{name:'Clear',exact:true}).click();
- const terms=flow.getByRole('textbox',{name:/^Terms: tags/});await terms.fill('x, y, z');await terms.press('Enter');
+ const terms=flow.getByRole('combobox',{name:/^Terms: tags/});await terms.fill('x, y, z');await terms.press('Enter');
  await flow.getByRole('combobox',{name:'Convert prompt format',exact:true}).selectOption('alternatives');
  await flow.getByRole('tab',{name:'Positive (3)',exact:true}).waitFor();
  await flow.getByRole('combobox',{name:'Convert prompt format',exact:true}).selectOption('tag');await flow.getByRole('tab',{name:'Positive (3)',exact:true}).waitFor();

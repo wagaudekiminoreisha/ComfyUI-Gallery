@@ -52,7 +52,7 @@ const S: Record<string, CSSProperties> = {
     orChip: { borderStyle: 'dashed', borderRadius: 6 },
     selected: { outline: `2px solid ${accent}` },
     handle: { cursor: 'grab', opacity: .7, padding: '0 2px', userSelect: 'none' },
-    x: { border: 0, background: 'transparent', color: 'inherit', cursor: 'pointer', padding: '0 3px', fontSize: 14, lineHeight: 1 },
+    x: { border: 0, background: 'transparent', color: 'inherit', cursor: 'pointer', padding: '0 3px', minWidth:24, minHeight:24, fontSize: 14, lineHeight: 1 },
     btn: { border: `1px solid ${border}`, background: 'transparent', color: 'inherit', borderRadius: 4, cursor: 'pointer', padding: '0 6px', minHeight: 20, fontSize: 11 },
     input: { background: field, color: 'inherit', border: `1px solid ${border}`, borderRadius: 4, padding: '2px 6px', font: 'inherit' },
     editor: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: 6, border: `1px solid ${border}`, borderRadius: 6 },
@@ -102,14 +102,16 @@ function PartInput({ chip, suggest, onAdd, onClose, onRemoveTag }: { chip: OrChi
     const [value, setValue] = useState('');
     const [items, setItems] = useState<Suggestion[]>([]);
     const [active, setActive] = useState(-1);
+    const menuId=useId();
+    const [menuOpen,setMenuOpen]=useState(false);
     const input = useRef<HTMLInputElement>(null);
     const request = useRef(0);
     const group = groupingKind(chip) === 'group';
     useEffect(() => { input.current?.focus(); }, []);
     useEffect(() => {
         const { token: query } = typingToken(value);
-        if (query.replace(/^@/, '').length < (query.startsWith('@') ? 0 : 2)) { setItems([]); return; }
         const id = ++request.current;
+        if (query.replace(/^@/, '').length < (query.startsWith('@') ? 0 : 2)) { setItems([]); return; }
         const timer = window.setTimeout(() => { suggest(query).then(found => { if (id === request.current) { setItems(found); setActive(-1); } }).catch(() => undefined); }, 150);
         return () => window.clearTimeout(timer);
     }, [value]);
@@ -122,15 +124,15 @@ function PartInput({ chip, suggest, onAdd, onClose, onRemoveTag }: { chip: OrChi
         add(before + item.label);
     };
     return <span onClick={event => event.stopPropagation()} style={{ display: 'inline-flex' }}>
-        <input onPaste={event=>{const text=event.clipboardData.getData('text/plain');if(/[{},|\n]/.test(text)){event.preventDefault();add(text);}}} ref={input} autoComplete="off" spellCheck={false} aria-label={group ? 'Add a tag to this group' : 'Add an option'} placeholder={group ? 'tag' : 'option'} value={value}
+        <input onPaste={event=>{const text=event.clipboardData.getData('text/plain');if(/[{},|\n]/.test(text)){event.preventDefault();add(text);}}} ref={input} role="combobox" aria-autocomplete="list" aria-expanded={menuOpen} aria-controls={menuOpen?menuId:undefined} aria-activedescendant={menuOpen&&active>=0?menuId+'-option-'+active:undefined} autoComplete="off" spellCheck={false} aria-label={group ? 'Add a tag to this group' : 'Add an option'} placeholder={group ? 'tag' : 'option'} value={value}
             onChange={event => setValue(event.target.value)} onBlur={() => { if (value.trim()) add(value); onClose(); }}
             onKeyDown={event => {
                 if (event.key === 'ArrowDown' && items.length) { event.preventDefault(); setActive(index => (index + 1) % items.length); }
                 else if (event.key === 'ArrowUp' && items.length) { event.preventDefault(); setActive(index => (index <= 0 ? items.length : index) - 1); }
                 else if (event.key === 'Enter') { event.preventDefault(); if (items[active]) pick(items[active]); else if (value.trim()) add(value); else onClose(); }
-                else if (event.key === 'Escape') { event.preventDefault(); onClose(); }
+                else if (event.key === 'Escape') { event.preventDefault(); request.current++; setItems([]); onClose(); }
             }} style={{ ...S.input, width: 110, padding: '0 4px', fontSize: 11 }} />
-        <SuggestionMenu anchor={input.current} items={items} active={active} onPick={pick} />
+        <SuggestionMenu id={menuId} onVisibility={setMenuOpen} anchor={input.current} items={items} active={active} onPick={pick} />
     </span>;
 }
 
@@ -149,7 +151,7 @@ function ChipView({ chip, selected, picked, onSelect, onPick, onRemove, onDrop, 
     const weighted = chip.weight !== undefined && chip.weight !== 1;
     const mode = addModeOf(chip), color = modeColor(mode);
     const grouped = chip.kind === 'or';
-    const remove = onRemove && <button type="button" aria-label="Remove tag" title="Remove" onClick={event => { event.stopPropagation(); onRemove(); }} style={{ ...S.x, color: grouped ? '#fff' : 'inherit' }}>×</button>;
+    const remove = onRemove && <button type="button" aria-label={'Remove '+compileChip({...chip,enabled:true})} title={grouped?'Remove entire group':'Remove tag'} onClick={event => { event.stopPropagation(); onRemove(); }} style={{ ...S.x, color: grouped ? '#fff' : 'inherit' }}>×</button>;
     const select = (event: { shiftKey: boolean; ctrlKey: boolean; metaKey: boolean }) => { if ((event.shiftKey || event.ctrlKey || event.metaKey) && onPick) onPick(event.shiftKey); else onSelect(); };
     const label = <span role="button" tabIndex={0} aria-label={'Edit ' + compileChip({ ...chip, enabled: true })} onClick={select}
         onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(event); } else if (onRemove && (event.key === 'Backspace' || event.key === 'Delete')) { event.preventDefault(); event.stopPropagation(); if (!event.repeat) onRemove(); } }} style={{ cursor: 'grab' }}>
@@ -158,14 +160,14 @@ function ChipView({ chip, selected, picked, onSelect, onPick, onRemove, onDrop, 
             : <>{chip.emphasis === 'round' && '('}{chip.emphasis === 'square' && '['}{chip.text}{chip.emphasis === 'round' && ')'}{chip.emphasis === 'square' && ']'}</>}
         {weighted && !grouped && <small style={{ opacity: .7 }}> ×{chip.weight}</small>}
     </span>;
-    return <span data-prompt-drop data-rule-omitted={omitted||undefined} data-chip-id={chip.id} onClick={event => { if (!(event.target as HTMLElement).closest('button,select,input,[role="button"]')) select(event); }} draggable={false} title={onDrop ? 'Click to edit · double-click to remove · Shift/Ctrl-click to pick several · drag to move within this editor or copy to another' : 'Drag to copy' + (onRemove ? ' · double-click to remove' : '')}
+    return <span data-prompt-drop data-rule-omitted={omitted||undefined} data-chip-id={chip.id} onClick={event => { if (!(event.target as HTMLElement).closest('button,select,input,[role="button"]')) select(event); }} draggable={false} title={onDrop ? 'Click to edit · × or Delete to remove · Shift/Ctrl-click to pick several · drag to move within this editor or copy to another' : 'Drag to copy' + (onRemove ? ' · × or Delete to remove' : '')}
         onPointerDownCapture={event => {
             if ((event.target as HTMLElement).closest('button,select,input,textarea,[data-part-drag]')||!transferable.enabled) return;
             event.stopPropagation();
             startPromptPointerDrag(event.nativeEvent,event.currentTarget,compileChip({...transferable,enabled:true}),PROMPT_CHIP_TYPE,JSON.stringify(transferable),onRemove,
                 ()=>{dragging={kind:'chip',id:transferable.id,chip:transferable};},()=>{dragging=undefined;setMark(undefined);});
         }}
-        onDoubleClick={event => { if (onRemove && !(event.target as HTMLElement).closest('button,select,input,[data-part-drag]')) { event.stopPropagation(); onRemove(); } }}
+        onDoubleClick={event => { event.stopPropagation(); if (!(event.target as HTMLElement).closest('button,select,input,[data-part-drag]')) select(event); }}
         onDragStart={event => { event.stopPropagation(); dragging = { kind: 'chip', id: chip.id, chip }; event.dataTransfer.effectAllowed = 'copyMove'; event.dataTransfer.setData(PROMPT_CHIP_TYPE, JSON.stringify(chip)); event.dataTransfer.setData('text/plain', compileChip({ ...chip, enabled: true })); }}
         onContextMenu={event=>{event.preventDefault();event.stopPropagation();setCopyMenu({x:event.clientX,y:event.clientY});}}
         onDragEnd={() => { dragging = undefined; setMark(undefined); }}
@@ -230,7 +232,7 @@ function ChipEditor({ chip, onChange, onKind, onRemove, onSplit, onMove, onClose
 }
 
 /** Suggestions float above everything (the node's DOM widget scrolls and would clip them). */
-function SuggestionMenu({ anchor, items, active, onPick }: { anchor: HTMLElement | null; items: Suggestion[]; active: number; onPick: (item: Suggestion) => void }) {
+function SuggestionMenu({ id, onVisibility, anchor, items, active, onPick }: { id:string; onVisibility:(open:boolean)=>void; anchor: HTMLElement | null; items: Suggestion[]; active: number; onPick: (item: Suggestion) => void }) {
     const [rect, setRect] = useState<DOMRect>();
     useLayoutEffect(() => {
         if (!anchor || !items.length) return;
@@ -249,12 +251,15 @@ function SuggestionMenu({ anchor, items, active, onPick }: { anchor: HTMLElement
         window.addEventListener('scroll', update, true); window.addEventListener('resize', update); window.addEventListener('pointermove', update);
         return () => { observer.disconnect(); window.removeEventListener('scroll', update, true); window.removeEventListener('resize', update); window.removeEventListener('pointermove', update); };
     }, [anchor, items]);
+    const visible=!!(anchor&&items.length&&rect);
+    useEffect(()=>{onVisibility(visible);return()=>onVisibility(false);},[visible,onVisibility]);
+    useLayoutEffect(()=>{if(visible&&active>=0)document.getElementById(id+'-option-'+active)?.scrollIntoView({block:'nearest'});},[visible,active,id]);
     if (!anchor || !items.length || !rect || typeof document === 'undefined') return null;
     const placement = suggestionPlacement(rect, { width: innerWidth, height: innerHeight });
     // The menu lives in <body>, outside the editor: take the editor's look (node colours, or the gallery's) from the input.
     const look = getComputedStyle(anchor), value = (name: string) => look.getPropertyValue(name).trim() || undefined;
-    return createPortal(<div data-suggestion-menu role="listbox" onMouseDown={event => event.preventDefault()} style={{ ...S.menu, position: 'fixed', ...placement, boxSizing: 'border-box', overflowWrap: 'anywhere', right: 'auto', zIndex: 100000, color: value('--input-text') || '#ddd', background: value('--comfy-menu-bg') || '#353535', borderColor: value('--border-color'), font: look.font || '12px system-ui, sans-serif', ['--comfy-menu-hover-bg' as string]: value('--comfy-menu-hover-bg') } as CSSProperties}>
-        {items.map((item, index) => <div key={item.kind + item.label} role="option" aria-selected={index === active} onClick={() => onPick(item)} style={{ ...S.option, background: index === active ? 'var(--comfy-menu-hover-bg, #444)' : 'transparent' }}>
+    return createPortal(<div id={id} aria-label="Tag suggestions" data-suggestion-menu role="listbox" onMouseDown={event => event.preventDefault()} style={{ ...S.menu, position: 'fixed', ...placement, boxSizing: 'border-box', overflowWrap: 'anywhere', right: 'auto', zIndex: 100000, color: value('--input-text') || '#ddd', background: value('--comfy-menu-bg') || '#353535', borderColor: value('--border-color'), font: look.font || '12px system-ui, sans-serif', ['--comfy-menu-hover-bg' as string]: value('--comfy-menu-hover-bg') } as CSSProperties}>
+        {items.map((item, index) => <div key={item.kind + item.label} id={id+'-option-'+index} role="option" aria-selected={index === active} onClick={() => onPick(item)} style={{ ...S.option, background: index === active ? 'var(--comfy-menu-hover-bg, #444)' : 'transparent' }}>
             {item.kind === 'prefix' ? '@' : ''}{item.label}{item.kind === 'prefix' && <small style={{ opacity: .6 }}> · prefix</small>}
         </div>)}
     </div>, document.body);
@@ -272,6 +277,8 @@ function AddInput({ onBackspace, target, onTargetMode, placeholder, suggest, onT
     const [value, setValue] = useState('');
     const [items, setItems] = useState<Suggestion[]>([]);
     const [active, setActive] = useState(-1);
+    const menuId=useId();
+    const [menuOpen,setMenuOpen]=useState(false);
     const [mode, setMode] = useState<AddMode>('tag');
     useEffect(() => { if(target)setMode(addModeOf(target)); }, [target?.id, target && addModeOf(target)]);
     const [pending, setPending] = useState<string[]>([]);
@@ -281,13 +288,13 @@ function AddInput({ onBackspace, target, onTargetMode, placeholder, suggest, onT
     const modeInfo = ADD_MODES.find(item => item.value === mode)!;
     useEffect(() => {
         const { token: query } = typingToken(value);
+        const id = ++request.current;
         // No suggestions for a weight being typed (`red hair:1.`).
         if (/:[\d.]*$/.test(query) || query.replace(/^@/, '').length < (query.startsWith('@') ? 0 : 2)) { setItems([]); return; }
-        const id = ++request.current;
         const timer = window.setTimeout(() => { suggest(query).then(found => { if (id === request.current) { setItems(found); setActive(-1); } }).catch(() => { if (id === request.current) setItems([]); }); }, 150);
         return () => window.clearTimeout(timer);
     }, [value]);
-    const reset = () => { setValue(''); setItems([]); setActive(-1); };
+    const reset = () => { request.current++; setValue(''); setItems([]); setActive(-1); };
     const tagsOf = (text: string) => splitTop(text, ',').map(tag => tag.trim()).filter(Boolean);
     /** Enter: in tag mode add the text (keywords applied); in a grouping mode add the collected tags. */
     const commit = (text = value, refocus = true) => {
@@ -333,7 +340,7 @@ function AddInput({ onBackspace, target, onTargetMode, placeholder, suggest, onT
                 style={{ ...S.input, flex: '0 0 auto', borderColor: mode === 'tag' ? border : KIND_COLORS[mode === 'each' ? 'group' : mode] }}>
                 {ADD_MODES.map(item => <option key={item.value} value={item.value} title={item.hint}>{item.name}</option>)}
             </select>}
-            <input onPaste={event=>{const text=event.clipboardData.getData('text/plain');if(/[{},|\n]/.test(text)){event.preventDefault();onText(text);reset();}}} ref={input} autoComplete="off" spellCheck={false} aria-label={placeholder} title="Type tags, {a|b} syntax, or AND / OR / OPT between tags (e.g. red hair OR blue hair OPT)"
+            <input onPaste={event=>{const text=event.clipboardData.getData('text/plain');if(/[{},|\n]/.test(text)){event.preventDefault();onText(text);reset();}}} ref={input} role="combobox" aria-autocomplete="list" aria-expanded={menuOpen} aria-controls={menuOpen?menuId:undefined} aria-activedescendant={menuOpen&&active>=0?menuId+'-option-'+active:undefined} autoComplete="off" spellCheck={false} aria-label={placeholder} title="Type tags, {a|b} syntax, or AND / OR / OPT between tags (e.g. red hair OR blue hair OPT)"
                 placeholder={grouping ? (mode === 'each' ? 'Type tags; each becomes optional on its own' : `Type tags for one ${modeInfo.name.toLowerCase()} chip`) : placeholder} value={value} onChange={event => change(event.target.value)}
                 onBlur={event => { if (!(event.relatedTarget as HTMLElement | null)?.closest('[data-add-input],[data-suggestion-menu]')) commit(value, false); }}
                 onKeyDown={event => {
@@ -341,11 +348,11 @@ function AddInput({ onBackspace, target, onTargetMode, placeholder, suggest, onT
                     else if (event.key === 'ArrowDown' && items.length) { event.preventDefault(); setActive(index => (index + 1) % items.length); }
                     else if (event.key === 'ArrowUp' && items.length) { event.preventDefault(); setActive(index => (index <= 0 ? items.length : index) - 1); }
                     else if (event.key === 'Enter') { event.preventDefault(); if (items[active]) pick(items[active]); else commit(); }
-                    else if (event.key === 'Escape') { setItems([]); setActive(-1); }
+                    else if (event.key === 'Escape') { event.preventDefault(); request.current++; setItems([]); setActive(-1); }
                     else if (event.key === ',' && value.trim() && balanced(value)) { event.preventDefault(); if (grouping) collect(tagsOf(value)); else commit(); }
                 }} style={{ ...S.input, flex: 1, minWidth: 0, boxSizing: 'border-box' }} />
         </div>
-        <SuggestionMenu anchor={input.current} items={items} active={active} onPick={pick} />
+        <SuggestionMenu id={menuId} onVisibility={setMenuOpen} anchor={input.current} items={items} active={active} onPick={pick} />
     </div>;
 }
 
@@ -593,7 +600,7 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
             <BoxGrip id={box.id} name="Source" boxRef={ref} onEnd={() => setMark(undefined)} />
             <Btn label={box.collapsed ? 'Expand source box' : 'Collapse source box'} onClick={() => patch({ collapsed: !box.collapsed })}>{box.collapsed ? '▸' : '▾'}</Btn>
             <input type="checkbox" aria-label="Use source box" title="Use the connected source text" checked={box.enabled} onChange={event => patch({ enabled: event.target.checked })} />
-            <strong>Source</strong><input aria-label="Source label" placeholder={sourceInput(box)} value={box.name||''} onChange={event=>patch({name:event.target.value.slice(0,80)})} style={{...S.input,width:110}}/><small>{sourceInput(box)}</small>{sourceInput(box)!=='source_text'&&<Btn label="Remove source input" onClick={()=>onChange(removeBox(state,box.id))}>×</Btn>}<Btn label="Copy source box syntax" onClick={()=>void navigator.clipboard.writeText(sourceChips.map(entry=>compileChip(entry.chip)).join(', '))}>⧉</Btn>
+            <strong>Source</strong><input aria-label="Source label" placeholder={sourceInput(box)} value={box.name||''} onChange={event=>patch({name:event.target.value.slice(0,80)})} title={box.name||sourceInput(box)} style={{...S.input,width:240,maxWidth:'50%',minWidth:110,flex:'1 1 140px'}}/><small>{sourceInput(box)}</small>{sourceInput(box)!=='source_text'&&<Btn label="Remove source input" onClick={()=>onChange(removeBox(state,box.id))}>×</Btn>}<Btn label="Copy source box syntax" onClick={()=>void navigator.clipboard.writeText(sourceChips.map(entry=>compileChip(entry.chip)).join(', '))}>⧉</Btn>
             <small style={{ opacity: .6 }}>{status}</small>
             <span style={{ flex: 1 }} />
             <Btn label="Move source box up" disabled={index === 0} onClick={() => onChange(moveBox(state, box.id, -1))}>▲</Btn>
@@ -620,7 +627,7 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
                 ? <div style={S.muted}>Connect a text output (for example a Gallery Image Source prompt) to <code>{sourceInput(box)}</code>. Its tags appear here and are placed where this box sits.</div>
                 : !sourceText
                     ? <div style={S.muted}>{source.note || 'Connected prompt will be shown after execution.'}</div>
-                    : <div style={{ ...S.body, ...S.chips, padding: '0 6px 6px' }}>{sourceChips.map(({part,chip},at)=><span key={chip.id} style={{display:'contents'}}>{at>0&&<LogicBadge name="AND"/>}<ChipView chip={chip} selected={selectedChip===chip.id} onSelect={()=>{setSelectedMember(undefined);setSelectedChip(chip.id);}} onMemberEdit={(option,index)=>{setSelectedChip(chip.id);setSelectedMember({option,index});}} onRemove={()=>removeChip(part,chip)} suggest={suggest} onKind={mode=>changeKind(part,chip,mode)} onItems={items=>editPart(part,chips=>chips.flatMap(item=>item.id===chip.id?(withItems(item,items)?[withItems(item,items)!]:[]):[item]))}/>{Object.prototype.hasOwnProperty.call(replacements,sourceKey(part))&&<Btn label={'Reset source tag '+part} onClick={()=>{const next={...replacements};delete next[sourceKey(part)];setReplacements(next);setSelectedChip(undefined);}}>↺</Btn>}</span>)}</div>}
+                    : <div data-source-chips style={{ ...S.body, ...S.chips, flexDirection: 'row', alignItems: 'flex-start', padding: '0 6px 6px' }}>{sourceChips.map(({part,chip},at)=><span key={chip.id} style={{display:'contents'}}>{at>0&&<LogicBadge name="AND"/>}<ChipView chip={chip} selected={selectedChip===chip.id} onSelect={()=>{setSelectedMember(undefined);setSelectedChip(chip.id);}} onMemberEdit={(option,index)=>{setSelectedChip(chip.id);setSelectedMember({option,index});}} onRemove={()=>removeChip(part,chip)} suggest={suggest} onKind={mode=>changeKind(part,chip,mode)} onItems={items=>editPart(part,chips=>chips.flatMap(item=>item.id===chip.id?(withItems(item,items)?[withItems(item,items)!]:[]):[item]))}/>{Object.prototype.hasOwnProperty.call(replacements,sourceKey(part))&&<Btn label={'Reset source tag '+part} onClick={()=>{const next={...replacements};delete next[sourceKey(part)];setReplacements(next);setSelectedChip(undefined);}}>↺</Btn>}</span>)}</div>}
             {selected&&!memberChip&&<ChipEditor chip={selected.chip} onClose={()=>setSelectedChip(undefined)} onKind={mode=>changeKind(selected.part,selected.chip,mode)} onRemove={()=>removeChip(selected.part,selected.chip)} onSplit={()=>editPart(selected.part,chips=>chips.flatMap(chip=>chip.id===selected.chip.id?parsePrompt(chipTerms(chip).join(', ')):[chip]))} onMove={delta=>editPart(selected.part,chips=>moveItem(chips,selected.chip.id,delta))} onChange={next=>editPart(selected.part,chips=>chips.map(chip=>chip.id===selected.chip.id?next:chip))}/>}
             {memberChip&&<ChipEditor chip={memberChip} onClose={()=>setSelectedMember(undefined)} onKind={mode=>editMember(chips=>{const group=emptyGroup('Member',chips);return (convertChip({version:1,boxes:[group]},group.id,memberChip.id,mode).boxes[0] as GroupBox).chips;})} onRemove={()=>{editMember(chips=>chips.filter(chip=>chip.id!==memberChip.id));setSelectedMember(undefined);}} onSplit={()=>editMember(chips=>chips.flatMap(chip=>chip.id===memberChip.id?parsePrompt(chipTerms(chip).join(', ')):[chip]))} onMove={delta=>editMember(chips=>moveItem(chips,memberChip.id,delta))} onChange={next=>editMember(chips=>chips.map(chip=>chip.id===memberChip.id?next:chip))}/>}
             {!!(excluded.length+omittedGroups.length) && <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, padding: '0 6px 6px' }} aria-label="Source tags left out">
@@ -669,7 +676,7 @@ function PromptTrash({ owner }: { owner: string }) {
     </div>,document.body);
 }
 
-export function PromptBoxEditor({ state, source, sources, preview, suggest, onChange, notice, lastEncodedPrompt, unfilteredPreview, ruleDefinitions = [], inheritedRules: allInheritedRules = [], globalRules = [], disabledRules = new Set(), ruleErrors = [], ruleProtected = [], onReloadRules, rulesNotice,snapshotReferences=[],onOpenSnapshot }: { state: BoxState; source: SourceInfo; sources?:Record<string,SourceInfo>; preview: string; suggest: (query: string) => Promise<Suggestion[]>; onChange: (state: BoxState) => void; notice?: string; lastEncodedPrompt?: string; unfilteredPreview?: string; ruleDefinitions?: Ruleset[]; inheritedRules?: RuleBox[]; globalRules?: RuleBox[]; disabledRules?: ReadonlySet<string>; ruleErrors?: string[]; ruleProtected?: string[]; onReloadRules?: ()=>void; rulesNotice?: string;snapshotReferences?:import('./EncoderSnapshots').SnapshotReference[];onOpenSnapshot?:(reference:import('./EncoderSnapshots').SnapshotReference)=>void }) {
+export function PromptBoxEditor({ state, source, sources, preview, suggest, onChange: onCommit, notice, lastEncodedPrompt, unfilteredPreview, ruleDefinitions = [], inheritedRules: allInheritedRules = [], globalRules = [], disabledRules = new Set(), ruleErrors = [], ruleProtected = [], onReloadRules, rulesNotice,snapshotReferences=[],onOpenSnapshot }: { state: BoxState; source: SourceInfo; sources?:Record<string,SourceInfo>; preview: string; suggest: (query: string) => Promise<Suggestion[]>; onChange: (state: BoxState) => void; notice?: string; lastEncodedPrompt?: string; unfilteredPreview?: string; ruleDefinitions?: Ruleset[]; inheritedRules?: RuleBox[]; globalRules?: RuleBox[]; disabledRules?: ReadonlySet<string>; ruleErrors?: string[]; ruleProtected?: string[]; onReloadRules?: ()=>void; rulesNotice?: string;snapshotReferences?:import('./EncoderSnapshots').SnapshotReference[];onOpenSnapshot?:(reference:import('./EncoderSnapshots').SnapshotReference)=>void }) {
     const [showContributions,setShowContributions]=useState(false);
     const [reveal,setReveal]=useState<{id:string;syntax:string}>();
     const editor=useRef<HTMLDivElement>(null);
@@ -692,15 +699,29 @@ export function PromptBoxEditor({ state, source, sources, preview, suggest, onCh
         });
         return()=>cancelAnimationFrame(frame);
     },[reveal,showContributions]);
+    const owner = useId();
+    const [undo,setUndo]=useState<{boxes:BoxState['boxes'];after:string;label:string}>();
+    const tagCount=(value:BoxState)=>value.boxes.reduce((count,box)=>{
+        if(box.kind==='group')return count+promptLeaves(box.chips.map(chip=>compileChip({...chip,enabled:true})).join(', ')).length;
+        const info=sources?.[sourceInput(box)]||(sourceInput(box)==='source_text'?source:undefined);
+        return count+promptLeaves(filteredSourceText(box,info?.segments,info?.text,info?.merge)||'').length;
+    },0);
+    const onChange=(next:BoxState)=>{
+        const removedGroup=state.boxes.some(box=>box.kind==='group'&&!next.boxes.some(other=>other.id===box.id));
+        if(state.boxes!==next.boxes&&(removedGroup||tagCount(next)<tagCount(state)))setUndo({boxes:structuredClone(state.boxes),after:JSON.stringify(next.boxes),label:removedGroup?'Group removed':'Tags updated'});
+        else setUndo(undefined);
+        onCommit(next);
+    };
+    const canUndo=undo&&undo.after===JSON.stringify(state.boxes);
     const contributionCards=state.boxes.map((box,index)=>box.kind==='source'
         ? <SourceView key={box.id} box={box} index={index} count={state.boxes.length} state={state} onChange={onChange} source={infos[sourceInput(box)]||{connected:false}} suggest={suggest}/>
         : <GroupView key={box.id} box={box} index={index} count={state.boxes.length} state={state} onChange={onChange} suggest={suggest}/>);
-    const owner = useId();
     const inheritedRules=selectedInheritedRules(allInheritedRules,state.excludedInheritedRules);
     const ignoredRules=[...new Map(allInheritedRules.filter(box=>box.origin!=='global'&&isInheritedRuleIgnored(box,state.excludedInheritedRules)).map(box=>[inheritedRuleIdentity(box),box])).values()];
     const restoreInherited=(box:RuleBox)=>onChange({...state,excludedInheritedRules:(state.excludedInheritedRules||[]).filter(key=>key!==inheritedRuleIdentity(box)&&key!==box.id)});
     return <RuleImpact.Provider value={new Set(promptLeaves(preview).map(ruleTag))}><RuleProtection.Provider value={ruleProtected}><div ref={editor} data-prompt-editor={owner} style={S.root} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
         <PromptTrash owner={owner} />
+        {canUndo&&<div role="status" style={{position:'sticky',top:0,zIndex:3,display:'flex',alignItems:'center',gap:8,padding:8,border:'1px solid #5489bd',borderRadius:6,background:'var(--comfy-menu-bg,#333)'}}><span>{undo.label}</span><button type="button" style={S.btn} aria-label="Undo last prompt change" onClick={()=>{if(undo){onCommit({...state,boxes:undo.boxes});setUndo(undefined);}}}>Undo</button><button type="button" style={S.x} aria-label="Dismiss undo" onClick={()=>setUndo(undefined)}>×</button></div>}
         {shared.references.length>0&&<SharedPromptCard merged={shared} onEdit={editShared} compact={showContributions} onMergedView={()=>setShowContributions(false)} renderChip={(chip,onSelect)=><ChipView chip={chip} selected={false} onSelect={onSelect}/>}/>}
         <details key="original-contributions" open={!shared.references.length||showContributions} onToggle={event=>{if(shared.references.length)setShowContributions(event.currentTarget.open);}}>
             <summary hidden={!shared.references.length}>Original contributions · edit sources and groups</summary>{contributionCards}

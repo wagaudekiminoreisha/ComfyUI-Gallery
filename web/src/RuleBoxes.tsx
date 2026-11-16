@@ -52,6 +52,6 @@ export function RuleBoxes({value,onChange,definitions,origin='encoder',inherited
     onChange(insertRuleBox(value,candidate));
    }
   }}><option value="">Add ruleset…</option>{hairPrompting&&!hairPrompting.value&&<option value="__hair_prompting__">Hair prompting · attribute filter</option>}{definitions.filter(item=>!hasActiveRuleset(all,item.id)).map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
-  <RuleNotation/>
+  <details><summary>Rule notation</summary><RuleNotation/></details>
  </div>;
 }

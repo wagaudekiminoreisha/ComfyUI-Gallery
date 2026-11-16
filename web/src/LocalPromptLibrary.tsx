@@ -62,7 +62,7 @@ export function LocalPromptSearch({ onLocalSearch, managerOnly = false }: { onLo
         const refresh = () => { if (openRef.current) setStatus('Library may have changed. Refresh library before saving a stale draft.'); else void load(); };
         const show = (event: Event) => {
             const value = (event as CustomEvent<PrefixSeed>).detail || {};
-            drafts.markSaved({ name: value.name || '', positive: Array.from(new Set([...(value.positive || []), ...(value.hydrus || [])])), negative: value.negative || [] });
+            drafts.guard(()=>{drafts.markSaved({ name: value.name || '', positive: Array.from(new Set([...(value.positive || []), ...(value.hydrus || [])])), negative: value.negative || [] });
             setNodeText(nodePrompt(value.node));
             setAppendTarget(value.node ? JSON.stringify([String(value.node.id), value.node.widgets.findIndex((widget: any) => ['prefix', 'text'].includes(widget.name))]) : undefined);
             // From a workflow node: the prompts window (append target preset). From images or "edit": the prefix editor window.
@@ -72,7 +72,7 @@ export function LocalPromptSearch({ onLocalSearch, managerOnly = false }: { onLo
             if (value.node) void load().then(data => {
                 const selected = data?.prefixes.find(prefix => prefix.id === value.node.properties?.prompt_library_selected_prefix);
                 if (data && selected) { drafts.markSaved({ name: selected.name, positive: expandPrefix(data, '@' + selected.name), negative: selected.negative_terms || [] }); setPrefixName(selected.name); setNegativeTags(selected.negative_terms || []); setPrefixTags(expandPrefix(data, '@' + selected.name)); }
-            });
+            });});
         };
         const showLibrary = () => setLibraryOpen(true);
         const showEditor = () => setEditorOpen(true);
@@ -99,7 +99,8 @@ export function LocalPromptSearch({ onLocalSearch, managerOnly = false }: { onLo
     /** Tag searches get their own window; the main gallery's filter and scroll position are left alone. */
     const openTagSearch = (terms: string[], field: LocalSearchField = 'all', prefix?: SearchPrefix) => openImageSearch({ field, chips: prefix?.id ? [{ kind: 'prefix', id: prefix.id, name: prefix.name }] : Array.from(new Set(terms)).map(text => ({ kind: 'tag' as const, text })) });
     const addToDraft = (terms: string[], side: 'positive' | 'negative' = 'positive') => (side === 'negative' ? setNegativeTags : setPrefixTags)(old => Array.from(new Set([...old, ...terms])));
-    const drafts = useUnsavedPrefix({ name: prefixName, positive: prefixTags, negative: negativeTags }, value => { setPrefixName(value.name); setPrefixTags(value.positive); setNegativeTags(value.negative); }, () => save());
+    const editorSaveHandler = useRef<(() => Promise<boolean>) | undefined>(undefined);
+    const drafts = useUnsavedPrefix({ name: prefixName, positive: prefixTags, negative: negativeTags }, value => { setPrefixName(value.name); setPrefixTags(value.positive); setNegativeTags(value.negative); }, () => editorSaveHandler.current?.() || save());
     const save = async () => {
         setSaving(true);
         try {
@@ -202,8 +203,8 @@ export function LocalPromptSearch({ onLocalSearch, managerOnly = false }: { onLo
         </FloatingPanel>
         <FloatingPanel panelKey="prefix-editor" title={'Prefix editor · ' + draftLabel} open={editorOpen} onCancel={() => { if (!saving) drafts.guard(() => setEditorOpen(false)); }} footer={null} width={900}>
             {drafts.dialog}
-            <PrefixEditor onLoad={drafts.markSaved} shared={shared} seed={seed} active={editorOpen} name={prefixName} setName={setPrefixName} positive={prefixTags} setPositive={setPrefixTags} negative={negativeTags} setNegative={setNegativeTags}
-                saving={saving} onSave={() => void save()} onDelete={removePrefix} onAppendToNode={seed.node ? id => void appendPrefixToNode(id) : undefined}
+            <PrefixEditor dirty={drafts.dirty} guard={drafts.guard} saveHandler={editorSaveHandler} onSavingChange={setSaving} onLoad={drafts.markSaved} shared={shared} seed={seed} active={editorOpen} name={prefixName} setName={setPrefixName} positive={prefixTags} setPositive={setPrefixTags} negative={negativeTags} setNegative={setNegativeTags}
+                saving={saving} onSave={save} onDelete={removePrefix} onAppendToNode={seed.node ? id => void appendPrefixToNode(id) : undefined}
                 onOpenLibrarySearch={() => setLibraryOpen(true)} onOpenPrompts={() => setOpen(true)}
                 onUnpair={(image, id) => void unpair(image.keys || [], id)} />
         </FloatingPanel>

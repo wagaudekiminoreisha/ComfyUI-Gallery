@@ -8,9 +8,10 @@ export function useUnsavedPrefix(value: PrefixDraft, restore: (value: PrefixDraf
     const baseline = useRef<PrefixDraft>({ name: '', positive: [], negative: [] });
     const current = useRef(value); current.current = value;
     const saver = useRef(save); saver.current = save;
+    const [, refreshBaseline] = useState(0);
     const [pending, setPending] = useState<{ action: () => void }>();
     const [saving, setSaving] = useState(false);
-    const markSaved = (draft: PrefixDraft) => { baseline.current = structuredClone(draft); };
+    const markSaved = (draft: PrefixDraft) => { baseline.current = structuredClone(draft); refreshBaseline(value => value + 1); };
     const guard = (action: () => void) => {
         // Let inputs commit their blur changes before comparing the draft.
         window.setTimeout(() => {
@@ -28,5 +29,5 @@ export function useUnsavedPrefix(value: PrefixDraft, restore: (value: PrefixDraf
                 try { if (await saver.current()) finish(); } finally { setSaving(false); }
             }}>Save</Button>
         </Space>}>This prefix has unsaved changes.</Modal>;
-    return { guard, markSaved, dialog };
+    return { guard, markSaved, dialog, dirty: JSON.stringify(value) !== JSON.stringify(baseline.current) };
 }
