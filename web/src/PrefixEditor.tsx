@@ -23,14 +23,17 @@ import { expandPrefix, loadPrefixes, matchesPolarity, POLARITY_OPTIONS, sidesLab
 /** Suggestions for the term editors: saved prefixes, library tags and the Danbooru dictionary. */
 const suggest = makeSuggest({ loadLibrary: loadPrefixes, expandPrefix });
 
-export function PrefixEditor({ dirty = false, onLoad, shared, seed, active, name, setName, positive, setPositive, negative, setNegative, saving, onSave, onDelete, onAppendToNode, onOpenLibrarySearch, onOpenPrompts, onUnpair }: {
+export function PrefixEditor({ dirty = false, guard, saveHandler, onSavingChange, onLoad, shared, seed, active, name, setName, positive, setPositive, negative, setNegative, saving, onSave, onDelete, onAppendToNode, onOpenLibrarySearch, onOpenPrompts, onUnpair }: {
+    guard: (action: () => void) => void;
+    saveHandler: { current?: () => Promise<boolean> };
+    onSavingChange: (saving: boolean) => void;
     dirty?: boolean;
     onLoad: (draft: PrefixDraft) => void;
     shared: SharedLibrary; seed: PrefixSeed; active: boolean;
     name: string; setName: (value: string) => void;
     positive: string[]; setPositive: Dispatch<SetStateAction<string[]>>;
     negative: string[]; setNegative: Dispatch<SetStateAction<string[]>>;
-    saving: boolean; onSave: () => void; onDelete: (id: string) => Promise<void>;
+    saving: boolean; onSave: () => Promise<boolean>; onDelete: (id: string) => Promise<void>;
     onAppendToNode?: (id: string) => void; onOpenLibrarySearch: () => void;
     onOpenPrompts?: () => void; onUnpair?: (image: PrefixImage, prefixId: string) => void;
 }) {
@@ -46,23 +49,33 @@ export function PrefixEditor({ dirty = false, onLoad, shared, seed, active, name
     const load = (id?: string) => {
         const prefix = shared.prefixes.find(value => value.id === id);
         if (!prefix) return;
-        setSnapshot(undefined);onLoad({ name: prefix.name, positive: expandPrefix(shared, '@' + prefix.name), negative: prefix.negative_terms || [] });
-        setName(prefix.name); setPositive(expandPrefix(shared, '@' + prefix.name)); setNegative(prefix.negative_terms || []);
+        guard(()=>{setSnapshot(undefined);onLoad({ name: prefix.name, positive: expandPrefix(shared, '@' + prefix.name), negative: prefix.negative_terms || [] });
+        setName(prefix.name); setPositive(expandPrefix(shared, '@' + prefix.name)); setNegative(prefix.negative_terms || []);});
     };
+    const save = async (): Promise<boolean> => {
+        if (!snapshot) return onSave();
+        onSavingChange(true);
+        try {
+const settings=(await rulesRequest()).library;const attached=settings.prefixes['snapshot:'+snapshot]||shared.snapshots?.[snapshot]?.rules||[];const rules=[...globalRuleBoxes(settings),...availableRules(attached.filter(box=>box.origin!=='global'),disabledRulesets(settings))];const id=await capturePrefixSnapshot({prefix_id:existing!.id,terms:positive,negative_terms:negative,rules,hair_policy:shared.snapshots?.[snapshot]?.hair_policy,image_keys:[...new Set([...Object.keys(shared.snapshots?.[snapshot]?.members||{}),...(seed.imageKeys||[])])],image_refs:{...shared.snapshots?.[snapshot]?.members,...seed.imageRefs}});setSnapshot(id||undefined);onLoad({name,positive,negative});message.success('Snapshot saved; parent prefix unchanged.');
+            return true;
+        } catch (error) { message.error(String(error)); return false; }
+        finally { onSavingChange(false); }
+    };
+    useEffect(()=>{saveHandler.current=save;return()=>{saveHandler.current=undefined;};});
     const add = (side: 'positive' | 'negative' | 'hydrus') => (side === 'negative' ? setNegative : setPositive)(old => Array.from(new Set([...old, ...(seed[side] || [])])));
     return <div className="cg-prefix-editor" style={{ border: '1px solid #8884', borderRadius: 8, padding: 10 }}>
-        <div className="cg-associations-layout"><SnapshotRail prefixId={existing?.id} selected={snapshot} onSelect={row=>{const positive=row?.terms||expandPrefix(shared,'@'+existing!.name),negative=row?.negative_terms||existing!.negative_terms||[];onLoad({name,positive,negative});setSnapshot(row?.id);setPositive(positive);setNegative(negative);}}/>
+        <div className="cg-associations-layout"><SnapshotRail prefixId={existing?.id} selected={snapshot} onSelect={row=>guard(()=>{const positive=row?.terms||expandPrefix(shared,'@'+existing!.name),negative=row?.negative_terms||existing!.negative_terms||[];onLoad({name,positive,negative});setSnapshot(row?.id);setPositive(positive);setNegative(negative);})}/>
         <div className="cg-associations-main"><div data-prefix-savebar style={{position:'sticky',top:-16,zIndex:2,display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',padding:'8px 0',marginBottom:8,background:token.colorBgElevated,borderBottom:'1px solid '+token.colorBorder}}>
             <Typography.Text strong>{snapshot?'Snapshot '+snapshot.slice(0,8):'Prefix'}</Typography.Text>
             <Tag aria-label="Prefix save status" color={saving?'processing':dirty?'warning':existing?'success':undefined}>{saving?'Saving…':dirty?'Unsaved':existing?'Saved':'New'}</Tag>
-            <Button type="primary" loading={saving} disabled={!name.trim() || (!positive.length && !negative.length)} onClick={()=>{if(!snapshot){onSave();return;}void (async()=>{try{const settings=(await rulesRequest()).library;const attached=settings.prefixes['snapshot:'+snapshot]||shared.snapshots?.[snapshot]?.rules||[];const rules=[...globalRuleBoxes(settings),...availableRules(attached.filter(box=>box.origin!=='global'),disabledRulesets(settings))];const id=await capturePrefixSnapshot({prefix_id:existing!.id,terms:positive,negative_terms:negative,rules,hair_policy:shared.snapshots?.[snapshot]?.hair_policy,image_keys:[...new Set([...Object.keys(shared.snapshots?.[snapshot]?.members||{}),...(seed.imageKeys||[])])],image_refs:{...shared.snapshots?.[snapshot]?.members,...seed.imageRefs}});setSnapshot(id||undefined);onLoad({name,positive,negative});message.success('Snapshot saved; parent prefix unchanged.');}catch(error){message.error(String(error));}})();}}>{snapshot?'Save snapshot':'Save prefix'}</Button></div>
+            <Button type="primary" loading={saving} disabled={!name.trim() || (!positive.length && !negative.length)} onClick={()=>void save()}>{snapshot?'Save snapshot':'Save prefix'}</Button></div>
         <Button disabled={!existing} onClick={()=>openRules(snapshot?'snapshot:'+snapshot:existing?.id)}>Prefix rules…</Button>
         {!!seed.imageKeys?.length && <Typography.Paragraph style={{ margin: '4px 0 0' }}>Saving pairs this prefix with the selected image(s). Its terms will be enabled when you append them to a workflow.</Typography.Paragraph>}
         <Space wrap align="center" style={{ marginTop: 8, width: '100%' }}>
             <Select aria-label="Prefix polarity filter" value={polarity} onChange={setPolarity} options={POLARITY_OPTIONS} style={{ width: 190 }} />
-            <Select showSearch optionFilterProp="label" aria-label="Existing prefix" placeholder="Load an existing prefix…" value={existing?.id} onChange={load} style={{ minWidth: 240 }}
+            <Select showSearch optionFilterProp="label" disabled={saving} aria-label="Existing prefix" placeholder="Load an existing prefix…" value={existing?.id} onChange={load} style={{ minWidth: 240 }}
                 options={shared.prefixes.filter(prefix => matchesPolarity(prefix, polarity)).map(prefix => ({ value: prefix.id, label: prefix.name + ' · ' + sidesLabel(prefix) }))} notFoundContent={shared.prefixes.length ? 'No prefix matches this filter' : 'No saved prefixes yet'} />
-            <Button onClick={() => { onLoad({ name: '', positive: [], negative: [] }); setSnapshot(undefined);setName(''); setPositive([]); setNegative([]); }}>New prefix</Button>
+            <Button disabled={saving} onClick={() => guard(() => { onLoad({ name: '', positive: [], negative: [] }); setSnapshot(undefined);setName(''); setPositive([]); setNegative([]); })}>New prefix</Button>
             <Input disabled={!!snapshot} aria-label="Prefix name" placeholder="Prefix name (an existing name updates it)" value={name} onChange={event => setName(event.target.value)} style={{ width: 280 }} />
 
             {existing && onAppendToNode && <Button onClick={() => {if(snapshot&&seed.node?.__galleryPromptBoxes){seed.node.__galleryPromptBoxes.insert(positive.join(', '),'after',existing.name,existing.id,snapshot);}else onAppendToNode(existing.id);}}>Append to node</Button>}
