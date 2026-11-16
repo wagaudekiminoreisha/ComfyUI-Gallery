@@ -36,7 +36,7 @@ export function ImageSourceHost() {
         onBrowse={() => { setNode(undefined); setOpen(true); }} />;
 }
 
-export function ImageSourceTarget() {
+export function ImageSourceTarget({onTargetChange,disabled=false}:{onTargetChange?:()=>void;disabled?:boolean}={}) {
     const [info, setInfo] = useState<Awaited<ReturnType<typeof getSourceTargets>>>({ options: [] });
     const [error, setError] = useState('');
     useEffect(() => {
@@ -53,10 +53,10 @@ export function ImageSourceTarget() {
     }, []);
     return <Space wrap style={{ marginBottom: 12 }}>
         <Typography.Text>Img2img target{STANDALONE ? ' in opening tab' : ''}:</Typography.Text>
-        <Select aria-label="Image Source target" style={{ minWidth: 260 }} value={info.selected} options={[...info.options, { value: 'new', label: 'Create new Gallery Image Source' }]}
+        <Select disabled={disabled} aria-label="Image Source target" style={{ minWidth: 260 }} value={info.selected} options={[...info.options, { value: 'new', label: 'Create new Gallery Image Source' }]}
             placeholder={info.options.length ? 'Choose a Gallery Image Source node' : 'Create a node on first append'}
-            onChange={id => { void setSourceTarget(id).then(setInfo).catch(reason => message.error(String(reason))); }} />
-        <Button onClick={() => { void editSourceTarget().catch(reason => message.error(String(reason))); }}>Edit images / crop / stitch</Button>
+            onChange={id => { void setSourceTarget(id).then(value=>{setInfo(value);onTargetChange?.();}).catch(reason => message.error(String(reason))); }} />
+        <Button disabled={disabled} onClick={() => { void editSourceTarget().catch(reason => message.error(String(reason))); }}>Edit images / crop / stitch</Button>
         {error && <Typography.Text type="secondary">{error}</Typography.Text>}
     </Space>;
 }
