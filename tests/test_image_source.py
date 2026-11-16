@@ -1,5 +1,7 @@
 """Real pixel output, import safety, cache invalidation and HTTP preview tests."""
 from io import BytesIO
+import errno
+import os
 import json
 from pathlib import Path
 import sys
@@ -14,7 +16,7 @@ from PIL import Image
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from image_source import (GalleryImageSource, ImageSourceError, parse_manifest,
                           plan_composition, render_batch, render_composition, resolve_input, source_prompts)
-from image_source_api import import_input_image, import_local_image, list_input_images, register_source_routes
+from image_source_api import import_input_image, import_local_image, list_input_images, publish_source, register_source_routes
 from gallery_app import register_gallery_app_routes
 
 
@@ -168,6 +170,56 @@ class CompositionTests(unittest.TestCase):
         with self.assertRaises(ImageSourceError): import_local_image(self.root, input_root, '/static_gallery/red.png')
         self.assertEqual(saved.read_bytes(), b'unrelated existing data')
         self.assertEqual(len(list((input_root / 'gallery_sources').iterdir())), 2)
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows rename has no-replace semantics')
+    def test_windows_linkless_import_reuses_identical_bytes_and_rejects_collision(self):
+        input_root = self.root / 'input'; input_root.mkdir()
+        with patch('image_source_api.os.link', side_effect=OSError(errno.EINVAL, 'Hard links unsupported')):
+            first = import_local_image(self.root, input_root, '/static_gallery/red.png')
+            second = import_local_image(self.root, input_root, '/static_gallery/red.png')
+            self.assertEqual(first, second)
+            saved = input_root / first['input_name']
+            self.assertEqual(saved.read_bytes(), (self.root / 'red.png').read_bytes())
+            self.assertEqual(first['metadata']['gallery_origin'], 'gallery')
+            saved.write_bytes(b'Existing unrelated data')
+            with self.assertRaises(ImageSourceError):
+                import_local_image(self.root, input_root, '/static_gallery/red.png')
+            self.assertEqual(saved.read_bytes(), b'Existing unrelated data')
+        self.assertFalse(list((input_root / 'gallery_sources').glob('.gallery-source-*')))
+
+    def test_link_permission_failures_are_not_hidden_by_fallback(self):
+        input_root = self.root / 'input'; input_root.mkdir()
+        with patch('image_source_api.os.link', side_effect=PermissionError(errno.EACCES, 'Denied')), patch('image_source_api.os.rename') as rename:
+            with self.assertRaises(PermissionError):
+                import_local_image(self.root, input_root, '/static_gallery/red.png')
+            rename.assert_not_called()
+        self.assertFalse(list((input_root / 'gallery_sources').glob('.gallery-source-*')))
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows rename has no-replace semantics')
+    def test_linkless_concurrent_import_and_failed_publish_cleanup(self):
+        from concurrent.futures import ThreadPoolExecutor
+        input_root = self.root / 'input'; input_root.mkdir()
+        directory = input_root / 'gallery_sources'; directory.mkdir()
+        payload = (self.root / 'red.png').read_bytes()
+        candidates = [directory / ('.gallery-source-qa-' + str(index)) for index in range(4)]
+        for candidate in candidates: candidate.write_bytes(payload)
+        destination = directory / 'publication-qa.png'
+        def publish(candidate):
+            try:
+                publish_source(candidate, destination)
+                return True
+            except FileExistsError:
+                return False
+        with patch('image_source_api.os.link', side_effect=OSError(errno.ENOTSUP, 'Unsupported')):
+            with ThreadPoolExecutor(max_workers=4) as workers:
+                results = list(workers.map(publish, candidates))
+            self.assertEqual(sum(results), 1)
+            self.assertEqual(destination.read_bytes(), payload)
+            for candidate in candidates: candidate.unlink(missing_ok=True)
+            with patch('image_source_api.os.rename', side_effect=OSError(errno.ENOSPC, 'Disk full')):
+                with self.assertRaises(OSError):
+                    import_local_image(self.root, input_root, '/static_gallery/blue.png')
+        self.assertFalse(list((input_root / 'gallery_sources').glob('.gallery-source-*')))
 
 
 class SourceRoutesTests(unittest.IsolatedAsyncioTestCase):

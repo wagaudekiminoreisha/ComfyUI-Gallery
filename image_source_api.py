@@ -1,6 +1,7 @@
 """Local image imports and preview routes for Gallery Image Source."""
 
 import asyncio
+import errno
 import hashlib
 import os
 from pathlib import Path
@@ -48,6 +49,21 @@ def import_input_image(input_root, name):
     return import_file(source, input_root)
 
 
+def publish_source(temporary, destination):
+    """Publish a complete file without replacing an existing content-addressed source."""
+    try:
+        os.link(temporary, destination)
+    except OSError as error:
+        unsupported = (getattr(error, 'winerror', None) in (1, 50)
+                       or error.errno in (errno.EINVAL, errno.ENOSYS, errno.ENOTSUP))
+        if os.name != 'nt' or not unsupported:
+            raise
+        # exFAT/FAT don't support hard links. On Windows, rename is atomic on the
+        # same volume and raises FileExistsError instead of replacing the target.
+        # Never use this fallback on POSIX, where rename can overwrite a file.
+        os.rename(temporary, destination)
+
+
 def import_file(source, input_root):
     before = file_fingerprint(source)
     if before[0] > MAX_SOURCE_BYTES:
@@ -85,8 +101,8 @@ def import_file(source, input_root):
             image.verify()
         destination = directory / (digest.hexdigest() + extension)
         try:
-            # Link the complete temporary file atomically; never replace an existing file.
-            os.link(temporary, destination)
+            # Publish the complete temporary file; never replace an existing file.
+            publish_source(temporary, destination)
         except FileExistsError:
             if destination.is_symlink() or not destination.is_file():
                 raise ImageSourceError("The saved gallery source is not a regular file.") from None
