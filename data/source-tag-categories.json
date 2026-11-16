@@ -33,14 +33,18 @@
       "facets": [
         "clothes.",
         "accessory."
-      ]
+      ],
+      "refinementLabel": "Refine attire",
+      "note": "Categories can overlap. Casual is a style tag; ordinary garments are not assumed to be casual."
     },
     {
       "id": "clothing-tops",
       "parent": "clothing",
       "label": "Tops",
       "families": [],
-      "facets": [],
+      "facets": [
+        "clothes.upper"
+      ],
       "tags": [
         "aqua_shirt",
         "aran_sweater",
@@ -88,7 +92,12 @@
       "parent": "clothing",
       "label": "Bottoms",
       "families": [],
-      "facets": [],
+      "facets": [
+        "clothes.lower",
+        "clothes.pants-colour",
+        "clothes.skirt-colour",
+        "clothes.skirt-length"
+      ],
       "tags": [
         "aqua_pants",
         "aqua_skirt",
@@ -171,7 +180,9 @@
       "parent": "clothing",
       "label": "Outerwear",
       "families": [],
-      "facets": [],
+      "facets": [
+        "clothes.outer"
+      ],
       "tags": [
         "aqua_jacket",
         "black_jacket",
@@ -223,7 +234,10 @@
       "parent": "clothing",
       "label": "Dresses and full outfits",
       "families": [],
-      "facets": [],
+      "facets": [
+        "clothes.dress",
+        "clothes.ensemble"
+      ],
       "tags": [
         "aqua_dress",
         "armored_dress",
@@ -385,7 +399,9 @@
       "parent": "clothing",
       "label": "Legwear",
       "families": [],
-      "facets": [],
+      "facets": [
+        "clothes.legwear"
+      ],
       "tags": [
         "adjusting_legwear",
         "alternate_legwear",
@@ -492,7 +508,10 @@
       "families": [
         "footwear"
       ],
-      "facets": [],
+      "facets": [
+        "clothes.footwear",
+        "clothes.shoe-colour"
+      ],
       "tags": [
         "animal_slippers",
         "ankle_boots",
@@ -548,7 +567,9 @@
       "parent": "clothing",
       "label": "Headwear",
       "families": [],
-      "facets": [],
+      "facets": [
+        "clothes.headwear"
+      ],
       "tags": [
         "adjusting_headwear",
         "adrian_helmet",
@@ -1088,6 +1109,366 @@
       ],
       "facets": [
         "count."
+      ]
+    },
+    {
+      "id": "art",
+      "label": "Rendering and palette",
+      "families": [],
+      "facets": []
+    },
+    {
+      "id": "props-interaction",
+      "label": "Props and interaction",
+      "families": [],
+      "facets": []
+    },
+    {
+      "id": "hair-colour",
+      "parent": "hair",
+      "label": "Colour and dye distribution",
+      "families": [],
+      "facets": [
+        "hair.colour",
+        "hair.distribution"
+      ]
+    },
+    {
+      "id": "hair-silhouette",
+      "parent": "hair",
+      "label": "Length and silhouette",
+      "families": [],
+      "facets": [
+        "hair.length",
+        "hair.presence",
+        "hair.bangs-length"
+      ]
+    },
+    {
+      "id": "hair-arrangement",
+      "parent": "hair",
+      "label": "Arrangement and grooming",
+      "families": [],
+      "facets": [
+        "hair.arrangement",
+        "hair.details",
+        "hair.alteration"
+      ]
+    },
+    {
+      "id": "hair-texture",
+      "parent": "hair",
+      "label": "Hair texture",
+      "families": [],
+      "facets": [
+        "hair.texture"
+      ]
+    },
+    {
+      "id": "eyes-colour",
+      "parent": "eyes",
+      "label": "Iris colour",
+      "families": [],
+      "facets": [
+        "eyes.colour"
+      ]
+    },
+    {
+      "id": "eyes-details",
+      "parent": "eyes",
+      "label": "Iris and pupil details",
+      "families": [],
+      "facets": [
+        "eyes.details"
+      ]
+    },
+    {
+      "id": "skin-body-tone",
+      "parent": "skin-body",
+      "label": "Skin tone",
+      "families": [],
+      "facets": [
+        "skin.colour"
+      ]
+    },
+    {
+      "id": "skin-body-build",
+      "parent": "skin-body",
+      "label": "Build and anatomy",
+      "families": [],
+      "facets": [
+        "body.build",
+        "body.features"
+      ]
+    },
+    {
+      "id": "skin-body-marks",
+      "parent": "skin-body",
+      "label": "Distinguishing skin marks",
+      "families": [],
+      "facets": [],
+      "tags": [
+        "birthmark",
+        "freckles",
+        "mole",
+        "scar",
+        "tattoo"
+      ]
+    },
+    {
+      "id": "skin-body-surface",
+      "parent": "skin-body",
+      "label": "Surface state and body paint",
+      "families": [],
+      "facets": [],
+      "tags": [
+        "bodypaint",
+        "colored_skin",
+        "shiny_skin",
+        "sweat",
+        "tanlines",
+        "wet"
+      ]
+    },
+    {
+      "id": "pose-stance",
+      "parent": "pose",
+      "label": "Body support and stance",
+      "families": [],
+      "facets": [
+        "pose.support",
+        "pose.lying-direction"
+      ]
+    },
+    {
+      "id": "pose-motion",
+      "parent": "pose",
+      "label": "Locomotion and movement",
+      "families": [],
+      "facets": [
+        "pose.gait"
+      ]
+    },
+    {
+      "id": "pose-limbs",
+      "parent": "pose",
+      "label": "Arm and leg arrangement",
+      "families": [],
+      "facets": [
+        "pose.arms",
+        "pose.legs"
+      ]
+    },
+    {
+      "id": "pose-hands",
+      "parent": "pose",
+      "label": "Hand gestures",
+      "families": [],
+      "facets": [
+        "pose.hand"
+      ]
+    },
+    {
+      "id": "framing-crop",
+      "parent": "framing",
+      "label": "Crop and visible extent",
+      "families": [],
+      "facets": [
+        "composition.crop"
+      ]
+    },
+    {
+      "id": "framing-view",
+      "parent": "framing",
+      "label": "Camera position and angle",
+      "families": [],
+      "facets": [
+        "composition.azimuth",
+        "composition.elevation",
+        "composition.angle"
+      ]
+    },
+    {
+      "id": "framing-gaze",
+      "parent": "framing",
+      "label": "Gaze direction",
+      "families": [],
+      "facets": [
+        "gaze.direction"
+      ]
+    },
+    {
+      "id": "framing-layout",
+      "parent": "framing",
+      "label": "Layout and subject focus",
+      "families": [],
+      "facets": [
+        "composition.layout",
+        "composition.focus"
+      ]
+    },
+    {
+      "id": "expression-emotion",
+      "parent": "expression",
+      "label": "Emotion and facial expression",
+      "families": [],
+      "facets": [
+        "expression.emotion"
+      ]
+    },
+    {
+      "id": "expression-openness",
+      "parent": "expression",
+      "label": "Eye and mouth openness",
+      "families": [],
+      "facets": [
+        "eyes.aperture",
+        "mouth.openness"
+      ]
+    },
+    {
+      "id": "background-place",
+      "parent": "background",
+      "label": "Location and enclosure",
+      "families": [],
+      "facets": [
+        "scene.place",
+        "scene.location"
+      ]
+    },
+    {
+      "id": "background-time",
+      "parent": "background",
+      "label": "Time and season",
+      "families": [],
+      "facets": [
+        "scene.time",
+        "scene.season"
+      ]
+    },
+    {
+      "id": "background-weather",
+      "parent": "background",
+      "label": "Weather and atmosphere",
+      "families": [],
+      "facets": [
+        "scene.weather"
+      ]
+    },
+    {
+      "id": "background-treatment",
+      "parent": "background",
+      "label": "Background treatment",
+      "families": [],
+      "facets": [
+        "scene.background"
+      ]
+    },
+    {
+      "id": "lighting-source",
+      "parent": "lighting",
+      "label": "Light source",
+      "families": [],
+      "facets": [
+        "light.source"
+      ]
+    },
+    {
+      "id": "lighting-direction",
+      "parent": "lighting",
+      "label": "Light direction",
+      "families": [],
+      "facets": [
+        "light.direction"
+      ]
+    },
+    {
+      "id": "lighting-quality",
+      "parent": "lighting",
+      "label": "Light quality",
+      "families": [],
+      "facets": [
+        "light.quality"
+      ]
+    },
+    {
+      "id": "art-medium",
+      "parent": "art",
+      "label": "Medium and rendering",
+      "families": [],
+      "facets": [
+        "art.medium",
+        "art.technique"
+      ]
+    },
+    {
+      "id": "art-palette",
+      "parent": "art",
+      "label": "Palette and colour treatment",
+      "families": [],
+      "facets": [
+        "art.palette"
+      ]
+    },
+    {
+      "id": "props-interaction-objects",
+      "parent": "props-interaction",
+      "label": "Objects and props",
+      "families": [],
+      "facets": [],
+      "tags": [
+        "airplane",
+        "bed",
+        "bench",
+        "bicycle",
+        "boat",
+        "bow_(weapon)",
+        "car",
+        "chair",
+        "couch",
+        "gun",
+        "motorcycle",
+        "shield",
+        "spear",
+        "staff",
+        "sword",
+        "table",
+        "train"
+      ]
+    },
+    {
+      "id": "props-interaction-action",
+      "parent": "props-interaction",
+      "label": "Contact and interaction",
+      "families": [],
+      "facets": [
+        "interaction.action"
+      ]
+    },
+    {
+      "id": "props-interaction-creatures",
+      "parent": "props-interaction",
+      "label": "Companion creatures",
+      "families": [],
+      "facets": [],
+      "tags": [
+        "bird",
+        "cat",
+        "dog",
+        "fish",
+        "horse"
+      ]
+    },
+    {
+      "id": "props-interaction-plants",
+      "parent": "props-interaction",
+      "label": "Plants and vegetation",
+      "families": [],
+      "facets": [],
+      "tags": [
+        "flower",
+        "grass",
+        "tree"
       ]
     }
   ],

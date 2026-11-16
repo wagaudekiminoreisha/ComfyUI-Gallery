@@ -2,6 +2,12 @@ const {test}=require('node:test');const assert=require('node:assert/strict');con
 const {filterSourceCategories,SOURCE_PRESETS}=load('SourceTagPolicy');
 const {sourcePrompt,promptSourceImages}=load('ImageSourceGeometry');
 const {filteredSourceText,sourceExclusionPayload}=load('SourceExclusions');const B=load('PromptBoxes');
+test('transfer distinctions separate motion, camera, skin state and palette without broad topic removal',()=>{
+ const text='sitting, running, arms up, blue eyes, closed eyes, looking at viewer, freckles, wet, forest, rain, night, monochrome, lineart, sword, cat, unknown';
+ assert.equal(filterSourceCategories(text,['pose-motion','skin-body-surface','background-weather','art-palette']).text,'sitting, arms up, blue eyes, closed eyes, looking at viewer, freckles, forest, night, lineart, sword, cat, unknown');
+ assert.equal(filterSourceCategories('blue eyes, closed eyes, looking at viewer',['eyes-colour']).text,'closed eyes, looking at viewer');
+ assert.equal(filterSourceCategories('sword, cat, tree, hug',['props-interaction-objects']).text,'cat, tree, hug');
+});
 test('fine attire filters overlap deliberately and parent clothing includes every child',()=>{
  const text='white shirt, blue skirt, armor, casual, sneakers, mysterious garment';
  assert.equal(filterSourceCategories(text,['clothing-tops']).text,'blue skirt, armor, casual, sneakers, mysterious garment');

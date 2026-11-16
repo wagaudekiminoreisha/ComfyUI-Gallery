@@ -1,4 +1,4 @@
-import type { RuleBox, RulesLibrary } from './RuleEngine';
+import {effectiveRuleBoxes,type RuleBox,type RulesLibrary} from './RuleEngine';
 
 /** Global rules are evaluated separately, never promoted into source-owned cards. */
 export function privateRuleBoxes(boxes: RuleBox[], library: RulesLibrary): RuleBox[] {
@@ -11,7 +11,7 @@ export function privateRuleBoxes(boxes: RuleBox[], library: RulesLibrary): RuleB
 export function snapshotRuleBoxes(snapshot: { id: string; rules: RuleBox[] }, library: RulesLibrary): RuleBox[] {
     const key = 'snapshot:' + snapshot.id;
     const boxes = Object.prototype.hasOwnProperty.call(library.prefixes, key) ? library.prefixes[key] : snapshot.rules;
-    return privateRuleBoxes(boxes, library);
+    return effectiveRuleBoxes(privateRuleBoxes(boxes, library));
 }
 
 /** Stable across prefix/snapshot copies and new snapshots of the same ruleset. */

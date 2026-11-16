@@ -2,7 +2,7 @@ import catalog from '../../data/source-tag-categories.json';
 import stock from '../../data/prompt-rulesets.json';
 import aliases from '../../data/global-tag-rules.json';
 import {splitTop} from './PromptBoxes';
-export type SourceCategory={id:string;label:string;families:string[];facets:string[];parent?:string;tags?:string[]};
+export type SourceCategory={id:string;label:string;families:string[];facets:string[];parent?:string;tags?:string[];refinementLabel?:string;note?:string};
 export const SOURCE_CATEGORIES:SourceCategory[]=catalog.categories;
 export const SOURCE_PRESETS=catalog.presets;
 const key=(text:string)=>{const normalized=text.trim().toLowerCase().replace(/\s+/g,'_');return (aliases.aliases as Record<string,string>)[normalized]||normalized;};

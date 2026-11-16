@@ -17,7 +17,7 @@ class StockTests(unittest.TestCase):
    validate_definition(definition)
    allowed=general | aliases if definition['id'] in ('stock-injury-gore-filter','stock-disturbing-content-filter','stock-fetish-content-filter') else general
    for choice in definition['choices']:
-    expected_default='single' if (definition['id'],choice['id'])==('stock-attire-styling','bottoms') else 'keep'
+    expected_default='single' if definition['id'] in ('stock-attire-styling','stock-attire-lower') and choice['id']=='bottoms' else 'keep'
     self.assertEqual(choice['default'],expected_default)
     for option in choice['options']:
      for rule in option['rules']:self.assertTrue(set(rule['tags'])<=allowed,(definition['name'],rule))

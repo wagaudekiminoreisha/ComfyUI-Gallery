@@ -170,5 +170,15 @@ path=ROOT/'data/prompt-rulesets.json';library=json.loads(path.read_text(encoding
 generated = {row['id']: row for row in rows}
 library['definitions'] = [generated.pop(row['id'], row) for row in library['definitions']]
 library['definitions'].extend(generated.values())
+# Independent garment policies reuse the reviewed combined policy, including its
+# existing subtype-safe layering recipes. No availability/global settings change.
+import copy
+attire=next(row for row in library['definitions'] if row['id']=='stock-attire-styling')
+for suffix, name, choices in [('upper','Upper-body attire',('base','outer')), ('lower','Lower-body attire',('bottoms',))]:
+    row=definition('attire-'+suffix,name,copy.deepcopy([choice for choice in attire['choices'] if choice['id'] in choices]))
+    existing=next((index for index,value in enumerate(library['definitions']) if value['id']==row['id']),None)
+    if existing is None:library['definitions'].append(row)
+    else:library['definitions'][existing]=row
+
 path.write_text(json.dumps(library,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-print('Built',len(rows),'stock rulesets from general-category vocabulary; no global attachments added.')
+print('Built',len(rows)+2,'stock rulesets from general-category vocabulary; no global attachments added.')

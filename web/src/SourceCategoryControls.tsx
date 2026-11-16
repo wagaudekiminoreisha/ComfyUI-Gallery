@@ -6,6 +6,6 @@ export function SourceCategoryControls({excluded=[],onChange}:{excluded?:string[
     };
     return <details><summary>Categories this source can contribute</summary><div style={{display:'flex',flexWrap:'wrap',gap:8}}>{SOURCE_CATEGORIES.filter(category=>!category.parent).map(category=>{
         const children=SOURCE_CATEGORIES.filter(child=>child.parent===category.id);
-        return children.length?<div key={category.id} style={{flex:'1 1 100%',minWidth:0}}>{checkbox(category)}<details style={{paddingLeft:18}}><summary>Refine attire{children.some(child=>excluded.includes(child.id))?' · custom':''}</summary><div style={{display:'flex',flexWrap:'wrap',gap:8,padding:6}}>{children.map(checkbox)}</div><small>Categories can overlap. Turn Attire on to edit its children. Casual is a style tag; ordinary garments are not assumed to be casual.</small></details></div>:checkbox(category);
+        return children.length?<div key={category.id} style={{flex:'1 1 100%',minWidth:0}}>{checkbox(category)}<details style={{paddingLeft:18}}><summary>{category.refinementLabel||'Refine '+category.label.toLowerCase()}{children.some(child=>excluded.includes(child.id))?' · custom':''}</summary><div style={{display:'flex',flexWrap:'wrap',gap:8,padding:6}}>{children.map(checkbox)}</div><small>{category.note||'Categories can overlap. Enable the parent to edit its finer filters.'}</small></details></div>:checkbox(category);
     })}</div><small>Known tags only; unrecognized tags stay. These source filters run before encoder-wide rules and manually added tags.</small></details>;
 }
