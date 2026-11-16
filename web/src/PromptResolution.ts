@@ -1,3 +1,4 @@
+import {expandedWorkflow} from './WorkflowSerialization';
 import { cleanHairPolicy, filterHairPrompt } from './HairPolicy';
 /**
  * Which options of {a|b|c} groups an image was actually made with.
@@ -23,7 +24,9 @@ export function metadataSources(metadata: unknown): Record<string, any> {
     const raw = object(metadata);
     const hydrus = object(raw.hydrus || raw);
     const notes = Object.entries(object(hydrus.notes)).filter(([name]) => name.startsWith('ComfyUI Gallery generation metadata')).map(([, value]) => object(value));
-    return Object.assign({}, ...notes, raw);
+    const merged=Object.assign({}, ...notes, raw);
+    if(merged.workflow)merged.workflow=expandedWorkflow(object(merged.workflow));
+    return merged;
 }
 
 /** What each Gallery Prompt Encode node recorded when it ran, keyed by node id. */

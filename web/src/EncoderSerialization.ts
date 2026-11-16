@@ -1,9 +1,12 @@
 /** Keep named workflow data and migrate positional widgets before LiteGraph assigns combo values. */
-export const ENCODER_WIDGETS=['text','source_mode','hair_policy','rules_state','prefix_snapshots','source_image_exclusions'] as const;
+import {ENCODER_WIDGETS} from './EncoderFields';
+export {ENCODER_WIDGETS} from './EncoderFields';
+import {restoreWorkflowNode,installWorkflowSerialization} from './WorkflowSerialization';
 const modes=new Set(['after','before','replace','boxes']);
 const object=(value:any)=>{try{const data=typeof value==='string'?JSON.parse(value):value;return data&&typeof data==='object'?data:undefined;}catch{return undefined;}};
 const encoded=(value:any)=>typeof value==='string'?value:JSON.stringify(value);
 export function encoderWidgetValues(info:any):Record<string,any>{
+ info=restoreWorkflowNode(info);
  const values=Array.isArray(info?.widgets_values)?info.widgets_values:[],properties=info?.properties||{};
  const saved=properties.gallery_encoder_widgets?.version===1?properties.gallery_encoder_widgets.values:undefined;
  const boxes=properties.prompt_boxes;
@@ -35,7 +38,7 @@ export function orderEncoderWidgets(node:any){
 }
 export function migrateEncoderWorkflow(data:any){
  for(const info of Array.isArray(data?.nodes)?data.nodes:[]){if(info?.type!=='GalleryPromptEncode')continue;
-  const values=encoderWidgetValues(info);info.properties||={};if(!info.properties.gallery_encoder_widgets&&Array.isArray(info.widgets_values)&&!modes.has(info.widgets_values[1]))info.properties.gallery_encoder_legacy_widgets=[...info.widgets_values];info.properties.gallery_encoder_widgets={version:1,values};
+  Object.assign(info,restoreWorkflowNode(info));const values=encoderWidgetValues(info);info.properties||={};if(!info.properties.gallery_encoder_widgets&&Array.isArray(info.widgets_values)&&!modes.has(info.widgets_values[1]))info.properties.gallery_encoder_legacy_widgets=[...info.widgets_values];info.properties.gallery_encoder_widgets={version:1,values};
   info.widgets_values=ENCODER_WIDGETS.map(name=>values[name]);
  }
 }
@@ -44,18 +47,19 @@ export function registerEncoderConstructor(nodeType:any){
  prototype.__galleryEncoderSerialization=true;
  const configure=prototype.configure;
  prototype.configure=function(info:any,...args:any[]){
-  orderEncoderWidgets(this);
+  info=restoreWorkflowNode(info);orderEncoderWidgets(this);
   const values=encoderWidgetValues(info),copy={...info,properties:{...info?.properties,gallery_encoder_widgets:{version:1,values}},widgets_values:(this.widgets||[]).map((widget:any)=>Object.prototype.hasOwnProperty.call(values,widget.name)?values[widget.name]:widget.value)};
   return configure?.call(this,copy,...args);
  };
 }
 export function installEncoderSerialization(node:any){
- if(node.__galleryNamedWidgets)return;node.__galleryNamedWidgets=true;orderEncoderWidgets(node);
+ if(node.__galleryNamedWidgets){installWorkflowSerialization(node);return;}node.__galleryNamedWidgets=true;orderEncoderWidgets(node);
  const serialize=node.onSerialize;
  node.onSerialize=function(info:any,...args:any[]){const result=serialize?.call(this,info,...args);const values:Record<string,any>={};
   for(const widget of this.widgets||[])if(ENCODER_WIDGETS.includes(widget.name))values[widget.name]=widget.value;
   info.properties||={};info.properties.gallery_encoder_widgets={version:1,values};return result;
  };
+ installWorkflowSerialization(node);
 }
 /** Fallback for already-created nodes or hosts that skipped registration hooks. */
 export function repairEncoderValues(node:any){
