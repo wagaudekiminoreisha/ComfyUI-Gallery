@@ -672,6 +672,13 @@ The viewer, prompt library, image append review, Image Source editor, metadata a
 
 Click a panel to bring it forward. Collapse keeps its draft intact; double-clicking the title bar also collapses/expands. Collapsing the viewer pauses media, and closing it stops and detaches media. Escape closes the focused panel outside text inputs/search controls. Panels are kept within the viewport when resizing the browser. Delete confirmations and settings remain modal.
 
+In the enlarged image viewer, a plain image click restores keyboard focus without
+changing selection. Selection requires a rapid double-click (two clicks within
+160 ms), Ctrl/Cmd-click, Shift-click, Space, or the explicit Selected checkbox.
+The viewer also accepts left/right arrows while a toolbar or filmstrip button is
+focused; Space on a button keeps its normal button action. Grid selection-mode
+and filmstrip click behavior are unchanged.
+
 
 ## Multiple categories and optional alternatives (hydrus.17)
 

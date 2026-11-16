@@ -1,4 +1,5 @@
 import {loadLocalMetadata} from './LocalMetadata';
+import {quickSelectionClick,type ImageClick} from './GalleryClick';
 import { useViewState } from './ViewState';
 import { forgetSessionOutputs, useSessionOutputs } from './SessionOutputs';
 import { recoverStoredSourceMetadata, recoverSourceOriginals, sourceViewerEntry } from './SourceViewer';
@@ -51,6 +52,7 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
     const [trashing, setTrashing] = useState<GalleryEntry[]>([]);
     const [deleting, setDeleting] = useState<GalleryEntry[]>([]);
     const lastClick = useRef<{ id: string; selected: boolean } | undefined>(undefined);
+    const viewerClick = useRef<ImageClick|undefined>(undefined);
     const [tileSize, setTileSize] = useState(210);
     const [order, setOrder] = useViewState<GalleryOrder>(viewKey, 'date');
     const [ascending, setAscending] = useViewState(viewKey, false);
@@ -118,7 +120,7 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
     const current = shown[index];
     const thumbnail = (entry: GalleryEntry) => entry.previewUrl ? BASE_PATH + entry.previewUrl : entry.source === 'node' ? BASE_PATH + entry.local!.url : entry.local ? `${BASE_PATH}/Gallery/thumbnail?url=${encodeURIComponent(entry.local.url)}&v=${entry.local.timestamp || 0}&root=${encodeURIComponent(gallery.settings.relativePath)}` : `${BASE_PATH}/Gallery/hydrus/thumbnail?hash=${entry.hash}&target=${encodeURIComponent(scope)}`;
     const original = (entry: GalleryEntry) => entry.previewUrl ? BASE_PATH + entry.previewUrl : entry.local ? `${BASE_PATH}${entry.local.url}` : `${BASE_PATH}/Gallery/hydrus/original?hash=${entry.hash}&target=${encodeURIComponent(scope)}`;
-    useEffect(() => { setZoom(1); setFailedOriginal(undefined); setMediaError(false); }, [viewer]);
+    useEffect(() => { viewerClick.current=undefined;setZoom(1); setFailedOriginal(undefined); setMediaError(false); }, [viewer]);
     useEffect(() => {
         if (!viewerActive) { stopMedia(viewerRef.current); setViewer(undefined); }
         else if (viewer && index < 0) setViewer(shown[Math.min(lastViewerIndex.current, shown.length - 1)]?.id);
@@ -381,9 +383,9 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
             initialSize={detached ? { width: Math.min(960, innerWidth * .78), height: Math.min(720, innerHeight * .82) } : { width: innerWidth * .96, height: innerHeight - 76 }} bodyStyle={{ padding: 8, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
             afterOpenChange={opened => { if (opened) viewerRef.current?.focus(); }}>
             {current && viewerActive && <div ref={viewerRef} tabIndex={-1} style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minHeight: 0, outline: 'none' }} onKeyDown={event => {
-                if ((event.target as HTMLElement).closest('input,textarea,select,button,[role="menu"],[role="combobox"]')) return;
+                if ((event.target as HTMLElement).closest('input,textarea,select,[role="menu"],[role="combobox"]')) return;
                 if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); event.stopPropagation(); move(event.key === 'ArrowLeft' ? -1 : 1); }
-                if (event.key === ' ') { event.preventDefault(); toggle(current, event.shiftKey); }
+                if (event.key === ' ' && !(event.target as HTMLElement).closest('button')) { event.preventDefault(); toggle(current, event.shiftKey); }
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', flex: 'none' }}>
                     <Space.Compact><Button size="small" disabled={index === 0} title="Previous image (←)" onClick={() => move(-1)}>◀</Button><Button size="small" disabled={index === shown.length - 1} title="Next image (→)" onClick={() => move(1)}>▶</Button></Space.Compact>
@@ -400,7 +402,14 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
                 <Dropdown trigger={['contextMenu']} menu={menu(current)}>
                     <div style={{ flex: 1, minHeight: 160, overflow: zoom === 1 ? 'hidden' : 'auto', background: token.colorFillQuaternary, borderRadius: 4, display: 'flex', alignItems: zoom === 1 ? 'center' : 'flex-start', justifyContent: zoom === 1 ? 'center' : 'flex-start' }}>
                         {current.local?.type === '3d' ? <ModelViewer url={original(current)} type={current.name.split('.').pop() || ''} /> : isVideo(current) ? <PreviewMedia onError={() => setMediaError(true)} key={current.id} controls autoPlay={gallery.settings.autoPlayVideos} src={original(current)} style={{ maxWidth: '100%', maxHeight: '100%' }} /> : current.local?.type === 'audio' ? <PreviewMedia audio key={current.id} controls src={original(current)} /> :
-                        <img onClick={event => { if (event.detail === 1) toggle(current); }} key={current.id} src={failedOriginal === current.id ? thumbnail(current) : original(current)} alt={'Viewing ' + current.name} onError={() => setFailedOriginal(current.id)}
+                        <img title="Click to focus · rapid double-click selects · Ctrl/Cmd-click or Space selects" onClick={event => {
+                            viewerRef.current?.focus({preventScroll:true});
+                            if(event.ctrlKey||event.metaKey||event.shiftKey){viewerClick.current=undefined;toggle(current,event.shiftKey);return;}
+                            const click={id:current.id,at:event.timeStamp};
+                            const select=quickSelectionClick(viewerClick.current,click,event.detail);
+                            viewerClick.current=select?undefined:click;
+                            if(select)toggle(current);
+                        }} key={current.id} src={failedOriginal === current.id ? thumbnail(current) : original(current)} alt={'Viewing ' + current.name} onError={() => setFailedOriginal(current.id)}
                             style={zoom === 1 ? { width: '100%', height: '100%', objectFit: 'contain', display: 'block' } : { height: `${zoom * 100}%`, maxWidth: 'none', objectFit: 'contain', margin: 'auto' }} />}
                     </div>
                 </Dropdown>
