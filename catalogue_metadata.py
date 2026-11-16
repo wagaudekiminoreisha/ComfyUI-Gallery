@@ -4,6 +4,10 @@ import json
 import re
 from pathlib import Path
 from aiohttp import web
+try:
+    from .workflow_serialization import restore_workflow_node
+except ImportError:
+    from workflow_serialization import restore_workflow_node
 
 DROP = {'metadata', 'gallery_source_history', 'rules_state', 'rules_program', 'rulesets', 'gallery_inherited_rules'}
 
@@ -62,6 +66,7 @@ def compact_metadata(metadata):
         kept=[]
         for node in nodes:
             if not isinstance(node,dict) or api and node.get('type')!='GalleryPromptEncode':continue
+            node=restore_workflow_node(node)
             record={key:project(node[key]) for key in ('id','type','title','inputs') if key in node}
             if not api:record['widgets_values']=project(node.get('widgets_values',[]))
             boxes=object_value(node.get('properties')).get('prompt_boxes')

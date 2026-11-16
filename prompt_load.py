@@ -5,9 +5,11 @@ import time
 try:
     from .prefix_library import split_top
     from .prompt_rules import tag_key, apply_rules, active_boxes
+    from .workflow_serialization import restore_workflow_node
 except ImportError:
     from prefix_library import split_top
     from prompt_rules import tag_key, apply_rules, active_boxes
+    from workflow_serialization import restore_workflow_node
 
 
 def inner_text(part):
@@ -57,6 +59,7 @@ def prompt_groups(extra_pnginfo, unique_id, source_text):
     sources = source_text if isinstance(source_text, dict) else {'source_text': source_text}
     nodes = (extra_pnginfo or {}).get('workflow', {}).get('nodes', [])
     node = next((node for node in nodes if str(node.get('id')) == str(unique_id)), {})
+    node = restore_workflow_node(node)
     boxes = node.get('properties', {}).get('prompt_boxes', {}).get('boxes', [])
     groups = []
     for box in boxes:

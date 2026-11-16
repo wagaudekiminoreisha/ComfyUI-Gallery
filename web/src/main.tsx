@@ -1,3 +1,4 @@
+import {installWorkflowSerialization,registerWorkflowConstructor,restoreWorkflow} from './WorkflowSerialization';
 import {migrateEncoderWorkflow,registerEncoderConstructor} from './EncoderSerialization';
 import { installSessionOutputs } from './SessionOutputs';
 import {installLoadReport} from './LoadReport';
@@ -37,13 +38,14 @@ if (STANDALONE) {
         document.body.appendChild(box);
         createRoot(box).render(<Main />);
     },
-    beforeRegisterNodeDef(nodeType: any, nodeData: any) { if (nodeData.name === 'GalleryImageSource') registerSourceConstructor(nodeType);if(nodeData.name==='GalleryPromptEncode')registerEncoderConstructor(nodeType); },
-    beforeConfigureGraph(data:any){migrateEncoderWorkflow(data);},
+    beforeRegisterNodeDef(nodeType: any, nodeData: any) { if (nodeData.name === 'GalleryImageSource') registerSourceConstructor(nodeType);if(nodeData.name==='GalleryPromptEncode')registerEncoderConstructor(nodeType);if(['GalleryImageSource','GalleryPromptEncode'].includes(nodeData.name))registerWorkflowConstructor(nodeType); },
+    beforeConfigureGraph(data:any){restoreWorkflow(data);migrateEncoderWorkflow(data);},
     afterConfigureGraph() { closeWorkspace(); },
     async nodeCreated(node: any) {
         installSourceWidgets(node);
         installPrefixWidgets(node);
         installLoadReport(node);
+        if((node.comfyClass||node.type)==='GalleryImageSource')installWorkflowSerialization(node);
         try {
             if (node.comfyClass === "GalleryNode") {
                 node.addWidget("button", "Open Gallery", null, () => {
