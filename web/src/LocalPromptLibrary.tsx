@@ -1,3 +1,4 @@
+import {HYBRID_EVENT} from './HybridComposer';
 import { usePopupWidth, POPUP_ALIGN } from './usePopupWidth';
 import {BookOutlined} from '@ant-design/icons';
 import {findLineage} from './PrefixLineage';
@@ -172,7 +173,7 @@ export function LocalPromptSearch({ onLocalSearch, managerOnly = false }: { onLo
         <FloatingPanel panelKey="prompt-library" title="Prompts & prefixes" open={open} onCancel={() => setOpen(false)} footer={null} width={1050}>
             <Space wrap style={{ width: '100%', justifyContent: 'space-between', marginBottom: 10 }}>
                 <Space wrap><Typography.Text>Append directly to workflow:</Typography.Text><Select aria-label="Library append target" placeholder="Choose a prompt node or text field" value={appendTarget} onChange={setAppendTarget} options={promptTargets} style={{ minWidth: 350 }} /><Button onClick={() => { void getPromptTargets().then(setPromptTargets).catch(error => setStatus(String(error))); }}>Refresh prompt targets</Button></Space>
-                <Space wrap><Button onClick={() => openTagSearch([])}>Tag search…</Button><Button icon={<BookOutlined/>} onClick={() => setLibraryOpen(true)}>Library search…</Button></Space>
+                <Space wrap><Button onClick={()=>window.dispatchEvent(new CustomEvent(HYBRID_EVENT))}>Hybrid composer…</Button><Button onClick={() => openTagSearch([])}>Tag search…</Button><Button icon={<BookOutlined/>} onClick={() => setLibraryOpen(true)}>Library search…</Button></Space>
             </Space>
             {!shared.tags.length && !shared.prefixes.length && <Button style={{ marginBottom: 10 }} onClick={() => { void migrateBrowserPrefixes(shared.revision!).then(load).catch(error => message.error(String(error))); }}>Import legacy browser library</Button>}
             {boxed && <Typography.Paragraph type="secondary">Editing {seed.node.title || 'Prompt Encode'} #{seed.node.id}. Appends from here become boxes on the node; reorder, edit or delete them there.</Typography.Paragraph>}

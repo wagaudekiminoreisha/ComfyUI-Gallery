@@ -8,7 +8,7 @@ import type { FileDetails } from './types';
 export function indexPrompts(folders: Record<string, Record<string, any>>): Phrase[] {
     const index = new Map<string, Phrase>();
     for (const files of Object.values(folders)) for (const file of Object.values(files)) {
-        const prompts = extractLocalPrompts(file.metadata);
+        const prompts = extractLocalPrompts(file.metadata,false,true);
         for (const side of ['positive', 'negative'] as const) for (const phrase of promptTags(prompts[side], '')) {
             const key = side + ':' + phrase.toLocaleLowerCase();
             const existing = index.get(key);

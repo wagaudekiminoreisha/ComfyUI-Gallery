@@ -64,6 +64,10 @@ def prompts(metadata):
             node = obj(graph.get(key))
             inputs = obj(node.get('inputs'))
             record=obj(obj(meta.get('gallery_prompts')).get(key))
+            if node.get('class_type') == 'GalleryHybridPrompt':
+                text=record.get('negative' if value[1]==1 else 'resolved','') if value[1] in (0,1) else ''
+                if isinstance(text,str) and text:result[polarity].append(text)
+                return
             if node.get('class_type') == 'GalleryPromptEncode' and isinstance(record.get('resolved'),str):
                 if record['resolved']: result[polarity].append(record['resolved'])
                 return

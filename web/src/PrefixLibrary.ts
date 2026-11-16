@@ -7,7 +7,7 @@ export { effectiveSourceText } from './EncoderNode';
 export type PrefixImage = { input_name?:string; name?: string; local_url?: string; root?: string; hash?: string; /** Association keys this image is stored under (filled in when listing). */ keys?: string[] };
 export type PrefixSnapshot={id:string;prefix_id:string;name:string;terms:string[];negative_terms:string[];rules:import('./RuleEngine').RuleBox[];hair_policy?:import('./HairPolicy').HairPolicy;members:Record<string,PrefixImage>;created_at:number};
 export type PrefixAssociation = { prefer_snapshots?:string[]; prefix_id: string; prefix_ids?: string[]; terms: string[]; negative_terms?: string[]; image?: PrefixImage };
-export type PrefixLibrary = { session_id?:string; snapshots?:Record<string,PrefixSnapshot>;version: number; associations?: Record<string, PrefixAssociation>; tags: { id: string; name: string; text: string }[]; prefixes: { id: string; name: string; tags: string[]; negative_terms?: string[] }[] };
+export type PrefixLibrary = { hybrid?:import('./HybridPrompt').HybridLibrary; session_id?:string; snapshots?:Record<string,PrefixSnapshot>;version: number; associations?: Record<string, PrefixAssociation>; tags: { id: string; name: string; text: string }[]; prefixes: { id: string; name: string; tags: string[]; negative_terms?: string[] }[] };
 async function api() {
     const current = (window as any).comfyAPI?.api?.api || getComfyApp()?.api;
     if (current?.fetchApi) return current;
@@ -183,3 +183,5 @@ export async function capturePrefixSnapshot(data:{prefix_id:string;terms:string[
 }
 
 export async function setSnapshotDefault(prefixId:string,imageKeys:string[],enabled:boolean,revision?:string){const result=await request({action:'snapshot_default',prefix_id:prefixId,image_keys:imageKeys,enabled,revision});changed(result);return result;}
+
+export async function hybridLibraryAction(body:Record<string,unknown>){const result=await request(body);changed(result);return result;}

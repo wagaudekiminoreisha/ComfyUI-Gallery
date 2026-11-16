@@ -1,0 +1,114 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "anima-base-v1.0.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_3_06b_base.safetensors",
+      "type": "stable_diffusion",
+      "device": "default"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    }
+  },
+  "4": {
+    "class_type": "GalleryHybridPrompt",
+    "inputs": {
+      "document": "{\"version\": 1, \"seed\": 42, \"components\": [{\"id\": \"example-subject\", \"name\": \"Subject tags\", \"type\": \"tags\", \"text\": \"1girl, red hair, black dress, sitting, indoors, night\"}, {\"id\": \"example-scene\", \"name\": \"Scene and interaction\", \"type\": \"prose\", \"text\": \"The woman is sitting beside a rain-streaked window. One hand rests on the worn wooden sill, and she looks toward the quiet street outside.\\n\\nThe window is on the left of the composition. The interior recedes into shadow behind her, leaving the brightest contrast around her face and hair.\"}, {\"id\": \"example-style-reference\", \"name\": \"Visual identity\", \"type\": \"reference\", \"ref\": \"example-identity\"}]}",
+      "library": "{\"version\": 2, \"tags\": [], \"prefixes\": [], \"hybrid\": {\"version\": 1, \"components\": {\"example-identity\": {\"id\": \"example-identity\", \"name\": \"Visual identity\", \"type\": \"group\", \"children\": [{\"id\": \"example-render\", \"name\": \"Painterly rendering\", \"type\": \"prose\", \"text\": \"Render the scene as a painterly anime illustration. Skin has soft, varied shading; the dark fabric has a subtle woven texture.\"}, {\"id\": \"example-light\", \"name\": \"Moonlit interior\", \"type\": \"prose\", \"enabled\": false, \"text\": \"Warm interior light falls across her face, contrasting with the cool blue evening outside. Raindrops catch small highlights along the window.\"}], \"rules\": [{\"id\": \"example-night-light\", \"target\": \"example-light\", \"action\": \"enable\", \"priority\": 10, \"tags\": [\"night\"], \"components\": [], \"unless\": []}]}}}}"
+    }
+  },
+  "5": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "text": [
+        "4",
+        0
+      ]
+    }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "text": [
+        "4",
+        1
+      ]
+    }
+  },
+  "7": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    }
+  },
+  "8": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "positive": [
+        "5",
+        0
+      ],
+      "negative": [
+        "6",
+        0
+      ],
+      "latent_image": [
+        "7",
+        0
+      ],
+      "seed": 42,
+      "steps": 30,
+      "cfg": 4,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "9": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "8",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "10": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "9",
+        0
+      ],
+      "filename_prefix": "Anima-Gallery"
+    }
+  }
+}

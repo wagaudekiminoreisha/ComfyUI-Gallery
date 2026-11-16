@@ -74,7 +74,7 @@ export function HydrusExportModal() {
                 const mapped: Record<string, string[]> = {};
                 for (let start = 0; start < exportUrls.length; start += 200) {
                     const batch = exportUrls.slice(start, start + 200);
-                    const result = await hydrusRequest<{ tags: string[][] }>('danbooru_tags', { texts: batch.map(url => extractLocalPrompts(imageFiles[url]?.metadata).positive) });
+                    const result = await hydrusRequest<{ tags: string[][] }>('danbooru_tags', { texts: batch.map(url => extractLocalPrompts(imageFiles[url]?.metadata,false,true).positive) });
                     batch.forEach((url, index) => { mapped[url] = result.tags[index]; });
                 }
                 if (!cancelled) { setDictionaryTags(mapped); setDictionaryReady(urlsKey); }
@@ -85,7 +85,7 @@ export function HydrusExportModal() {
 
     const proposedTags = useMemo(() => Object.fromEntries(exportUrls.map(url => {
         if (!danbooru && !positiveTags && !negativeTags) return [url, []];
-        const prompts = extractLocalPrompts(imageFiles[url]?.metadata);
+        const prompts = extractLocalPrompts(imageFiles[url]?.metadata,false,true);
         return [url, [...(danbooru || positiveTags || negativeTags ? ['comfyui outputs'] : []), ...(danbooru ? dictionaryTags[url] || [] : positiveTags ? promptTags(prompts.positive, prefixPositive ? 'positive_prompt' : '') : []),
             ...(negativeTags ? promptTags(prompts.negative, 'negative_prompt') : [])]];
     })), [urlsKey, imageFiles, positiveTags, negativeTags, prefixPositive, danbooru, dictionaryTags]);
