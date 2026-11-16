@@ -672,6 +672,13 @@ The viewer, prompt library, image append review, Image Source editor, metadata a
 
 Click a panel to bring it forward. Collapse keeps its draft intact; double-clicking the title bar also collapses/expands. Collapsing the viewer pauses media, and closing it stops and detaches media. Escape closes the focused panel outside text inputs/search controls. Panels are kept within the viewport when resizing the browser. Delete confirmations and settings remain modal.
 
+In the enlarged image viewer, a plain image click restores keyboard focus without
+changing selection. Selection requires a rapid double-click (two clicks within
+160 ms), Ctrl/Cmd-click, Shift-click, Space, or the explicit Selected checkbox.
+The viewer also accepts left/right arrows while a toolbar or filmstrip button is
+focused; Space on a button keeps its normal button action. Grid selection-mode
+and filmstrip click behavior are unchanged.
+
 
 ## Multiple categories and optional alternatives (hydrus.17)
 
@@ -689,6 +696,11 @@ prompts to `source_text` and `source_text_2`, then name the cards Pose and
 Appearance. **＋ Source** adds cards, up to eight. See
 [Multiple encoder sources](docs/MULTIPLE_ENCODER_SOURCES.md) for wiring, per-card
 edits, rule inheritance and workflow compatibility.
+
+Source cards also have opt-in Appearance/Pose category filters. In the Image
+Source editor, **Prompt sources** chooses active/batch/all images independently
+of composition and offers append, union, common-term, or frequency aggregation.
+See [Source tag policy prototype](docs/SOURCE_TAG_POLICY.md) for coverage and limits.
 
 Add **Gallery Load Report** (`utils/gallery`) after VAE Decode or the final image
 operation. Connect its required **images** input; its IMAGE output passes the same

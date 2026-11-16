@@ -259,6 +259,7 @@ class GalleryLoadReport:
             encoders.append({'node_id': key, 'token_streams': entry.get('token_load', []),
                              'rules_applied': len(entry.get('rules_applied', {}).get('rulesets', [])),
                              'diagnostic_context': entry.get('diagnostic_context'),
+                             'source_filters': entry.get('source_filters', {}),
                              'note': '' if entry.get('token_load') else 'No runtime token measurement available; rerun this encoder.'})
         for side, conditioning in [('positive', positive), ('negative', negative)]:
             for row in conditioning or []:

@@ -1,0 +1,126 @@
+{
+  "categories": [
+    {
+      "id": "hair",
+      "label": "Hair",
+      "families": [
+        "hair",
+        "hair-arrangement"
+      ],
+      "facets": [
+        "hair."
+      ]
+    },
+    {
+      "id": "eyes",
+      "label": "Eyes",
+      "families": [
+        "eyes"
+      ],
+      "facets": [
+        "eyes."
+      ]
+    },
+    {
+      "id": "clothing",
+      "label": "Clothing and accessories",
+      "families": [
+        "clothing-layers",
+        "clothing-pattern",
+        "accessories",
+        "footwear"
+      ],
+      "facets": [
+        "clothes.",
+        "accessory."
+      ]
+    },
+    {
+      "id": "skin-body",
+      "label": "Skin and body attributes",
+      "families": [
+        "skin",
+        "chest"
+      ],
+      "facets": [
+        "skin.",
+        "body."
+      ]
+    },
+    {
+      "id": "pose",
+      "label": "Pose and gestures",
+      "families": [
+        "pose"
+      ],
+      "facets": [
+        "pose."
+      ]
+    },
+    {
+      "id": "framing",
+      "label": "Framing and viewpoint",
+      "families": [
+        "framing"
+      ],
+      "facets": [
+        "composition.",
+        "gaze."
+      ]
+    },
+    {
+      "id": "expression",
+      "label": "Expression",
+      "families": [
+        "expression"
+      ],
+      "facets": [
+        "expression.",
+        "mouth."
+      ]
+    },
+    {
+      "id": "background",
+      "label": "Background",
+      "families": [
+        "background"
+      ],
+      "facets": [
+        "scene."
+      ]
+    },
+    {
+      "id": "lighting",
+      "label": "Lighting",
+      "families": [
+        "lighting"
+      ],
+      "facets": [
+        "light."
+      ]
+    },
+    {
+      "id": "subject-count",
+      "label": "Subject counts",
+      "families": [
+        "subject-count"
+      ],
+      "facets": [
+        "count."
+      ]
+    }
+  ],
+  "presets": {
+    "unfiltered": [],
+    "appearance": [
+      "pose",
+      "framing"
+    ],
+    "pose": [
+      "hair",
+      "eyes",
+      "clothing",
+      "skin-body"
+    ]
+  }
+}
