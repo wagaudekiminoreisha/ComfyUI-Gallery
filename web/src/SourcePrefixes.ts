@@ -30,6 +30,7 @@ export function sourcePrefixRecipe(library: PrefixLibrary, id: string, snapshotI
     const prefix = library.prefixes.find(item => item.id === id);
     if (!prefix) return;
     const snapshot = snapshotId ? library.snapshots?.[snapshotId] : undefined;
+    if(snapshot&&snapshot.prefix_id!==id)return;
     return {
         id, name: prefix.name, snapshot_id: snapshotId,
         positive: terms(snapshot?.terms ?? prefix.tags.map(tagId => library.tags.find(tag => tag.id === tagId)?.text || '')),

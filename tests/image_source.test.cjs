@@ -42,7 +42,7 @@ function bridgeFixture() {
         comfyClass: 'GalleryImageSource', widgets: [{ name: 'sources', type: 'customtext', value: JSON.stringify(geometry.emptyImageSourceManifest()) }],
         addWidget(type, name, value, callback, options) { this.widgets.push({ type, name, value, callback, options }); },
     }; } } };
-    const bridge = compile('ImageSourceBridge', { window, CustomEvent: class { constructor(type, detail) { this.type=type;this.detail=detail; } } }, { './SourceHistory': sourceHistory, './ComfyAppApi': { getComfyApp: () => app, STANDALONE: false }, './ImageSourceGeometry': geometry, './NodeWidgets': compile('NodeWidgets'), './PrefixLibrary': { loadPrefixes: async () => { throw new Error('No library in this fixture'); } } });
+    const bridge = compile('ImageSourceBridge', { window, CustomEvent: class { constructor(type, detail) { this.type=type;this.detail=detail; } } }, { './SourceAppendPolicy': require('./ts_loader.cjs').load('SourceAppendPolicy'), './SourcePrefixes':require('./ts_loader.cjs').load('SourcePrefixes'), './SourceHistory': sourceHistory, './ComfyAppApi': { getComfyApp: () => app, STANDALONE: false }, './ImageSourceGeometry': geometry, './NodeWidgets': compile('NodeWidgets'), './PrefixLibrary': { loadPrefixes: async () => { throw new Error('No library in this fixture'); } } });
     return { bridge, graph, app };
 }
 test('append creates one dedicated node and keeps serialized crop/layout across later appends', async () => {
@@ -68,7 +68,9 @@ test('explicit targets, deleted nodes and source count limits are checked', asyn
     await bridge.appendToImageSource([{ input_name: 'second.png' }]);
     assert.equal(bridge.readSourceManifest(first).images.length, 0);
     await bridge.setSourceTarget(String(first.id));
-    await bridge.appendToImageSource(Array.from({ length: 32 }, () => ({ input_name: 'a.png' })));
+    await bridge.appendToImageSource(Array.from({ length: 32 }, (_,index) => ({ input_name: 'a'+index+'.png' })));
+    assert.match(await bridge.appendToImageSource([{input_name:'a0.png'}]),/Skipped 1 duplicate/);
+    assert.equal(await bridge.addToNode(first,[{input_name:'a0.png'}]),0);
     await assert.rejects(bridge.appendToImageSource([{ input_name: 'extra.png' }]), /at most 32/);
     assert.equal(bridge.readSourceManifest(first).images.length, 32);
     graph._nodes.splice(0, 1);
@@ -135,4 +137,20 @@ test('numbered output sockets keep their image and wire after reorder, removal a
     assert.equal(node.outputs[8].label, 'Image 1 · unused');
     assert.equal(node.outputs[9].label, 'Image 2 · look.png');
     assert.deepEqual(node.outputs[9].links, [42]);
+});
+
+test('duplicate appends are no-ops for prompt targets, existing crop, output and graph history',async()=>{
+ const {bridge,graph}=bridgeFixture();graph.add({title:'Prompt',widgets:[{name:'text',value:'original'}]});
+ await bridge.appendToImageSource([{input_name:'same.png',prompt:{positive:'first',negative:'',tags:[]}}]);const source=graph._nodes[1];
+ let manifest=bridge.readSourceManifest(source);manifest.images[0].crop={x:0,y:0,width:.5,height:1};bridge.saveSourceManifest(source,manifest);
+ const before=JSON.stringify(source.widgets[0].value);let changes=0;graph.beforeChange=()=>changes++;
+ const result=await bridge.appendToImageSource([{input_name:'same.png',prompt:{positive:'duplicate',negative:'',tags:[]}}],{positive:JSON.stringify(['1',0]),mode:'replace'});
+ assert.match(result,/Skipped 1 duplicate/);assert.equal(graph._nodes[0].widgets[0].value,'original');assert.equal(JSON.stringify(source.widgets[0].value),before);assert.equal(changes,0);
+ assert.equal(await bridge.addToNode(source,[{input_name:'same.png'}]),0);
+ await bridge.appendToImageSource([{input_name:'new.png'},{input_name:'new.png'}]);assert.equal(bridge.readSourceManifest(source).images.length,2);
+});
+test('append checks the expected target before making changes',async()=>{
+ const {bridge,graph}=bridgeFixture();await bridge.setSourceTarget('new');const first=graph._nodes[0];await bridge.setSourceTarget('new');
+ await assert.rejects(bridge.appendToImageSource([{input_name:'new.png'}],undefined,undefined,String(first.id)),/target changed/);
+ assert.equal(bridge.readSourceManifest(graph._nodes[1]).images.length,0);
 });

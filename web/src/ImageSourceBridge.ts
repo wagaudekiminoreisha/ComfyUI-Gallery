@@ -1,3 +1,5 @@
+import {appendProvenance,partitionSourceAppend,sourceContentHash} from './SourceAppendPolicy';
+import {sourcePrefixMetadata,sourcePrefixRefs} from './SourcePrefixes';
 import { refreshSourcePrefix } from './SourcePrefixes';
 import { fitPopup } from './PopupGeometry';
 import { mergeSourceHistory, type PickerRect } from './SourceHistory';
@@ -343,7 +345,7 @@ export async function sourceRequest(path: string, body: unknown): Promise<ImageS
     const response = await comfyFetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Could not add that image.');
-    const image = { input_name: data.input_name, title: data.title, metadata: data.metadata || {} };
+    const image = { input_name: data.input_name, title: data.title, metadata: { ...data.metadata, ...(data.hash?{gallery_content_hash:data.hash}:{}) } };
     return stampOrigin(image, path === '/Gallery/source/input' ? (imageOrigin(image) === 'hydrus' ? 'hydrus' : 'external') : imageOrigin(image));
 }
 /** An image from ComfyUI's input folder (a Load Image node's image, an uploaded file) as a source entry. */
@@ -354,10 +356,12 @@ export async function addToNode(node: any, images: ImageSourceImage[], urls?: (s
     if (!images.length) return 0;
     const stamped = await withPairedPrefix(images.map(image => stampOrigin(image)), urls);
     const manifest = readSourceManifest(node);
+    const unique = partitionSourceAppend(manifest.images,stamped).accepted;
+    if(!unique.length)return 0;
     const room = 32 - manifest.images.length;
-    if (room <= 0) throw new Error('This node already holds 32 images.');
-    saveSourceManifest(node, { ...manifest, images: [...manifest.images, ...stamped.slice(0, room)], active_index: manifest.layout === 'single' ? manifest.images.length : manifest.active_index });
-    return Math.min(room, stamped.length);
+    if (unique.length > room) throw new Error('This node can contain at most 32 images. Remove sources or choose another node.');
+    saveSourceManifest(node, { ...manifest, images: [...manifest.images, ...unique], active_index: manifest.layout === 'single' ? manifest.images.length : manifest.active_index });
+    return unique.length;
 }
 
 /**
@@ -409,7 +413,8 @@ export function installLoadImageDrop() {
             if (!target || typeof name !== 'string' || !name) continue;
             const notify = (text: string) => target.__galleryNotify?.(text);
             notify('adding…');
-            void sourceFromInput(name).then(image => addToNode(target, [{ ...image, title: name.split('/').pop() }])).then(() => {
+            void sourceFromInput(name).then(image => addToNode(target, [{ ...image, title: name.split('/').pop() }])).then(count => {
+                if(!count){node.pos=[x,y];notify('already in target');return;}
                 if (node.outputs?.some((output: any) => output.links?.length)) { node.pos = [x, y]; notify('added (Load Image kept: it is connected)'); }
                 else { graph.beforeChange?.(); try { graph.remove(node); } finally { graph.afterChange?.(); } notify('added from Load Image'); }
                 getComfyApp()?.canvas?.setDirty?.(true, true);
@@ -441,14 +446,34 @@ function localCommand(command: string, payload: any): any {
     }
     if (command === 'prompt_targets') return (graphNow()?._nodes || []).filter((node: any) => !isSource(node)).flatMap((node: any) => (node.widgets || []).flatMap((widget: any, index: number) => typeof widget.value === 'string' && widget.serialize !== false && /text|prompt|prefix|positive|negative/i.test(widget.name) ? [{ value: JSON.stringify([String(node.id), index]), label: `${node.title || node.type} #${node.id} · ${widget.name}` }] : []));
     if (command === 'targets') return targetInfo();
+    if (command === 'append_target') {
+        const node=currentTarget();
+        return {selected:node?String(node.id):undefined,requiresSelection:!node&&nodes().length>0,images:node?readSourceManifest(node).images.map(image=>({
+            input_name:image.input_name,title:image.title,metadata:{
+                gallery_content_hash:sourceContentHash(image),gallery_url:image.metadata?.gallery_url,
+                gallery_root:image.metadata?.gallery_root,gallery_revision:image.metadata?.gallery_revision,
+                ...sourcePrefixMetadata(sourcePrefixRefs(image.metadata)),gallery_append_provenance:appendProvenance({...image.metadata,gallery_content_hash:sourceContentHash(image)}),
+            },
+        })):[]};
+    }
     if (command === 'target' && payload === 'new') { currentTarget(true, true); return targetInfo(); }
     if (command === 'target') { target = nodes().find((node: any) => String(node.id) === payload); if (!target) throw new Error('That target is no longer available.'); return targetInfo(); }
     if (command === 'edit') { const node = currentTarget(true); window.dispatchEvent(new CustomEvent(SOURCE_EDITOR_EVENT, { detail: node })); window.focus(); return true; }
     if (command !== 'append') throw new Error('Unknown image source action.');
     const apply: PromptApply | undefined = Array.isArray(payload) ? undefined : payload?.apply;
+    const expectedTarget=Array.isArray(payload)?undefined:payload?.expectedTarget;
     payload = Array.isArray(payload) ? payload : payload?.images;
     if (!Array.isArray(payload) || !payload.length || payload.length > 32 || payload.some(image => typeof image?.input_name !== 'string' || !image.input_name || image.input_name.length > 2048)) throw new Error('Append between 1 and 32 input images.');
     if (new TextEncoder().encode(JSON.stringify(payload)).byteLength > MAX_SOURCE_METADATA_BYTES) throw new Error('Image metadata exceeds the 32 MiB limit; use fewer images.');
+    const existingNode=currentTarget();
+    if(expectedTarget!==undefined&&expectedTarget!==(existingNode?String(existingNode.id):null))throw new Error('The Image Source target changed while images were being prepared. Review the target and append again.');
+    if(!existingNode&&nodes().length)throw new Error('Choose an Image Source target in the gallery toolbar first.');
+    const manifest=existingNode?readSourceManifest(existingNode):emptyImageSourceManifest();
+    const filtered=partitionSourceAppend(manifest.images,payload as ImageSourceImage[]);
+    const skipped=filtered.duplicates.length;
+    payload=filtered.accepted;
+    if(!payload.length)return `Skipped ${skipped} duplicate image(s); the target source was unchanged.`;
+    if(manifest.images.length+payload.length>32)throw new Error('This node can contain at most 32 images. Remove sources or choose another node.');
     const updates = (['positive', 'negative'] as const).flatMap(side => {
         if (!apply?.[side]) return [];
         const [id, index] = JSON.parse(apply[side]!);
@@ -460,18 +485,16 @@ function localCommand(command: string, payload: any): any {
         return [{ node, widget, text, mode: apply.mode, boxes: widget.name === 'text' ? node.__galleryPromptBoxes : undefined, value: mergePrompt(widget.value, text, apply.mode) }];
     });
     if (updates.length === 2 && updates[0].widget === updates[1].widget) throw new Error('Choose different positive and negative prompt targets.');
-    const node = currentTarget(true);
-    const manifest = readSourceManifest(node);
-    if (manifest.images.length + payload.length > 32) throw new Error('This node can contain at most 32 images. Remove sources or choose another node.');
+    const node = existingNode || currentTarget(true);
     const graph = graphNow();
     graph.beforeChange?.();
     try {
-    saveSourceManifest(node, { ...manifest, images: [...manifest.images, ...payload.map(image => ({ input_name: image.input_name, title: String(image.title || image.input_name).slice(0, 512), metadata: image.metadata || {}, prompt: image.prompt }))] }, false);
+    saveSourceManifest(node, { ...manifest, images: [...manifest.images, ...payload.map((image:ImageSourceImage) => ({ input_name: image.input_name, title: String(image.title || image.input_name).slice(0, 512), metadata: image.metadata || {}, prompt: image.prompt }))] }, false);
     for (const update of updates) { if (update.boxes) { update.boxes.insert(update.text, update.mode, undefined); continue; } update.widget.value = update.value; update.widget.callback?.(update.value); update.node.setDirtyCanvas?.(true, true); }
     } finally { graph.afterChange?.(); }
     target = node;
     window.dispatchEvent(new CustomEvent(SOURCE_EDITOR_EVENT, { detail: node }));
-    return `Appended ${payload.length} image(s) to ${node.title || 'Gallery Image Source'} #${node.id}.`;
+    return `Appended ${payload.length} image(s) to ${node.title || 'Gallery Image Source'} #${node.id}.${skipped?` Skipped ${skipped} duplicate image(s).`:''}`;
 }
 
 window.addEventListener('message', event => {
@@ -498,6 +521,7 @@ function command<T>(name: string, payload?: any): Promise<T> {
 }
 
 export const getSourceTargets = () => command<TargetInfo>('targets');
+export const getAppendTarget = () => command<{selected?:string;requiresSelection?:boolean;images:ImageSourceImage[]}>('append_target');
 export const setSourceTarget = (id: string) => command<TargetInfo>('target', id);
 export const editSourceTarget = () => command<boolean>('edit');
 export const getPromptTargets = () => command<{ value: string; label: string }[]>('prompt_targets');
@@ -512,9 +536,9 @@ async function withPairedPrefix(images: ImageSourceImage[], urls: (string | unde
     try { library = await loadPrefixes(); } catch { return images; }
     return images.map((image, index) => refreshSourcePrefix({ ...image, metadata: { ...image.metadata, ...(urls[index] ? { gallery_url: urls[index] } : {}) } }, library, urls[index]));
 }
-export const appendToImageSource = async (images: ImageSourceImage[], apply?: PromptApply, urls?: (string | undefined)[]) => {
+export const appendToImageSource = async (images: ImageSourceImage[], apply?: PromptApply, urls?: (string | undefined)[], expectedTarget?:string|null) => {
     const stamped = await withPairedPrefix(images.map(image => stampOrigin(image)), urls);
-    return command<string>('append', apply ? { images: stamped, apply } : stamped);
+    return command<string>('append', apply||expectedTarget!==undefined ? { images: stamped, apply, ...(expectedTarget!==undefined?{expectedTarget}:{}) } : stamped);
 };
 
 export async function appendLocalImages(urls: string[]) {
@@ -524,7 +548,7 @@ export async function appendLocalImages(urls: string[]) {
         const response = await fetch('/Gallery/source/local', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Could not copy the local image.');
-        entries.push({ input_name: data.input_name, title: data.title, metadata: data.metadata || {} });
+        entries.push({ input_name: data.input_name, title: data.title, metadata: { ...data.metadata, ...(data.hash?{gallery_content_hash:data.hash}:{}) } });
     }
     return appendToImageSource(entries, undefined, urls);
 }
