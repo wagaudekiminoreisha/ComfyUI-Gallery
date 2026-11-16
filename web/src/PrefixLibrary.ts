@@ -6,8 +6,8 @@ import { splitTop } from './PromptBoxes';
 export { effectiveSourceText } from './EncoderNode';
 export type PrefixImage = { input_name?:string; name?: string; local_url?: string; root?: string; hash?: string; /** Association keys this image is stored under (filled in when listing). */ keys?: string[] };
 export type PrefixSnapshot={id:string;prefix_id:string;name:string;terms:string[];negative_terms:string[];rules:import('./RuleEngine').RuleBox[];hair_policy?:import('./HairPolicy').HairPolicy;members:Record<string,PrefixImage>;created_at:number};
-export type PrefixAssociation = { prefix_id: string; prefix_ids?: string[]; terms: string[]; negative_terms?: string[]; image?: PrefixImage };
-export type PrefixLibrary = { snapshots?:Record<string,PrefixSnapshot>;version: number; associations?: Record<string, PrefixAssociation>; tags: { id: string; name: string; text: string }[]; prefixes: { id: string; name: string; tags: string[]; negative_terms?: string[] }[] };
+export type PrefixAssociation = { prefer_snapshots?:string[]; prefix_id: string; prefix_ids?: string[]; terms: string[]; negative_terms?: string[]; image?: PrefixImage };
+export type PrefixLibrary = { session_id?:string; snapshots?:Record<string,PrefixSnapshot>;version: number; associations?: Record<string, PrefixAssociation>; tags: { id: string; name: string; text: string }[]; prefixes: { id: string; name: string; tags: string[]; negative_terms?: string[] }[] };
 async function api() {
     const current = (window as any).comfyAPI?.api?.api || getComfyApp()?.api;
     if (current?.fetchApi) return current;
@@ -22,7 +22,7 @@ export type SharedLibrary = PrefixLibrary & { revision?: string };
 let latestLibrary: SharedLibrary | undefined;
 let libraryGeneration = 0;
 export const latestPrefixLibrary = () => latestLibrary;
-async function request(body?: unknown): Promise<{ library: PrefixLibrary; revision: string;snapshot_id?:string|null }> {
+async function request(body?: unknown): Promise<{ library: PrefixLibrary; revision: string;session_id?:string;snapshot_id?:string|null }> {
     const service = await api();
     const options = body === undefined ? undefined : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
     const response = await (service?.fetchApi ? service.fetchApi('/Gallery/prefixes', options) : fetch('/Gallery/prefixes', options));
@@ -54,12 +54,12 @@ function syncSources(library: PrefixLibrary) {
     }
     if (changed) { graph?.change?.(); window.dispatchEvent(new Event('gallery-source-changed')); }
 }
-function changed(result: { library: PrefixLibrary; revision: string }) {
+function changed(result: { library: PrefixLibrary; revision: string;session_id?:string }) {
     // The server is authoritative. A full or unavailable browser cache must not
     // turn a successful save into an apparent failure and leave the editor dirty.
     try { localStorage.setItem('comfy.prompt-library.v2', JSON.stringify(result.library)); } catch { /* Optional offline migration cache. */ }
     libraryGeneration++;
-    latestLibrary = { ...result.library, revision: result.revision };
+    latestLibrary = { ...result.library, revision: result.revision,session_id:result.session_id };
     syncSources(latestLibrary);
     window.dispatchEvent(new Event('gallery-prefix-library-changed'));
     channel?.postMessage('changed');
@@ -68,7 +68,7 @@ export async function loadPrefixes(): Promise<SharedLibrary> {
     const generation = libraryGeneration;
     const result = await request();
     if (generation !== libraryGeneration && latestLibrary) return latestLibrary;
-    latestLibrary = { ...result.library, revision: result.revision };
+    latestLibrary = { ...result.library, revision: result.revision,session_id:result.session_id };
     syncSources(latestLibrary);
     return latestLibrary;
 }
@@ -181,3 +181,5 @@ export async function capturePrefixSnapshot(data:{prefix_id:string;terms:string[
  for(let attempt=0;attempt<2;attempt++){const library=await loadPrefixes();try{const result=await request({...data,action:'snapshot',revision:library.revision});window.dispatchEvent(new Event('gallery-prefix-snapshots-changed'));return result.snapshot_id||null;}catch(error){if(attempt||(error as any).status!==409)throw error;}}
  return null;
 }
+
+export async function setSnapshotDefault(prefixId:string,imageKeys:string[],enabled:boolean,revision?:string){const result=await request({action:'snapshot_default',prefix_id:prefixId,image_keys:imageKeys,enabled,revision});changed(result);return result;}

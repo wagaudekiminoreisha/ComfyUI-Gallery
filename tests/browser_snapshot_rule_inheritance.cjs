@@ -18,13 +18,13 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');const asse
   const firstId=snapshot.snapshot_id;assert(firstId);
   rules=await get('/Gallery/rulesets');await post('/Gallery/rulesets',{revision:rules.revision,library:{...rules.library,prefixes:{['snapshot:'+firstId]:[global,privateBox]}}});
   await page.goto(base);await page.getByRole('tab',{name:'Gallery workspace',exact:true}).click();
-  await page.evaluate(({prefixId,snapshotId})=>{
+  await page.evaluate(({prefixId,snapshotId,sessionId})=>{
    const host=document.createElement('div');host.id='qa-inheritance';host.style.cssText='position:fixed;right:0;top:0;width:760px;height:1050px;overflow:auto;z-index:5000;background:#222';document.body.append(host);
    const graph=window.comfyAPI.app.app.graph;
-   const source={type:'GalleryImageSource',widgets:[{name:'sources',value:JSON.stringify({version:1,layout:'single',images:[{input_name:'qa.png',metadata:{gallery_prefix:{id:prefixId,name:'Rule inheritance QA',snapshot_id:snapshotId,positive:['private_tag','global_tag','keep','variant'],negative:[]}},prompt:{positive:'private_tag, global_tag, keep, variant',negative:''}}]})}]};graph.add(source);graph.links={77:{origin_id:source.id,origin_slot:4}};
+   const source={type:'GalleryImageSource',widgets:[{name:'sources',value:JSON.stringify({version:1,layout:'single',images:[{input_name:'qa.png',metadata:{gallery_prefix:{id:prefixId,name:'Rule inheritance QA',snapshot_id:snapshotId,session_id:sessionId,positive:['private_tag','global_tag','keep','variant'],negative:[]}},prompt:{positive:'private_tag, global_tag, keep, variant',negative:''}}]})}]};graph.add(source);graph.links={77:{origin_id:source.id,origin_slot:4}};
    const node={comfyClass:'GalleryPromptEncode',widgets:[{name:'text',value:''},{name:'source_mode',value:'after'}],inputs:[{name:'source_text',link:77}],properties:{},setDirtyCanvas(){},addWidget(type,name,value,callback){this.widgets.push({type,name,value,callback});},addDOMWidget(name,type,el){host.append(el);return{name,type};}};
    graph.add(node);window.qaExtension.nodeCreated(node);window.qaRuleSource=source;window.qaRuleEncoder=node;
-  },{prefixId:prefix.id,snapshotId:firstId});
+  },{prefixId:prefix.id,snapshotId:firstId,sessionId:(await get('/Gallery/prefixes')).session_id});
   const editor=page.locator('#qa-inheritance');const card=editor.getByRole('group',{name:'Ruleset box Snapshot private QA',exact:true});await card.waitFor();
   assert.equal(await editor.getByRole('group',{name:'Ruleset box Current global QA',exact:true}).count(),0);
   const program=()=>page.evaluate(async()=>JSON.parse(await window.qaRuleEncoder.widgets.find(w=>w.name==='rules_state').serializeValue()));

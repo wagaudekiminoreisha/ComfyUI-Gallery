@@ -1,0 +1,22 @@
+{
+  "tag_group:attire": ["clothing"],
+  "tag_group:accessories": ["clothing"],
+  "tag_group:fashion_style": ["clothing"],
+  "tag_group:headwear": ["clothing"],
+  "tag_group:legwear": ["clothing"],
+  "tag_group:hair": ["hair"],
+  "tag_group:hair_color": ["hair"],
+  "tag_group:hair_styles": ["hair"],
+  "tag_group:eyes_tags": ["eyes", "expression"],
+  "tag_group:body_parts": ["skin-body"],
+  "tag_group:skin_color": ["skin-body"],
+  "tag_group:posture": ["pose", "props-interaction"],
+  "tag_group:gestures": ["pose", "props-interaction"],
+  "tag_group:face_tags": ["expression", "eyes"],
+  "tag_group:image_composition": ["framing", "art", "background"],
+  "tag_group:backgrounds": ["background", "art"],
+  "tag_group:locations": ["background"],
+  "tag_group:lighting": ["lighting", "background"],
+  "tag_group:holding_tags": ["props-interaction", "pose"],
+  "tag_group:visual_aesthetic": ["art"]
+}

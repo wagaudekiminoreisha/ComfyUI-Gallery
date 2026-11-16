@@ -1,0 +1,1601 @@
+{
+  "parents": {
+    "t-shirt": "shirt",
+    "blouse": "shirt",
+    "camisole": "shirt",
+    "tank_top": "shirt",
+    "jeans": "pants",
+    "track_pants": "pants",
+    "cargo_pants": "pants"
+  },
+  "tags": {
+    "aqua_bodysuit": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "aqua"
+    },
+    "aqua_camisole": {
+      "base": "camisole",
+      "shirt-colour": "aqua"
+    },
+    "aqua_cape": {
+      "outer": "cape",
+      "cape-colour": "aqua"
+    },
+    "aqua_capelet": {
+      "outer": "cape",
+      "cape-colour": "aqua"
+    },
+    "aqua_cardigan": {
+      "outer": "cardigan",
+      "cardigan-colour": "aqua"
+    },
+    "aqua_cloak": {
+      "outer": "cape",
+      "cape-colour": "aqua"
+    },
+    "aqua_coat": {
+      "outer": "coat",
+      "coat-colour": "aqua"
+    },
+    "aqua_dress": {
+      "base": "dress",
+      "lower": "dress",
+      "dress-colour": "aqua"
+    },
+    "aqua_hoodie": {
+      "outer": "hoodie",
+      "hoodie-colour": "aqua"
+    },
+    "aqua_jacket": {
+      "outer": "jacket",
+      "jacket-colour": "aqua"
+    },
+    "aqua_kimono": {
+      "base": "kimono",
+      "lower": "kimono",
+      "kimono-colour": "aqua"
+    },
+    "aqua_leotard": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "aqua"
+    },
+    "aqua_pants": {
+      "lower": "pants",
+      "pants-colour": "aqua"
+    },
+    "aqua_robe": {
+      "outer": "robe",
+      "robe-colour": "aqua"
+    },
+    "aqua_shirt": {
+      "base": "shirt",
+      "shirt-colour": "aqua"
+    },
+    "aqua_shorts": {
+      "lower": "shorts",
+      "shorts-colour": "aqua"
+    },
+    "aqua_skirt": {
+      "lower": "skirt",
+      "skirt-colour": "aqua"
+    },
+    "aqua_sweater": {
+      "base": "sweater",
+      "sweater-colour": "aqua"
+    },
+    "aqua_sweater_vest": {
+      "base": "sweater",
+      "sweater-colour": "aqua"
+    },
+    "aqua_tank_top": {
+      "base": "tank_top",
+      "shirt-colour": "aqua"
+    },
+    "aqua_vest": {
+      "outer": "vest",
+      "vest-colour": "aqua"
+    },
+    "armor": {
+      "outer": "armor"
+    },
+    "bathrobe": {
+      "outer": "robe"
+    },
+    "bike_shorts": {
+      "lower": "shorts"
+    },
+    "black_armor": {
+      "outer": "armor",
+      "armor-colour": "black"
+    },
+    "black_bodysuit": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "black"
+    },
+    "black_camisole": {
+      "base": "camisole",
+      "shirt-colour": "black"
+    },
+    "black_cape": {
+      "outer": "cape",
+      "cape-colour": "black"
+    },
+    "black_capelet": {
+      "outer": "cape",
+      "cape-colour": "black"
+    },
+    "black_cardigan": {
+      "outer": "cardigan",
+      "cardigan-colour": "black"
+    },
+    "black_cloak": {
+      "outer": "cape",
+      "cape-colour": "black"
+    },
+    "black_coat": {
+      "outer": "coat",
+      "coat-colour": "black"
+    },
+    "black_dress": {
+      "base": "dress",
+      "lower": "dress",
+      "dress-colour": "black"
+    },
+    "black_hoodie": {
+      "outer": "hoodie",
+      "hoodie-colour": "black"
+    },
+    "black_jacket": {
+      "outer": "jacket",
+      "jacket-colour": "black"
+    },
+    "black_jumpsuit": {
+      "base": "jumpsuit",
+      "lower": "jumpsuit",
+      "jumpsuit-colour": "black"
+    },
+    "black_kimono": {
+      "base": "kimono",
+      "lower": "kimono",
+      "kimono-colour": "black"
+    },
+    "black_leggings": {
+      "lower": "leggings",
+      "leggings-colour": "black"
+    },
+    "black_leotard": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "black"
+    },
+    "black_pants": {
+      "lower": "pants",
+      "pants-colour": "black"
+    },
+    "black_robe": {
+      "outer": "robe",
+      "robe-colour": "black"
+    },
+    "black_romper": {
+      "base": "jumpsuit",
+      "lower": "jumpsuit",
+      "jumpsuit-colour": "black"
+    },
+    "black_shirt": {
+      "base": "shirt",
+      "shirt-colour": "black"
+    },
+    "black_shorts": {
+      "lower": "shorts",
+      "shorts-colour": "black"
+    },
+    "black_skirt": {
+      "lower": "skirt",
+      "skirt-colour": "black"
+    },
+    "black_sweater": {
+      "base": "sweater",
+      "sweater-colour": "black"
+    },
+    "black_sweater_vest": {
+      "base": "sweater",
+      "sweater-colour": "black"
+    },
+    "black_tank_top": {
+      "base": "tank_top",
+      "shirt-colour": "black"
+    },
+    "black_vest": {
+      "outer": "vest",
+      "vest-colour": "black"
+    },
+    "blazer": {
+      "outer": "jacket"
+    },
+    "blouse": {
+      "base": "blouse"
+    },
+    "blue_armor": {
+      "outer": "armor",
+      "armor-colour": "blue"
+    },
+    "blue_bodysuit": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "blue"
+    },
+    "blue_camisole": {
+      "base": "camisole",
+      "shirt-colour": "blue"
+    },
+    "blue_cape": {
+      "outer": "cape",
+      "cape-colour": "blue"
+    },
+    "blue_capelet": {
+      "outer": "cape",
+      "cape-colour": "blue"
+    },
+    "blue_cardigan": {
+      "outer": "cardigan",
+      "cardigan-colour": "blue"
+    },
+    "blue_cloak": {
+      "outer": "cape",
+      "cape-colour": "blue"
+    },
+    "blue_coat": {
+      "outer": "coat",
+      "coat-colour": "blue"
+    },
+    "blue_dress": {
+      "base": "dress",
+      "lower": "dress",
+      "dress-colour": "blue"
+    },
+    "blue_hoodie": {
+      "outer": "hoodie",
+      "hoodie-colour": "blue"
+    },
+    "blue_jacket": {
+      "outer": "jacket",
+      "jacket-colour": "blue"
+    },
+    "blue_jumpsuit": {
+      "base": "jumpsuit",
+      "lower": "jumpsuit",
+      "jumpsuit-colour": "blue"
+    },
+    "blue_kimono": {
+      "base": "kimono",
+      "lower": "kimono",
+      "kimono-colour": "blue"
+    },
+    "blue_leggings": {
+      "lower": "leggings",
+      "leggings-colour": "blue"
+    },
+    "blue_leotard": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "blue"
+    },
+    "blue_pants": {
+      "lower": "pants",
+      "pants-colour": "blue"
+    },
+    "blue_poncho": {
+      "outer": "cape",
+      "cape-colour": "blue"
+    },
+    "blue_raincoat": {
+      "outer": "coat",
+      "coat-colour": "blue"
+    },
+    "blue_robe": {
+      "outer": "robe",
+      "robe-colour": "blue"
+    },
+    "blue_shirt": {
+      "base": "shirt",
+      "shirt-colour": "blue"
+    },
+    "blue_shorts": {
+      "lower": "shorts",
+      "shorts-colour": "blue"
+    },
+    "blue_skirt": {
+      "lower": "skirt",
+      "skirt-colour": "blue"
+    },
+    "blue_sweater": {
+      "base": "sweater",
+      "sweater-colour": "blue"
+    },
+    "blue_sweater_vest": {
+      "base": "sweater",
+      "sweater-colour": "blue"
+    },
+    "blue_tank_top": {
+      "base": "tank_top",
+      "shirt-colour": "blue"
+    },
+    "blue_vest": {
+      "outer": "vest",
+      "vest-colour": "blue"
+    },
+    "bodysuit": {
+      "base": "bodysuit",
+      "lower": "bodysuit"
+    },
+    "bomber_jacket": {
+      "outer": "jacket"
+    },
+    "breastplate": {
+      "outer": "armor"
+    },
+    "brown_armor": {
+      "outer": "armor",
+      "armor-colour": "brown"
+    },
+    "brown_bodysuit": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "brown"
+    },
+    "brown_camisole": {
+      "base": "camisole",
+      "shirt-colour": "brown"
+    },
+    "brown_cape": {
+      "outer": "cape",
+      "cape-colour": "brown"
+    },
+    "brown_capelet": {
+      "outer": "cape",
+      "cape-colour": "brown"
+    },
+    "brown_cardigan": {
+      "outer": "cardigan",
+      "cardigan-colour": "brown"
+    },
+    "brown_cloak": {
+      "outer": "cape",
+      "cape-colour": "brown"
+    },
+    "brown_coat": {
+      "outer": "coat",
+      "coat-colour": "brown"
+    },
+    "brown_dress": {
+      "base": "dress",
+      "lower": "dress",
+      "dress-colour": "brown"
+    },
+    "brown_hoodie": {
+      "outer": "hoodie",
+      "hoodie-colour": "brown"
+    },
+    "brown_jacket": {
+      "outer": "jacket",
+      "jacket-colour": "brown"
+    },
+    "brown_jumpsuit": {
+      "base": "jumpsuit",
+      "lower": "jumpsuit",
+      "jumpsuit-colour": "brown"
+    },
+    "brown_kimono": {
+      "base": "kimono",
+      "lower": "kimono",
+      "kimono-colour": "brown"
+    },
+    "brown_leggings": {
+      "lower": "leggings",
+      "leggings-colour": "brown"
+    },
+    "brown_leotard": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "brown"
+    },
+    "brown_pants": {
+      "lower": "pants",
+      "pants-colour": "brown"
+    },
+    "brown_poncho": {
+      "outer": "cape",
+      "cape-colour": "brown"
+    },
+    "brown_robe": {
+      "outer": "robe",
+      "robe-colour": "brown"
+    },
+    "brown_shirt": {
+      "base": "shirt",
+      "shirt-colour": "brown"
+    },
+    "brown_shorts": {
+      "lower": "shorts",
+      "shorts-colour": "brown"
+    },
+    "brown_skirt": {
+      "lower": "skirt",
+      "skirt-colour": "brown"
+    },
+    "brown_sweater": {
+      "base": "sweater",
+      "sweater-colour": "brown"
+    },
+    "brown_sweater_vest": {
+      "base": "sweater",
+      "sweater-colour": "brown"
+    },
+    "brown_tank_top": {
+      "base": "tank_top",
+      "shirt-colour": "brown"
+    },
+    "brown_vest": {
+      "outer": "vest",
+      "vest-colour": "brown"
+    },
+    "camisole": {
+      "base": "camisole"
+    },
+    "cape": {
+      "outer": "cape"
+    },
+    "capelet": {
+      "outer": "cape"
+    },
+    "cardigan": {
+      "outer": "cardigan"
+    },
+    "cargo_pants": {
+      "lower": "cargo_pants"
+    },
+    "chainmail": {
+      "outer": "armor"
+    },
+    "cloak": {
+      "outer": "cape"
+    },
+    "coat": {
+      "outer": "coat"
+    },
+    "cocktail_dress": {
+      "base": "dress",
+      "lower": "dress"
+    },
+    "collared_shirt": {
+      "base": "shirt"
+    },
+    "crop_top": {
+      "base": "shirt"
+    },
+    "denim_jacket": {
+      "outer": "jacket"
+    },
+    "denim_shorts": {
+      "lower": "shorts"
+    },
+    "dress": {
+      "base": "dress",
+      "lower": "dress"
+    },
+    "dress_shirt": {
+      "base": "shirt"
+    },
+    "evening_gown": {
+      "base": "dress",
+      "lower": "dress"
+    },
+    "gold_armor": {
+      "outer": "armor",
+      "armor-colour": "gold"
+    },
+    "gold_cape": {
+      "outer": "cape",
+      "cape-colour": "gold"
+    },
+    "gold_dress": {
+      "base": "dress",
+      "lower": "dress",
+      "dress-colour": "gold"
+    },
+    "gold_jacket": {
+      "outer": "jacket",
+      "jacket-colour": "gold"
+    },
+    "gold_leotard": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "gold"
+    },
+    "green_armor": {
+      "outer": "armor",
+      "armor-colour": "green"
+    },
+    "green_bodysuit": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "green"
+    },
+    "green_camisole": {
+      "base": "camisole",
+      "shirt-colour": "green"
+    },
+    "green_cape": {
+      "outer": "cape",
+      "cape-colour": "green"
+    },
+    "green_capelet": {
+      "outer": "cape",
+      "cape-colour": "green"
+    },
+    "green_cardigan": {
+      "outer": "cardigan",
+      "cardigan-colour": "green"
+    },
+    "green_cloak": {
+      "outer": "cape",
+      "cape-colour": "green"
+    },
+    "green_coat": {
+      "outer": "coat",
+      "coat-colour": "green"
+    },
+    "green_dress": {
+      "base": "dress",
+      "lower": "dress",
+      "dress-colour": "green"
+    },
+    "green_hoodie": {
+      "outer": "hoodie",
+      "hoodie-colour": "green"
+    },
+    "green_jacket": {
+      "outer": "jacket",
+      "jacket-colour": "green"
+    },
+    "green_jumpsuit": {
+      "base": "jumpsuit",
+      "lower": "jumpsuit",
+      "jumpsuit-colour": "green"
+    },
+    "green_kimono": {
+      "base": "kimono",
+      "lower": "kimono",
+      "kimono-colour": "green"
+    },
+    "green_leggings": {
+      "lower": "leggings",
+      "leggings-colour": "green"
+    },
+    "green_leotard": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "green"
+    },
+    "green_pants": {
+      "lower": "pants",
+      "pants-colour": "green"
+    },
+    "green_poncho": {
+      "outer": "cape",
+      "cape-colour": "green"
+    },
+    "green_raincoat": {
+      "outer": "coat",
+      "coat-colour": "green"
+    },
+    "green_robe": {
+      "outer": "robe",
+      "robe-colour": "green"
+    },
+    "green_shirt": {
+      "base": "shirt",
+      "shirt-colour": "green"
+    },
+    "green_shorts": {
+      "lower": "shorts",
+      "shorts-colour": "green"
+    },
+    "green_skirt": {
+      "lower": "skirt",
+      "skirt-colour": "green"
+    },
+    "green_sweater": {
+      "base": "sweater",
+      "sweater-colour": "green"
+    },
+    "green_sweater_vest": {
+      "base": "sweater",
+      "sweater-colour": "green"
+    },
+    "green_tank_top": {
+      "base": "tank_top",
+      "shirt-colour": "green"
+    },
+    "green_vest": {
+      "outer": "vest",
+      "vest-colour": "green"
+    },
+    "grey_armor": {
+      "outer": "armor",
+      "armor-colour": "grey"
+    },
+    "grey_bodysuit": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "grey"
+    },
+    "grey_camisole": {
+      "base": "camisole",
+      "shirt-colour": "grey"
+    },
+    "grey_cape": {
+      "outer": "cape",
+      "cape-colour": "grey"
+    },
+    "grey_capelet": {
+      "outer": "cape",
+      "cape-colour": "grey"
+    },
+    "grey_cardigan": {
+      "outer": "cardigan",
+      "cardigan-colour": "grey"
+    },
+    "grey_cloak": {
+      "outer": "cape",
+      "cape-colour": "grey"
+    },
+    "grey_coat": {
+      "outer": "coat",
+      "coat-colour": "grey"
+    },
+    "grey_dress": {
+      "base": "dress",
+      "lower": "dress",
+      "dress-colour": "grey"
+    },
+    "grey_hoodie": {
+      "outer": "hoodie",
+      "hoodie-colour": "grey"
+    },
+    "grey_jacket": {
+      "outer": "jacket",
+      "jacket-colour": "grey"
+    },
+    "grey_jumpsuit": {
+      "base": "jumpsuit",
+      "lower": "jumpsuit",
+      "jumpsuit-colour": "grey"
+    },
+    "grey_kimono": {
+      "base": "kimono",
+      "lower": "kimono",
+      "kimono-colour": "grey"
+    },
+    "grey_leggings": {
+      "lower": "leggings",
+      "leggings-colour": "grey"
+    },
+    "grey_leotard": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "grey"
+    },
+    "grey_pants": {
+      "lower": "pants",
+      "pants-colour": "grey"
+    },
+    "grey_poncho": {
+      "outer": "cape",
+      "cape-colour": "grey"
+    },
+    "grey_robe": {
+      "outer": "robe",
+      "robe-colour": "grey"
+    },
+    "grey_shirt": {
+      "base": "shirt",
+      "shirt-colour": "grey"
+    },
+    "grey_shorts": {
+      "lower": "shorts",
+      "shorts-colour": "grey"
+    },
+    "grey_skirt": {
+      "lower": "skirt",
+      "skirt-colour": "grey"
+    },
+    "grey_sweater": {
+      "base": "sweater",
+      "sweater-colour": "grey"
+    },
+    "grey_sweater_vest": {
+      "base": "sweater",
+      "sweater-colour": "grey"
+    },
+    "grey_tank_top": {
+      "base": "tank_top",
+      "shirt-colour": "grey"
+    },
+    "grey_vest": {
+      "outer": "vest",
+      "vest-colour": "grey"
+    },
+    "hoodie": {
+      "outer": "hoodie"
+    },
+    "jacket": {
+      "outer": "jacket"
+    },
+    "jeans": {
+      "lower": "jeans"
+    },
+    "jumpsuit": {
+      "base": "jumpsuit",
+      "lower": "jumpsuit"
+    },
+    "kimono": {
+      "base": "kimono",
+      "lower": "kimono"
+    },
+    "leggings": {
+      "lower": "leggings"
+    },
+    "leotard": {
+      "base": "bodysuit",
+      "lower": "bodysuit"
+    },
+    "long_coat": {
+      "outer": "coat"
+    },
+    "long_skirt": {
+      "lower": "skirt"
+    },
+    "microskirt": {
+      "lower": "skirt"
+    },
+    "miniskirt": {
+      "lower": "skirt"
+    },
+    "multicolored_armor": {
+      "outer": "armor",
+      "armor-colour": "multicolored"
+    },
+    "multicolored_bodysuit": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "multicolored"
+    },
+    "multicolored_cape": {
+      "outer": "cape",
+      "cape-colour": "multicolored"
+    },
+    "multicolored_capelet": {
+      "outer": "cape",
+      "cape-colour": "multicolored"
+    },
+    "multicolored_cloak": {
+      "outer": "cape",
+      "cape-colour": "multicolored"
+    },
+    "multicolored_coat": {
+      "outer": "coat",
+      "coat-colour": "multicolored"
+    },
+    "multicolored_dress": {
+      "base": "dress",
+      "lower": "dress",
+      "dress-colour": "multicolored"
+    },
+    "multicolored_hoodie": {
+      "outer": "hoodie",
+      "hoodie-colour": "multicolored"
+    },
+    "multicolored_jacket": {
+      "outer": "jacket",
+      "jacket-colour": "multicolored"
+    },
+    "multicolored_kimono": {
+      "base": "kimono",
+      "lower": "kimono",
+      "kimono-colour": "multicolored"
+    },
+    "multicolored_leotard": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "multicolored"
+    },
+    "multicolored_pants": {
+      "lower": "pants",
+      "pants-colour": "multicolored"
+    },
+    "multicolored_robe": {
+      "outer": "robe",
+      "robe-colour": "multicolored"
+    },
+    "multicolored_shirt": {
+      "base": "shirt",
+      "shirt-colour": "multicolored"
+    },
+    "multicolored_shorts": {
+      "lower": "shorts",
+      "shorts-colour": "multicolored"
+    },
+    "multicolored_skirt": {
+      "lower": "skirt",
+      "skirt-colour": "multicolored"
+    },
+    "multicolored_sweater": {
+      "base": "sweater",
+      "sweater-colour": "multicolored"
+    },
+    "multicolored_vest": {
+      "outer": "vest",
+      "vest-colour": "multicolored"
+    },
+    "off-shoulder_shirt": {
+      "base": "shirt"
+    },
+    "orange_armor": {
+      "outer": "armor",
+      "armor-colour": "orange"
+    },
+    "orange_bodysuit": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "orange"
+    },
+    "orange_camisole": {
+      "base": "camisole",
+      "shirt-colour": "orange"
+    },
+    "orange_cape": {
+      "outer": "cape",
+      "cape-colour": "orange"
+    },
+    "orange_capelet": {
+      "outer": "cape",
+      "cape-colour": "orange"
+    },
+    "orange_cardigan": {
+      "outer": "cardigan",
+      "cardigan-colour": "orange"
+    },
+    "orange_cloak": {
+      "outer": "cape",
+      "cape-colour": "orange"
+    },
+    "orange_coat": {
+      "outer": "coat",
+      "coat-colour": "orange"
+    },
+    "orange_dress": {
+      "base": "dress",
+      "lower": "dress",
+      "dress-colour": "orange"
+    },
+    "orange_hoodie": {
+      "outer": "hoodie",
+      "hoodie-colour": "orange"
+    },
+    "orange_jacket": {
+      "outer": "jacket",
+      "jacket-colour": "orange"
+    },
+    "orange_jumpsuit": {
+      "base": "jumpsuit",
+      "lower": "jumpsuit",
+      "jumpsuit-colour": "orange"
+    },
+    "orange_kimono": {
+      "base": "kimono",
+      "lower": "kimono",
+      "kimono-colour": "orange"
+    },
+    "orange_leggings": {
+      "lower": "leggings",
+      "leggings-colour": "orange"
+    },
+    "orange_leotard": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "orange"
+    },
+    "orange_pants": {
+      "lower": "pants",
+      "pants-colour": "orange"
+    },
+    "orange_robe": {
+      "outer": "robe",
+      "robe-colour": "orange"
+    },
+    "orange_shirt": {
+      "base": "shirt",
+      "shirt-colour": "orange"
+    },
+    "orange_shorts": {
+      "lower": "shorts",
+      "shorts-colour": "orange"
+    },
+    "orange_skirt": {
+      "lower": "skirt",
+      "skirt-colour": "orange"
+    },
+    "orange_sweater": {
+      "base": "sweater",
+      "sweater-colour": "orange"
+    },
+    "orange_sweater_vest": {
+      "base": "sweater",
+      "sweater-colour": "orange"
+    },
+    "orange_tank_top": {
+      "base": "tank_top",
+      "shirt-colour": "orange"
+    },
+    "orange_vest": {
+      "outer": "vest",
+      "vest-colour": "orange"
+    },
+    "pants": {
+      "lower": "pants"
+    },
+    "pencil_skirt": {
+      "lower": "skirt"
+    },
+    "pink_armor": {
+      "outer": "armor",
+      "armor-colour": "pink"
+    },
+    "pink_bodysuit": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "pink"
+    },
+    "pink_camisole": {
+      "base": "camisole",
+      "shirt-colour": "pink"
+    },
+    "pink_cape": {
+      "outer": "cape",
+      "cape-colour": "pink"
+    },
+    "pink_capelet": {
+      "outer": "cape",
+      "cape-colour": "pink"
+    },
+    "pink_cardigan": {
+      "outer": "cardigan",
+      "cardigan-colour": "pink"
+    },
+    "pink_cloak": {
+      "outer": "cape",
+      "cape-colour": "pink"
+    },
+    "pink_coat": {
+      "outer": "coat",
+      "coat-colour": "pink"
+    },
+    "pink_dress": {
+      "base": "dress",
+      "lower": "dress",
+      "dress-colour": "pink"
+    },
+    "pink_hoodie": {
+      "outer": "hoodie",
+      "hoodie-colour": "pink"
+    },
+    "pink_jacket": {
+      "outer": "jacket",
+      "jacket-colour": "pink"
+    },
+    "pink_jumpsuit": {
+      "base": "jumpsuit",
+      "lower": "jumpsuit",
+      "jumpsuit-colour": "pink"
+    },
+    "pink_kimono": {
+      "base": "kimono",
+      "lower": "kimono",
+      "kimono-colour": "pink"
+    },
+    "pink_leggings": {
+      "lower": "leggings",
+      "leggings-colour": "pink"
+    },
+    "pink_leotard": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "pink"
+    },
+    "pink_pants": {
+      "lower": "pants",
+      "pants-colour": "pink"
+    },
+    "pink_robe": {
+      "outer": "robe",
+      "robe-colour": "pink"
+    },
+    "pink_shirt": {
+      "base": "shirt",
+      "shirt-colour": "pink"
+    },
+    "pink_shorts": {
+      "lower": "shorts",
+      "shorts-colour": "pink"
+    },
+    "pink_skirt": {
+      "lower": "skirt",
+      "skirt-colour": "pink"
+    },
+    "pink_sweater": {
+      "base": "sweater",
+      "sweater-colour": "pink"
+    },
+    "pink_sweater_vest": {
+      "base": "sweater",
+      "sweater-colour": "pink"
+    },
+    "pink_tank_top": {
+      "base": "tank_top",
+      "shirt-colour": "pink"
+    },
+    "pink_vest": {
+      "outer": "vest",
+      "vest-colour": "pink"
+    },
+    "pleated_skirt": {
+      "lower": "skirt"
+    },
+    "poncho": {
+      "outer": "cape"
+    },
+    "purple_armor": {
+      "outer": "armor",
+      "armor-colour": "purple"
+    },
+    "purple_bodysuit": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "purple"
+    },
+    "purple_camisole": {
+      "base": "camisole",
+      "shirt-colour": "purple"
+    },
+    "purple_cape": {
+      "outer": "cape",
+      "cape-colour": "purple"
+    },
+    "purple_capelet": {
+      "outer": "cape",
+      "cape-colour": "purple"
+    },
+    "purple_cardigan": {
+      "outer": "cardigan",
+      "cardigan-colour": "purple"
+    },
+    "purple_cloak": {
+      "outer": "cape",
+      "cape-colour": "purple"
+    },
+    "purple_coat": {
+      "outer": "coat",
+      "coat-colour": "purple"
+    },
+    "purple_dress": {
+      "base": "dress",
+      "lower": "dress",
+      "dress-colour": "purple"
+    },
+    "purple_hoodie": {
+      "outer": "hoodie",
+      "hoodie-colour": "purple"
+    },
+    "purple_jacket": {
+      "outer": "jacket",
+      "jacket-colour": "purple"
+    },
+    "purple_jumpsuit": {
+      "base": "jumpsuit",
+      "lower": "jumpsuit",
+      "jumpsuit-colour": "purple"
+    },
+    "purple_kimono": {
+      "base": "kimono",
+      "lower": "kimono",
+      "kimono-colour": "purple"
+    },
+    "purple_leggings": {
+      "lower": "leggings",
+      "leggings-colour": "purple"
+    },
+    "purple_leotard": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "purple"
+    },
+    "purple_pants": {
+      "lower": "pants",
+      "pants-colour": "purple"
+    },
+    "purple_robe": {
+      "outer": "robe",
+      "robe-colour": "purple"
+    },
+    "purple_shirt": {
+      "base": "shirt",
+      "shirt-colour": "purple"
+    },
+    "purple_shorts": {
+      "lower": "shorts",
+      "shorts-colour": "purple"
+    },
+    "purple_skirt": {
+      "lower": "skirt",
+      "skirt-colour": "purple"
+    },
+    "purple_sweater": {
+      "base": "sweater",
+      "sweater-colour": "purple"
+    },
+    "purple_sweater_vest": {
+      "base": "sweater",
+      "sweater-colour": "purple"
+    },
+    "purple_tank_top": {
+      "base": "tank_top",
+      "shirt-colour": "purple"
+    },
+    "purple_vest": {
+      "outer": "vest",
+      "vest-colour": "purple"
+    },
+    "raincoat": {
+      "outer": "coat"
+    },
+    "red_armor": {
+      "outer": "armor",
+      "armor-colour": "red"
+    },
+    "red_bodysuit": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "red"
+    },
+    "red_camisole": {
+      "base": "camisole",
+      "shirt-colour": "red"
+    },
+    "red_cape": {
+      "outer": "cape",
+      "cape-colour": "red"
+    },
+    "red_capelet": {
+      "outer": "cape",
+      "cape-colour": "red"
+    },
+    "red_cardigan": {
+      "outer": "cardigan",
+      "cardigan-colour": "red"
+    },
+    "red_cloak": {
+      "outer": "cape",
+      "cape-colour": "red"
+    },
+    "red_coat": {
+      "outer": "coat",
+      "coat-colour": "red"
+    },
+    "red_dress": {
+      "base": "dress",
+      "lower": "dress",
+      "dress-colour": "red"
+    },
+    "red_hoodie": {
+      "outer": "hoodie",
+      "hoodie-colour": "red"
+    },
+    "red_jacket": {
+      "outer": "jacket",
+      "jacket-colour": "red"
+    },
+    "red_jumpsuit": {
+      "base": "jumpsuit",
+      "lower": "jumpsuit",
+      "jumpsuit-colour": "red"
+    },
+    "red_kimono": {
+      "base": "kimono",
+      "lower": "kimono",
+      "kimono-colour": "red"
+    },
+    "red_leggings": {
+      "lower": "leggings",
+      "leggings-colour": "red"
+    },
+    "red_leotard": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "red"
+    },
+    "red_pants": {
+      "lower": "pants",
+      "pants-colour": "red"
+    },
+    "red_poncho": {
+      "outer": "cape",
+      "cape-colour": "red"
+    },
+    "red_raincoat": {
+      "outer": "coat",
+      "coat-colour": "red"
+    },
+    "red_robe": {
+      "outer": "robe",
+      "robe-colour": "red"
+    },
+    "red_shirt": {
+      "base": "shirt",
+      "shirt-colour": "red"
+    },
+    "red_shorts": {
+      "lower": "shorts",
+      "shorts-colour": "red"
+    },
+    "red_skirt": {
+      "lower": "skirt",
+      "skirt-colour": "red"
+    },
+    "red_sweater": {
+      "base": "sweater",
+      "sweater-colour": "red"
+    },
+    "red_sweater_vest": {
+      "base": "sweater",
+      "sweater-colour": "red"
+    },
+    "red_tank_top": {
+      "base": "tank_top",
+      "shirt-colour": "red"
+    },
+    "red_vest": {
+      "outer": "vest",
+      "vest-colour": "red"
+    },
+    "robe": {
+      "outer": "robe"
+    },
+    "romper": {
+      "base": "jumpsuit",
+      "lower": "jumpsuit"
+    },
+    "shirt": {
+      "base": "shirt"
+    },
+    "short_shorts": {
+      "lower": "shorts"
+    },
+    "shorts": {
+      "lower": "shorts"
+    },
+    "silver_bodysuit": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "silver"
+    },
+    "silver_dress": {
+      "base": "dress",
+      "lower": "dress",
+      "dress-colour": "silver"
+    },
+    "silver_leotard": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "silver"
+    },
+    "silver_skirt": {
+      "lower": "skirt",
+      "skirt-colour": "silver"
+    },
+    "skirt": {
+      "lower": "skirt"
+    },
+    "sleeveless_shirt": {
+      "base": "shirt"
+    },
+    "sleeveless_turtleneck": {
+      "base": "sweater"
+    },
+    "sundress": {
+      "base": "dress",
+      "lower": "dress"
+    },
+    "sweater": {
+      "base": "sweater"
+    },
+    "sweater_dress": {
+      "base": "dress",
+      "lower": "dress"
+    },
+    "sweater_vest": {
+      "base": "sweater"
+    },
+    "sweatpants": {
+      "lower": "track_pants"
+    },
+    "t-shirt": {
+      "base": "t-shirt"
+    },
+    "tank_top": {
+      "base": "tank_top"
+    },
+    "track_jacket": {
+      "outer": "jacket"
+    },
+    "track_pants": {
+      "lower": "track_pants"
+    },
+    "trench_coat": {
+      "outer": "coat"
+    },
+    "turtleneck": {
+      "base": "sweater"
+    },
+    "turtleneck_sweater": {
+      "base": "sweater"
+    },
+    "vest": {
+      "outer": "vest"
+    },
+    "waistcoat": {
+      "outer": "vest"
+    },
+    "wedding_dress": {
+      "base": "dress",
+      "lower": "dress"
+    },
+    "white_armor": {
+      "outer": "armor",
+      "armor-colour": "white"
+    },
+    "white_bathrobe": {
+      "outer": "robe",
+      "robe-colour": "white"
+    },
+    "white_bodysuit": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "white"
+    },
+    "white_camisole": {
+      "base": "camisole",
+      "shirt-colour": "white"
+    },
+    "white_cape": {
+      "outer": "cape",
+      "cape-colour": "white"
+    },
+    "white_capelet": {
+      "outer": "cape",
+      "cape-colour": "white"
+    },
+    "white_cardigan": {
+      "outer": "cardigan",
+      "cardigan-colour": "white"
+    },
+    "white_cloak": {
+      "outer": "cape",
+      "cape-colour": "white"
+    },
+    "white_coat": {
+      "outer": "coat",
+      "coat-colour": "white"
+    },
+    "white_dress": {
+      "base": "dress",
+      "lower": "dress",
+      "dress-colour": "white"
+    },
+    "white_hoodie": {
+      "outer": "hoodie",
+      "hoodie-colour": "white"
+    },
+    "white_jacket": {
+      "outer": "jacket",
+      "jacket-colour": "white"
+    },
+    "white_jumpsuit": {
+      "base": "jumpsuit",
+      "lower": "jumpsuit",
+      "jumpsuit-colour": "white"
+    },
+    "white_kimono": {
+      "base": "kimono",
+      "lower": "kimono",
+      "kimono-colour": "white"
+    },
+    "white_leggings": {
+      "lower": "leggings",
+      "leggings-colour": "white"
+    },
+    "white_leotard": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "white"
+    },
+    "white_pants": {
+      "lower": "pants",
+      "pants-colour": "white"
+    },
+    "white_poncho": {
+      "outer": "cape",
+      "cape-colour": "white"
+    },
+    "white_raincoat": {
+      "outer": "coat",
+      "coat-colour": "white"
+    },
+    "white_robe": {
+      "outer": "robe",
+      "robe-colour": "white"
+    },
+    "white_romper": {
+      "base": "jumpsuit",
+      "lower": "jumpsuit",
+      "jumpsuit-colour": "white"
+    },
+    "white_shirt": {
+      "base": "shirt",
+      "shirt-colour": "white"
+    },
+    "white_shorts": {
+      "lower": "shorts",
+      "shorts-colour": "white"
+    },
+    "white_skirt": {
+      "lower": "skirt",
+      "skirt-colour": "white"
+    },
+    "white_sweater": {
+      "base": "sweater",
+      "sweater-colour": "white"
+    },
+    "white_sweater_vest": {
+      "base": "sweater",
+      "sweater-colour": "white"
+    },
+    "white_tank_top": {
+      "base": "tank_top",
+      "shirt-colour": "white"
+    },
+    "white_vest": {
+      "outer": "vest",
+      "vest-colour": "white"
+    },
+    "winter_coat": {
+      "outer": "coat"
+    },
+    "yellow_armor": {
+      "outer": "armor",
+      "armor-colour": "yellow"
+    },
+    "yellow_bodysuit": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "yellow"
+    },
+    "yellow_camisole": {
+      "base": "camisole",
+      "shirt-colour": "yellow"
+    },
+    "yellow_cape": {
+      "outer": "cape",
+      "cape-colour": "yellow"
+    },
+    "yellow_capelet": {
+      "outer": "cape",
+      "cape-colour": "yellow"
+    },
+    "yellow_cardigan": {
+      "outer": "cardigan",
+      "cardigan-colour": "yellow"
+    },
+    "yellow_cloak": {
+      "outer": "cape",
+      "cape-colour": "yellow"
+    },
+    "yellow_coat": {
+      "outer": "coat",
+      "coat-colour": "yellow"
+    },
+    "yellow_dress": {
+      "base": "dress",
+      "lower": "dress",
+      "dress-colour": "yellow"
+    },
+    "yellow_hoodie": {
+      "outer": "hoodie",
+      "hoodie-colour": "yellow"
+    },
+    "yellow_jacket": {
+      "outer": "jacket",
+      "jacket-colour": "yellow"
+    },
+    "yellow_jumpsuit": {
+      "base": "jumpsuit",
+      "lower": "jumpsuit",
+      "jumpsuit-colour": "yellow"
+    },
+    "yellow_kimono": {
+      "base": "kimono",
+      "lower": "kimono",
+      "kimono-colour": "yellow"
+    },
+    "yellow_leggings": {
+      "lower": "leggings",
+      "leggings-colour": "yellow"
+    },
+    "yellow_leotard": {
+      "base": "bodysuit",
+      "lower": "bodysuit",
+      "bodysuit-colour": "yellow"
+    },
+    "yellow_pants": {
+      "lower": "pants",
+      "pants-colour": "yellow"
+    },
+    "yellow_raincoat": {
+      "outer": "coat",
+      "coat-colour": "yellow"
+    },
+    "yellow_robe": {
+      "outer": "robe",
+      "robe-colour": "yellow"
+    },
+    "yellow_shirt": {
+      "base": "shirt",
+      "shirt-colour": "yellow"
+    },
+    "yellow_shorts": {
+      "lower": "shorts",
+      "shorts-colour": "yellow"
+    },
+    "yellow_skirt": {
+      "lower": "skirt",
+      "skirt-colour": "yellow"
+    },
+    "yellow_sweater": {
+      "base": "sweater",
+      "sweater-colour": "yellow"
+    },
+    "yellow_sweater_vest": {
+      "base": "sweater",
+      "sweater-colour": "yellow"
+    },
+    "yellow_tank_top": {
+      "base": "tank_top",
+      "shirt-colour": "yellow"
+    },
+    "yellow_vest": {
+      "outer": "vest",
+      "vest-colour": "yellow"
+    },
+    "yukata": {
+      "base": "kimono",
+      "lower": "kimono"
+    }
+  },
+  "aliases": {
+    "tshirt": "t-shirt",
+    "t_shirt": "t-shirt"
+  }
+}

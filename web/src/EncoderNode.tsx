@@ -1,5 +1,7 @@
+import {resetSourceSessionEdits,sourceEdits} from './SourceSessionEdits';
 import {composeSharedPreview} from './SharedPrompt';
 import {SOURCE_INPUTS,sourceInput,addSourceBox} from './PromptBoxes';
+import {reconcileSourceConnections} from './SourceConnections';
 import { inheritedRuleKey, privateRuleBoxes, selectedInheritedRules, snapshotRuleBoxes } from './InheritedRules';
 import {installEncoderSerialization,repairEncoderValues,orderEncoderWidgets} from './EncoderSerialization';
 import {bindLegacySourceExclusions,sourceExclusionPayload,filteredSourceText} from './SourceExclusions';
@@ -19,7 +21,9 @@ import { hideWidget } from './NodeWidgets';
 import { compileBoxes, composeWithSource, compileChip, splitTop, parsePrompt, insertText, parseState, reconcileText, stateFromText, type BoxState } from './PromptBoxes';
 import { getComfyApp } from './ComfyAppApi';
 import { sourcePrompt, promptSourceImages, sourceMerge, type ImageSourceManifest } from './ImageSourceGeometry';
-import { openPrefixManager } from './PrefixLibrary';
+import { openPrefixManager,latestPrefixLibrary } from './PrefixLibrary';
+import {sourcePrefixRecipe,sourcePrefixMetadata} from './SourcePrefixes';
+import {rememberSourceRecipe,defaultSourceRecipe} from './SourceRecipeDefaults';
 
 /** What the connected `source_text` provides: known at edit time for Gallery Image Source, otherwise after a run. */
 export function sourcePromptInfo(node: any, inputName = 'source_text'): SourceInfo {
@@ -44,6 +48,27 @@ export function sourcePromptInfo(node: any, inputName = 'source_text'): SourceIn
                 text: sourcePrompt(manifest, side),
                 merge:sourceMerge(manifest),
                 segments: images.map(image => ({ key: image.input_name + ':' + side, name: image.title || image.input_name.split('/').pop() || image.input_name, text: image.prompt?.[side] || '' })),
+                recipeControls: images.flatMap(image=>refs(image).flatMap(ref=>{
+                    const library=latestPrefixLibrary();if(!library)return [];
+                    const parent=sourcePrefixRecipe(library,ref.id);if(!parent)return [];
+                    const hash=/([a-f0-9]{64})/i.exec(image.input_name)?.[1]?.toLowerCase();const keys=[...(hash?['sha256:'+hash]:[]),...Object.keys(library.associations||{}).filter(key=>image.metadata?.gallery_url&&key.endsWith(':'+image.metadata.gallery_url))];
+                    const snapshots=Object.values(library.snapshots||{}).filter(row=>row.prefix_id===ref.id).sort((a,b)=>b.created_at-a.created_at);
+                    return [{defaultSnapshot:keys.some(key=>library.associations?.[key]?.prefer_snapshots?.includes(ref.id))?snapshots.find(row=>keys.some(key=>row.members?.[key]))?.id:undefined,key:image.input_name+':'+side,prefixId:ref.id,name:ref.name||parent.name||ref.id,current:ref.snapshot_id||defaultSourceRecipe(library,ref.id,keys,snapshots.map(row=>row.id)),options:snapshots.map((row,index)=>{
+                        const added=row.terms.filter(term=>!parent.positive.includes(term)),removed=parent.positive.filter(term=>!row.terms.includes(term));
+                        const negativeAdded=row.negative_terms.filter(term=>!parent.negative.includes(term)),negativeRemoved=parent.negative.filter(term=>!row.negative_terms.includes(term));
+                        const details=[added.length?'Added: '+added.join(', '):'',removed.length?'Removed: '+removed.join(', '):'',negativeAdded.length?'Negative added: '+negativeAdded.join(', '):'',negativeRemoved.length?'Negative removed: '+negativeRemoved.join(', '):''].filter(Boolean).join('\n')||'Same tags; rules or styling differ.';
+                        return {id:row.id,label:(row.name||'Snapshot '+(index+1))+' · '+(added.map(tag=>'+'+tag).concat(removed.map(tag=>'−'+tag)).join(', ').slice(0,100)||'same tags'),details};
+                    }),select:(id?:string)=>{
+                        const recipe=sourcePrefixRecipe(library,ref.id,id);if(!recipe)return;
+                        rememberSourceRecipe(library,ref.id,keys,id||null,image.metadata?.gallery_url?[image.metadata.gallery_url]:[]);
+                        const current=readSourceManifest(source);
+                        saveSourceManifest(source,{...current,images:current.images.map(row=>{
+                            if(row.input_name!==image.input_name)return row;
+                            const next=sourcePrefixRefs(row.metadata).map(item=>item.id===ref.id?{...item,...recipe}:item);
+                            return {...row,metadata:{...row.metadata,...sourcePrefixMetadata(next)},prompt:{positive:next.filter(item=>item.positive_enabled!==false).flatMap(item=>item.positive).join(', '),negative:next.filter(item=>item.negative_enabled!==false).flatMap(item=>item.negative).join(', '),tags:row.prompt?.tags||[]}};
+                        })});
+                    }}];
+                })),
                 snapshotTargets: images.flatMap(image => {
                     const hash = /([a-f0-9]{64})/i.exec(image.input_name)?.[1]?.toLowerCase();
                     const key = hash ? 'sha256:' + hash : '';
@@ -79,8 +104,10 @@ export function sourcePromptInfos(node:any):Record<string,SourceInfo>{
     return Object.fromEntries(SOURCE_INPUTS.map(input=>[input,sourcePromptInfo(node,input)]));
 }
 function ensureConnectedSources(state:BoxState,node:any):BoxState{
-    for(const input of SOURCE_INPUTS)if(sourcePromptInfo(node,input).connected)state=addSourceBox(state,input);
-    return state;
+    const inputs=SOURCE_INPUTS.filter(input=>sourcePromptInfo(node,input).connected);
+    const next=reconcileSourceConnections(state,inputs,node.properties?.gallery_disconnected_sources);
+    node.properties||={};node.properties.gallery_disconnected_sources=next.cache;
+    return next.state;
 }
 
 export function effectiveSourceText(node: any): string | undefined {
@@ -110,6 +137,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
 
     if (!widget('hair_policy')) node.addWidget?.('text', 'hair_policy', '{}', () => undefined);
     const legacyHair=cleanHairPolicy(widget('hair_policy')?.value);
+    state=ensureConnectedSources(state,node);
     state = { ...state, hairPolicy: state.hairPolicy===null?null:state.hairPolicy||(legacyHair.mode!=='specific'||legacyHair.singleColour?legacyHair:null) };
     if(!widget('source_image_exclusions'))node.addWidget?.('text','source_image_exclusions','{}',()=>undefined);
     if(!widget('prefix_snapshots'))node.addWidget?.('text','prefix_snapshots','[]',()=>undefined);
@@ -159,10 +187,16 @@ export function installPromptBoxes(node: any, deps: Deps) {
     };
     const render = () => {
         const sources=sourcePromptInfos(node),source=sources.source_text;
+        for(const [input,info] of Object.entries(sources)){
+            const previous=node.properties?.gallery_previous_source_edits?.find((box:any)=>sourceInput(box)===input);
+            if(previous)info.restorePreviousEdits=()=>{node.properties.gallery_previous_source_edits=node.properties.gallery_previous_source_edits.filter((box:any)=>box!==previous);commit({...state,boxes:state.boxes.map(box=>box.kind==='source'&&sourceInput(box)===input?{...box,...sourceEdits(previous)}:box)});};
+        }
         const texts=Object.fromEntries(state.boxes.filter(box=>box.kind==='source').map(box=>{const info=sources[sourceInput(box)]||{connected:false};return [sourceInput(box),filteredSourceText(box,info.segments,info.connected?info.text:'',info.merge)||''];}));
-        const rawPreview=composeWithSource(compiledNow(),undefined,texts),filtered=filterHairPrompt(composeSharedPreview(compiledNow(),texts),cleanHairPolicy(state.hairPolicy));
+        const priorityErrors:string[]=[];
+        const rawPreview=composeWithSource(compiledNow(),undefined,texts),filtered=filterHairPrompt(composeSharedPreview(compiledNow(),texts,effectiveRules(),priorityErrors),cleanHairPolicy(state.hairPolicy));
         let reviewed:ReturnType<typeof applyRulePreview>;
         try{reviewed=applyRulePreview(filtered,effectiveRules());}catch(error){reviewed={text:filtered,errors:[String(error)],notes:[],protectedTags:[]};}
+        reviewed.errors.unshift(...priorityErrors);
         root.render(<PromptBoxEditor sources={sources} snapshotReferences={node.properties?.gallery_prefix_snapshots||[]} onOpenSnapshot={row=>openPrefixManager({name:row.prefix_name,positive:row.terms,negative:row.negative_terms,snapshotId:row.snapshot_id||undefined})} ruleDefinitions={rulesLibrary.definitions} inheritedRules={availableRules(inheritedRules,disabled)} globalRules={globals} disabledRules={disabled} ruleErrors={reviewed.errors} ruleProtected={reviewed.protectedTags} rulesNotice={[rulesNotice,...reviewed.notes].filter(Boolean).join(' · ')} onReloadRules={()=>void loadRules()} state={state} source={source} unfilteredPreview={rawPreview} preview={reviewed.text} suggest={suggest} onChange={commit} lastEncodedPrompt={node.__galleryEffectivePrompt} notice={notice} />);
     };
     function loadRules() {
@@ -178,6 +212,11 @@ export function installPromptBoxes(node: any, deps: Deps) {
             node.properties.gallery_disabled_rulesets=[...disabled];
             if(!prefixes)throw new Error('Prefix library unavailable.');
             const infos=sourcePromptInfos(node);
+            if(prefixes.session_id){
+                const next=resetSourceSessionEdits(state,node.properties.gallery_source_session,prefixes.session_id,Object.entries(infos).filter(([,info])=>info.prefixes?.length).map(([input])=>input));
+                if(next.backup.length){node.properties.gallery_previous_source_edits=next.backup;state=next.state;}
+                node.properties.gallery_source_session=prefixes.session_id;
+            }
             const inheritedSources=state.boxes.flatMap(box=>box.kind==='source'&&box.enabled&&box.inheritRules!==false&&infos[sourceInput(box)]?.connected&&!infos[sourceInput(box)]?.negative?[infos[sourceInput(box)]]:[]);
             const ids=new Set<string>([...inheritedSources.flatMap(info=>info.prefixes?.map(prefix=>prefix.id)||[]),...state.boxes.flatMap(box=>box.kind==='group'&&box.enabled&&box.inheritRules!==false?[...(box.prefixId?[box.prefixId]:[]),...(box.prefixIds||[])]:[])]);
             // Nested @prefix references contribute their attached rules without losing their origin.
@@ -188,7 +227,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
             const snapshotIds=[...new Set([...state.boxes.flatMap(box=>box.kind==='group'&&box.enabled&&box.inheritRules!==false&&box.prefixSnapshotId?[box.prefixSnapshotId]:[]),...inheritedSources.flatMap(info=>(info.snapshotTargets||[]).flatMap(target=>target.snapshotId?[target.snapshotId]:[]))])];
             for(const id of snapshotIds){const snapshot=prefixes.snapshots?.[id];if(!snapshot)continue;inheritedRules.push(...snapshotRuleBoxes(snapshot,rulesLibrary).map(box=>({...box,id:'snapshot:'+id+':'+box.id,inheritanceKey:inheritedRuleKey(snapshot.prefix_id,box),origin:'snapshot' as const,label:'Snapshot '+id.slice(0,8)})));}
             node.properties ||= {};node.properties.gallery_inherited_rules=inheritedRules;node.properties.prompt_boxes=state;
-            rulesNotice='';syncRules();render();sizing.request(false);
+            rulesNotice='';sync();render();sizing.request(false);
         } catch(error){if(alive&&requestId===rulesRequestId){rulesNotice='Using saved rules where the library is unavailable. '+String(error);syncRules();render();}}})();
         rulesPending=task;return task;
     }
