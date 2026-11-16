@@ -1,4 +1,5 @@
 import {TermsEditor} from './PromptBoxEditor';
+import {promptLeaves} from './RuleImpact';
 import {makeSuggest} from './PromptSuggest';
 import {expandPrefix} from './PrefixLibrary';
 import {imageSnapshotIds,imagePrefixIds} from './PrefixLineage';
@@ -13,7 +14,7 @@ import { usePromptSpelling, formatPromptTerms, prepareInsertion } from './Prompt
 import { openPrefixManager, loadPrefixes, imagePrefixKeys, imagePrefixRefs,type SharedLibrary } from './PrefixLibrary';
 import { ImageSourceTarget } from './ImageSourceHost';
 import { useEffect, useState } from 'react';
-import { Alert, Button, Checkbox, Collapse, Modal, Select, Space, Typography, message } from 'antd';
+import { Alert, Button, Checkbox, Collapse, Modal, Select, Space, Tag, Typography, message } from 'antd';
 import { appendToImageSource, getPromptTargets } from './ImageSourceBridge';
 import { extractHydrusTags, extractLocalPrompts } from './LocalImageSearch';
 import { HydrusTagSelect } from './HydrusTagSelect';
@@ -143,7 +144,16 @@ export function AppendImagesModal({ entries, onClose,snapshotId }: { entries: Ga
                 ...(paletteSide === 'positive' ? { usePositive: true } : paletteSide === 'negative' ? { useNegative: true } : {}) });
         }} />
         </FloatingPanel>
-        <Collapse defaultActiveKey={['0']} items={rows.map((row, index) => ({ key: String(index), label: row.entry.name, children: <Space direction="vertical" align="start" style={{ width: '100%' }}>
+        <Typography.Paragraph aria-label="Append contribution summary" style={{marginTop:12,marginBottom:4}}>{rows.length} image{rows.length===1?'':'s'} · {rows.filter(row=>row.usePositive||row.useNegative||row.useTags).length} with prompt contributions</Typography.Paragraph>
+        <Collapse defaultActiveKey={['0']} items={rows.map((row, index) => ({ key: String(index), label: <Space wrap>
+            <img alt="" width={36} height={36} style={{objectFit:'cover',borderRadius:4}} src={row.entry.local?`/Gallery/thumbnail?url=${encodeURIComponent(row.entry.local.url)}&root=${encodeURIComponent(gallery.settings.relativePath)}&v=${encodeURIComponent(row.entry.local.revision||String(row.entry.local.timestamp))}`:`/Gallery/hydrus/thumbnail?hash=${row.entry.hash}&target=${encodeURIComponent(`${hydrus.settings?.url}|${hydrus.settings?.profile}`)}`}/>
+            <span>{row.entry.name}</span>
+            {!row.usePositive&&!row.useNegative&&!row.useTags&&<Tag>Image only</Tag>}
+            {row.usePositive&&<Tag color="green">Positive · {promptLeaves(row.positive.join(', ')).length}</Tag>}
+            {row.useNegative&&<Tag color="orange">Negative · {promptLeaves(row.negative.join(', ')).length}</Tag>}
+            {row.useTags&&<Tag color="blue">Hydrus · {row.tags.length}</Tag>}
+            {row.prefixes.map(ref=><Tag key={ref.id} color="purple">@{library.prefixes.find(prefix=>prefix.id===ref.id)?.name||ref.name||ref.id}</Tag>)}
+        </Space>, children: <Space direction="vertical" align="start" style={{ width: '100%' }}>
             <Button onClick={() => {
                 const first = row.prefixes[0];
                 openPrefixManager({ name: first?.name, snapshotId: first?.snapshot_id,
@@ -174,13 +184,13 @@ export function AppendImagesModal({ entries, onClose,snapshotId }: { entries: Ga
                     onChange={id => changePrefixes(index, current => current.prefixes.map(item => item.id === ref.id ? sourcePrefixRecipe(library, ref.id, id || undefined) || item : item))} />
             </Space>)}
             <Button size="small" onClick={()=>update(index,{usePositive:true,useNegative:true})}>Load both prompts</Button>
-            <Checkbox checked={row.usePositive} onChange={event => update(index, { usePositive: event.target.checked })}>Load positive prompt</Checkbox>
-            <TermsEditor value={row.positive} onChange={positive=>update(index,{positive})} suggest={suggest} placeholder={'Positive terms '+index}/>
-            <Checkbox checked={row.useNegative} onChange={event => update(index, { useNegative: event.target.checked })}>Load negative prompt</Checkbox>
-            <TermsEditor value={row.negative} onChange={negative=>update(index,{negative})} suggest={suggest} placeholder={'Negative terms '+index}/>
+            <Space><Checkbox checked={row.usePositive} onChange={event => update(index, { usePositive: event.target.checked })}>Load positive prompt</Checkbox><Tag color={row.usePositive?'green':undefined}>{row.usePositive?'Included':'Not used'}</Tag></Space>
+            <div data-contribution="positive" data-included={row.usePositive} style={{opacity:row.usePositive?1:.55,width:'100%'}}><TermsEditor value={row.positive} onChange={positive=>update(index,{positive})} suggest={suggest} placeholder={'Positive terms '+index}/></div>
+            <Space><Checkbox checked={row.useNegative} onChange={event => update(index, { useNegative: event.target.checked })}>Load negative prompt</Checkbox><Tag color={row.useNegative?'orange':undefined}>{row.useNegative?'Included':'Not used'}</Tag></Space>
+            <div data-contribution="negative" data-included={row.useNegative} style={{opacity:row.useNegative?1:.55,width:'100%'}}><TermsEditor value={row.negative} onChange={negative=>update(index,{negative})} suggest={suggest} placeholder={'Negative terms '+index}/></div>
             <Typography.Text>Hydrus tags: keep all, remove individual terms, or type @prefix to use the shared tag manager.</Typography.Text>
-            <HydrusTagSelect label={'Image Hydrus tags ' + index} value={row.tags} onChange={tags => update(index, { tags })} />
-            <Checkbox checked={row.useTags} onChange={event => update(index, { useTags: event.target.checked })}>Load selected Hydrus tags into the positive prompt</Checkbox>
+            <Space><Checkbox checked={row.useTags} onChange={event => update(index, { useTags: event.target.checked })}>Load selected Hydrus tags into the positive prompt</Checkbox><Tag color={row.useTags?'blue':undefined}>{row.useTags?'Included':'Not used'}</Tag></Space>
+            <div data-contribution="hydrus" data-included={row.useTags} style={{opacity:row.useTags?1:.55,width:'100%'}}><HydrusTagSelect label={'Image Hydrus tags ' + index} value={row.tags} onChange={tags => update(index, { tags })} /></div>
             <Checkbox checked={row.sync} onChange={event => update(index, { sync: event.target.checked })}>Add these tags to the corresponding Hydrus file</Checkbox>
             <Typography.Text type="secondary">Sync adds tags to your configured service; omitted tags are not deleted remotely.</Typography.Text>
         </Space> }))} style={{ marginTop: 12 }} />
