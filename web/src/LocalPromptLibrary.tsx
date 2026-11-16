@@ -202,7 +202,7 @@ export function LocalPromptSearch({ onLocalSearch, managerOnly = false }: { onLo
         </FloatingPanel>
         <FloatingPanel panelKey="prefix-editor" title={'Prefix editor · ' + draftLabel} open={editorOpen} onCancel={() => { if (!saving) drafts.guard(() => setEditorOpen(false)); }} footer={null} width={900}>
             {drafts.dialog}
-            <PrefixEditor onLoad={drafts.markSaved} shared={shared} seed={seed} active={editorOpen} name={prefixName} setName={setPrefixName} positive={prefixTags} setPositive={setPrefixTags} negative={negativeTags} setNegative={setNegativeTags}
+            <PrefixEditor dirty={drafts.dirty} onLoad={drafts.markSaved} shared={shared} seed={seed} active={editorOpen} name={prefixName} setName={setPrefixName} positive={prefixTags} setPositive={setPrefixTags} negative={negativeTags} setNegative={setNegativeTags}
                 saving={saving} onSave={() => void save()} onDelete={removePrefix} onAppendToNode={seed.node ? id => void appendPrefixToNode(id) : undefined}
                 onOpenLibrarySearch={() => setLibraryOpen(true)} onOpenPrompts={() => setOpen(true)}
                 onUnpair={(image, id) => void unpair(image.keys || [], id)} />

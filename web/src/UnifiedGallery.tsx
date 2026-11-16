@@ -349,28 +349,37 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
     return <div className="cg-grid-layout" onKeyDown={shortcuts}>
         <Modal title="Send Hydrus originals to output folder" open={!!sendTo} onCancel={()=>setSendTo(undefined)} onOk={()=>{const list=sendTo||[];setSendTo(undefined);void download(list.flatMap(item=>item.remote?[item.remote.hash]:[]),sendFolder);}} zIndex={BASE_Z_INDEX+50}><Input aria-label="Download destination folder" value={sendFolder} onChange={event=>setSendFolder(event.target.value)} placeholder="Relative to ComfyUI output"/></Modal><AppendImagesModal entries={appending} onClose={() => setAppending([])} />
         <div className="cg-selection-float"><Button aria-pressed={selectionActive} type={selectionActive ? 'primary' : 'default'} onClick={() => { if (selectionActive) { setSelectionMode(false); setSelection(new Set()); } else setSelectionMode(true); }}>{selectionActive ? 'Selection mode ON' : 'Selection mode'}</Button>{selectionActive && <span>Click selects · Double-click opens</span>}</div>
-        <div className="cg-grid-toolbar">
-            <span className="cg-grid-summary">{entries.length.toLocaleString()} files{selected.size ? ' · ' + selected.size + ' selected' : ''}</span>
+        <div className="cg-grid-toolbar" style={{ minHeight: 54 }}>
+            {selected.size ? <>
+                <strong>{selected.size} selected</strong>
+                {!!(selected.size - shownSelected.length) && <span>{selected.size - shownSelected.length} outside this view</span>}
+                <Button aria-label={`Append to Image Source (${shownSelected.filter(isImage).length})`} disabled={disabled || !shownSelected.some(isImage)} onClick={() => void act('source')}>Append to source ({shownSelected.filter(isImage).length})</Button>
+                <Button disabled={disabled || !shownSelected.length} onClick={() => void act('download')}>Download selected</Button>
+                <Dropdown trigger={['click']} menu={{ items: [
+                    {key:'prefix',label:'Create prefix from selection',disabled:disabled || !shownSelected.length},
+                    {key:'export',label:'Export local selection to Hydrus',disabled:disabled || !shownSelected.some(item=>item.local?.type==='image')},
+                    {key:'all',label:`Select all shown (${entries.length})`,disabled},
+                    {key:'invert',label:'Invert shown selection',disabled},
+                    {key:'archive',label:gallery.archiveView?'Restore selected':'Archive selected',disabled:disabled || !shownSelected.some(item=>item.local?.url.startsWith('/static_gallery/'))},
+                    {key:'delete',label:'Delete local selected',danger:true,disabled:disabled || !shownSelected.some(item=>item.local)}
+                ], onClick:({key})=>{
+                    if(key==='all')setSelection(new Set([...selected,...entries.map(item=>item.id)]));
+                    else if(key==='invert'){const next=new Set(selected);entries.forEach(item=>next.has(item.id)?next.delete(item.id):next.add(item.id));setSelection(next);}
+                    else void act(key as 'prefix'|'export'|'archive'|'delete');
+                } }}><Button>More actions</Button></Dropdown>
+                <Button disabled={disabled} onClick={() => setSelection(new Set())}>Clear selection</Button>
+            </> : <>
+            <span className="cg-grid-summary">{entries.length.toLocaleString()} files</span>
             <Select aria-label="Gallery order" value={order} onChange={value => { setOrder(value); onOrderChange?.(value, ascending); }} style={{ width: 155 }} options={[
                 { value: 'date', label: 'Import / file date' }, { value: 'name', label: 'Name' }, { value: 'mime', label: 'Filetype' }, { value: 'hash', label: 'SHA-256 hash' }, { value: 'random', label: 'Random' }, { value: 'result', label: 'Search order' }
             ]} />
             <Select aria-label="Gallery sort direction" value={ascending ? 'asc' : 'desc'} onChange={value => { setAscending(value === 'asc'); onOrderChange?.(order, value === 'asc'); }} style={{ width: 120 }} disabled={order === 'random' || order === 'result'} options={[{ value: 'desc', label: 'Descending' }, { value: 'asc', label: 'Ascending' }]} />
             {order === 'random' && <Button onClick={() => { setSeed(value => value + 1); onOrderChange?.(order, ascending); }}>Reshuffle</Button>}
-            <Tooltip title="Thumbnail size"><Slider aria-label="Thumbnail size" min={140} max={340} step={20} value={tileSize} onChange={setTileSize} style={{ width: 90, margin: '0 12px' }} /></Tooltip>
+            <Tooltip title="Thumbnail size"><Slider aria-label="Thumbnail size" min={140} max={340} step={20} value={tileSize} onChange={setTileSize} className="cg-thumbnail-slider" /></Tooltip>
             <Button disabled={disabled || !entries.length} onClick={() => setSelection(new Set([...selected, ...entries.map(item => item.id)]))}>Select all shown ({entries.length})</Button>
             <Tooltip title="Selection mode: click selects, double-click opens. Space selects; Enter opens. Ctrl/Cmd+click toggles selection; Shift+click selects a range. Right-click for actions. Gallery order sorts loaded files; missing hashes sort last. Dates use Hydrus import time for remote files and cached matching copies; otherwise local file time."><Button aria-label="Gallery help">?</Button></Tooltip>
+            </>}
         </div>
-        {selected.size > 0 && <div className="cg-selection">
-            <strong>{selected.size} selected</strong><span>{selected.size - shownSelected.length ? (selected.size - shownSelected.length) + ' outside this view' : ''}</span>
-            <Button disabled={disabled || !shownSelected.some(isImage)} onClick={() => void act('source')}>Append to Image Source ({shownSelected.filter(isImage).length})</Button>
-            <Button disabled={disabled || !shownSelected.length} onClick={() => void act('download')}>Download selected</Button>
-            <Button disabled={disabled || !shownSelected.length} onClick={() => void act('prefix')}>Create prefix from selection</Button>
-            <Button disabled={disabled || !shownSelected.some(item => item.local?.type === 'image')} onClick={() => void act('export')}>Export local selection to Hydrus</Button>
-            <Button disabled={disabled || !shownSelected.length} onClick={() => { const next = new Set(selected); entries.forEach(item => next.has(item.id) ? next.delete(item.id) : next.add(item.id)); setSelection(next); }}>Invert shown selection</Button>
-            <Button disabled={disabled || !shownSelected.some(item => item.local?.url.startsWith('/static_gallery/'))} onClick={() => void act('archive')}>{gallery.archiveView ? 'Restore selected' : 'Archive selected'}</Button>
-            <Button danger disabled={disabled || !shownSelected.some(item => item.local)} onClick={() => void act('delete')}>Delete local selected</Button>
-            <div className="cg-spacer" /><Button disabled={disabled} onClick={() => setSelection(new Set())}>Clear selection</Button>
-        </div>}
         <div style={{ flex: 1, minHeight: 120, position: 'relative' }} aria-label="Unified gallery">
             {!entries.length ? <Empty description={gallery.archiveView ? "No archived files in this library root." : "No files loaded. Choose a local folder or search Hydrus."} /> : <AutoSizer>{({ width, height }) => {
                 const count = Math.max(1, Math.floor(width / tileSize)); columns.current = count;

@@ -308,8 +308,9 @@ export function SourcePrefixPanel() {
     const total = positive.length + negative.length;
     return <>
         {drafts.dialog}
-        <FloatingPanel panelKey="source-prefix" focusKey={entries} title={'Prefix associations · ' + entries.length + ' image' + (entries.length === 1 ? '' : 's')} open={entries.length > 0} onCancel={close} width={980} zIndex={BASE_Z_INDEX + 30}
+        <FloatingPanel panelKey="source-prefix" focusKey={entries} title={'Prefix associations · ' + entries.length + ' image' + (entries.length === 1 ? '' : 's')+(drafts.dirty?' · Unsaved':'')} open={entries.length > 0} onCancel={close} width={980} zIndex={BASE_Z_INDEX + 30}
             footer={<Space wrap>
+                <Tag color={busy?'processing':drafts.dirty?'warning':prefix?'success':undefined}>{busy?'Saving…':drafts.dirty?'Unsaved':prefix?'Saved':'New'}</Tag>
                 <Button onClick={close}>Close</Button>
                 <Button onClick={() => { drafts.guard(() => { setAppending(entries); setEntries([]); }); }}>Append images and prompts…</Button>
                 <Button disabled={!prefix || busy} onClick={() => void pair()} title="Pair the image(s) with this prefix without changing its tags">Pair only</Button>
