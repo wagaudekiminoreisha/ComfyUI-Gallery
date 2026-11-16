@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { Button, Space, theme, ConfigProvider, type ModalProps } from 'antd';
+import panelStyles from './FloatingPanel.css?inline';
 
 const panels = new Map<string, { base: number; order: number; setLayer: (value: number) => void }>();
 let order = 0;
@@ -70,6 +71,7 @@ export function FloatingPanel({ panelKey, title, open, onCancel, children, foote
     return createPortal(<div ref={root} role="dialog" aria-modal="false" aria-labelledby={id} tabIndex={-1} data-panel-key={panelKey} data-panel-mode={cover ? 'cover' : 'floating'} className={'cg-floating-panel ' + className}
         onPointerDownCapture={event => { if (root.current?.contains(event.target as Node)) raise(); }} onFocusCapture={event => { if (root.current?.contains(event.target as Node)) raise(); }} onKeyDown={event => { if (event.key === 'Escape' && !event.defaultPrevented && !(event.target as HTMLElement).closest('input,textarea,[role=combobox],[role=menu]')) { event.stopPropagation(); onCancel?.(event as any); } }}
         style={{ position:'fixed', ...frame, display:'flex', flexDirection:'column', zIndex:layer, background:token.colorBgElevated, color:token.colorText, border:'1px solid ' + token.colorBorder, boxShadow:'0 8px 32px #0008', overflow:'hidden', fontSize:token.fontSize }}>
+        <style>{panelStyles}</style>
         <div data-image-search-drop title="Drop an image here to search by provenance" onPointerDown={event => start(event)} onPointerMove={move} onPointerUp={stop} onPointerCancel={stop} onDoubleClick={event => { if (!cover && !(event.target as HTMLElement).closest('button')) collapse(); }} style={{ cursor: cover ? 'default' : 'move', touchAction:'none', display:'flex', alignItems:'center', gap:8, padding:'8px 12px', background:token.colorFillAlter, flexShrink:0 }}>
             <strong id={id} style={{ flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} title={cover ? undefined : 'Drag to move; double-click to collapse'}>{title}</strong>
             <Space size={3}>
@@ -81,8 +83,8 @@ export function FloatingPanel({ panelKey, title, open, onCancel, children, foote
                 <Button size="small" aria-label="Close" onClick={onCancel}>×</Button>
             </Space>
         </div>
-        <div style={{ display:'block', overflow:'auto', minHeight:0, flex:1, padding:16, ...bodyStyle, ...(folded ? { display:'none' } : {}) }}><ConfigProvider theme={{ token: { zIndexPopupBase: layer + 10 } }}>{children}</ConfigProvider></div>
-        {!folded && footer && <div style={{padding:'8px 16px',borderTop:'1px solid '+token.colorBorder,flexShrink:0}}>{typeof footer === 'function' ? null : footer}</div>}
+        <div className="cg-panel-body" style={{ display:'block', overflow:'auto', minHeight:0, flex:1, padding:16, ...bodyStyle, ...(folded ? { display:'none' } : {}) }}><ConfigProvider theme={{ token: { zIndexPopupBase: layer + 10 } }}>{children}</ConfigProvider></div>
+        {!folded && footer && <div className="cg-panel-footer" style={{padding:'8px 16px',borderTop:'1px solid '+token.colorBorder,flexShrink:0}}>{typeof footer === 'function' ? null : footer}</div>}
         {!folded && !cover && <div role="separator" aria-label="Resize panel" title="Drag to resize" onPointerDown={event => start(event,true)} onPointerMove={move} onPointerUp={stop} onPointerCancel={stop} style={{position:'absolute',right:0,bottom:0,width:18,height:18,cursor:'nwse-resize',touchAction:'none',background:'linear-gradient(135deg,transparent 55%, '+token.colorBorder+' 55%, '+token.colorBorder+' 65%, transparent 65%)'}} />}
     </div>, document.body);
 }

@@ -1,4 +1,5 @@
 import { refreshSourcePrefix } from './SourcePrefixes';
+import { fitPopup } from './PopupGeometry';
 import { mergeSourceHistory, type PickerRect } from './SourceHistory';
 import { getComfyApp, STANDALONE } from './ComfyAppApi';
 import { assignImageOutputs, batchSourceIndices, imageOrigin, ORIGIN_STYLE, stampOrigin, removeSourceImage, sourceImageUrl, emptyImageSourceManifest, mergePrompt } from './ImageSourceGeometry';
@@ -221,7 +222,7 @@ export function installSourceWidgets(node: any) {
             popup.style.cssText = 'position:fixed;z-index:4000;display:flex;flex-direction:column;padding:4px;gap:3px;background:var(--comfy-menu-bg,#252525);color:var(--input-text,#ddd);border:1px solid var(--border-color,#888);border-radius:6px;box-shadow:0 4px 20px #0008';
             popup.style.left = Math.max(0, Math.min(event.clientX, innerWidth - 190)) + 'px';
             popup.style.top = Math.max(0, Math.min(event.clientY, innerHeight - 150)) + 'px';
-            const close = () => { popup.remove(); document.removeEventListener('pointerdown', outside, true); document.removeEventListener('keydown', key, true); dismissMenu = undefined; };
+            const close = () => { popup.remove(); document.removeEventListener('pointerdown', outside, true); document.removeEventListener('keydown', key, true); window.removeEventListener('resize', close); dismissMenu = undefined; };
             const outside = (e: PointerEvent) => { if (!popup.contains(e.target as Node)) close(); };
             const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); } };
             const action = (label: string, run: () => void) => {
@@ -232,6 +233,10 @@ export function installSourceWidgets(node: any) {
             action('Open in gallery', () => galleryViewer(index));
             action('Remove image', () => { const current = readSourceManifest(node); view = Math.max(0, view - (index <= view ? 1 : 0)); saveSourceManifest(node, removeSourceImage(current, index)); });
             dismissMenu = close; document.body.append(popup); popup.querySelector('button')?.focus();
+            popup.style.maxWidth = 'calc(100vw - 16px)'; popup.style.maxHeight = 'calc(100vh - 16px)'; popup.style.overflow = 'auto'; popup.style.boxSizing = 'border-box';
+            const bounds = fitPopup({ x: event.clientX, y: event.clientY }, popup.getBoundingClientRect(), { width: innerWidth, height: innerHeight });
+            popup.style.left = bounds.left + 'px'; popup.style.top = bounds.top + 'px';
+            window.addEventListener('resize', close);
             document.addEventListener('pointerdown', outside, true); document.addEventListener('keydown', key, true);
         };
         const removed = node.onRemoved;

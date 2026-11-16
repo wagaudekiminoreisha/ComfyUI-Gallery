@@ -147,6 +147,8 @@ export function MetadataView({
             key={image.name}
             style={{
                 width: "100%",
+                boxSizing: 'border-box',
+                minWidth: 0,
                 height: "-webkit-fill-available",
                 display: "flex",
                 flexWrap: "wrap",
@@ -162,6 +164,8 @@ export function MetadataView({
                 style={{
                     display: "flex",
                     flexDirection: "column",
+                    width: 'min(420px, 100%)',
+                    minWidth: 0,
                     flexWrap: "wrap",
                     alignContent: "center",
                     justifyContent: "center",
@@ -302,7 +306,7 @@ export function MetadataView({
                             preview={false}
                             style={{
                                 objectFit: 'cover',
-                                maxWidth: 420,
+                                maxWidth: 'min(420px, 100%)',
                                 maxHeight: 600,
                                 borderRadius: 12,
                                 background: '#222',
@@ -315,7 +319,7 @@ export function MetadataView({
                         <PreviewMedia
                             style={{
                                 objectFit: 'cover',
-                                maxWidth: 420,
+                                maxWidth: 'min(420px, 100%)',
                                 maxHeight: 600,
                                 borderRadius: 12,
                                 background: '#222',
@@ -327,7 +331,7 @@ export function MetadataView({
                         />
                     )}
                     {image.type == "audio" && (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '420px', height: '400px', background: '#23272f', borderRadius: 12 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 'min(420px, 100%)', height: '400px', background: '#23272f', borderRadius: 12 }}>
                             <SoundOutlined style={{ fontSize: '100px', color: '#1890ff', marginBottom: '40px' }} />
                             <PreviewMedia audio
                                 style={{ width: '80%' }}
@@ -340,7 +344,7 @@ export function MetadataView({
                     )}
                     {image.type == "3d" && (
                         <div
-                            style={{ width: '80vw', maxWidth: 1000, height: '70vh', cursor: 'grab' }}
+                            style={{ width: '100%', maxWidth: 1000, height: '70vh', cursor: 'grab' }}
                             onMouseDown={e => e.stopPropagation()}
                             onTouchStart={e => e.stopPropagation()}
                         >
@@ -350,7 +354,7 @@ export function MetadataView({
                 </div>
             </div>
             {image.type === 'image' && (
-                <Card>
+                <Card style={{ minWidth: 0, maxWidth: '100%' }}>
                     <Descriptions
                         bordered
                         column={1}

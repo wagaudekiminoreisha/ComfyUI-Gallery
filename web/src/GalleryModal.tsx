@@ -113,7 +113,7 @@ const GalleryModal = () => {
             {gallery.error&&<div role="alert" style={{padding:8}}>Cannot load local files: {String(gallery.error)}</div>}
             {gallery.archiveError && <div role="alert" style={{padding:8}}>Archive unavailable: {gallery.archiveError}. Archive state could not be verified; local files may include archived media. Reload or refocus to retry.</div>}
             {gallery.archiveView && <div style={{padding:'0 16px'}}>Archived local media · all folders in this library root. Originals remain in place; restore returns them to Media.</div>}
-            <div style={{display:'flex',flex:1,minHeight:0}}>{searchMode==='local'&&!gallery.archiveView&&<LocalFolderTree/>}<HydrusBrowser onSourceChange={setSource} source={source} open={visible} searchMode={searchMode} viewRevision={viewRevision} /></div>
+            <div className="cg-main">{searchMode==='local'&&!gallery.archiveView&&<LocalFolderTree/>}<HydrusBrowser onSourceChange={setSource} source={source} open={visible} searchMode={searchMode} viewRevision={viewRevision} /></div>
         </div>, document.body)}
         <Modal title="Local filters and tools" open={tools && visible} onCancel={() => setTools(false)} footer={null} width={1000} zIndex={BASE_Z_INDEX + 20}>
             <GalleryHeader /><HydrusToolbar onBrowseHydrus={() => { changeSource('hydrus'); setTools(false); }} /><GallerySidebar />
