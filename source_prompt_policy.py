@@ -23,6 +23,10 @@ for category in CATALOG['categories']:
         tags.update(tag_key(tag) for row in rows for tag in row.get('tags', []))
     tags.update(tag_key(member['tag']) for facet in GLOBAL['facets'] if any(facet['id'].startswith(prefix) for prefix in category['facets']) for member in facet.get('members',[]))
     CATEGORY_TAGS[category['id']] = tags
+    tags.update(tag_key(tag) for tag in category.get('tags', []))
+for category in CATALOG['categories']:
+    if category.get('parent') in CATEGORY_TAGS:
+        CATEGORY_TAGS[category['parent']].update(CATEGORY_TAGS[category['id']])
 
 
 def merge_prompt_texts(texts, mode='append', min_percent=60):

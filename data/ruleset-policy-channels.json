@@ -1,0 +1,7 @@
+{
+  "attire-styling": {
+    "base": "attire-upper",
+    "outer": "attire-upper",
+    "bottoms": "attire-lower"
+  }
+}

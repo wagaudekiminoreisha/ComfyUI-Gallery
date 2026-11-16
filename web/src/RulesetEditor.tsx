@@ -1,5 +1,5 @@
 import {Button,Input,Select,Space,Tag} from 'antd';
-import type {Rule,RuleCondition,Ruleset} from './RuleEngine';
+import {choiceChannel,type Rule,type RuleCondition,type Ruleset} from './RuleEngine';
 import {LogicBadge} from './LogicBadge';
 import {RuleStyles} from './RuleOperation';
 import {RulesetTags} from './RulesetTags';
@@ -33,6 +33,7 @@ export function RulesetEditor({value,onChange}:{value:Ruleset;onChange:(value:Ru
   <details open><summary><LogicBadge name="AND"/>Base rules · {value.rules.length}</summary><RuleListEditor value={value.rules} onChange={rules=>onChange({...value,rules})}/></details>
   {value.choices.map((choice,index)=><details className="cg-rule-tree" key={choice.id}><summary><LogicBadge name="OR"/>{choice.label} · {choice.options.length} options</summary>
    <Space><Input aria-label="Preference label" value={choice.label} onChange={event=>onChange({...value,choices:value.choices.map((row,at)=>at===index?{...row,label:event.target.value}:row)})}/><Button danger onClick={()=>onChange({...value,choices:value.choices.filter((_,at)=>at!==index)})}>Remove preference</Button></Space>
+   <details><summary>Override family for this preference</summary><Input aria-label={'Override family for '+choice.label} value={choice.channel||''} placeholder={choiceChannel(value,choice)} onChange={event=>onChange({...value,choices:value.choices.map((row,at)=>{if(at!==index)return row;const next={...row};if(event.target.value.trim())next.channel=event.target.value.trim();else delete next.channel;return next;})})}/><small>Matching preference families share overrides in the same policy channel. Leave empty to use the ruleset default.</small></details>
    {choice.options.map((option,at)=><details key={option.id} className="cg-rule-tree"><summary>{option.label}{option.id===choice.default?' · default':''}</summary>
     <Input aria-label="Option label" value={option.label} onChange={event=>onChange({...value,choices:value.choices.map((row,n)=>n===index?{...row,options:row.options.map((item,m)=>m===at?{...item,label:event.target.value}:item)}:row)})}/>
     <Space><Button disabled={option.id===choice.default} onClick={()=>onChange({...value,choices:value.choices.map((row,n)=>n===index?{...row,default:option.id}:row)})}>Make default</Button><Button danger disabled={choice.options.length===1} onClick={()=>{const options=choice.options.filter(item=>item.id!==option.id);onChange({...value,choices:value.choices.map((row,n)=>n===index?{...row,options,default:row.default===option.id?options[0].id:row.default}:row)});}}>Remove option</Button></Space>

@@ -2,6 +2,19 @@ const {test}=require('node:test');const assert=require('node:assert/strict');con
 const {filterSourceCategories,SOURCE_PRESETS}=load('SourceTagPolicy');
 const {sourcePrompt,promptSourceImages}=load('ImageSourceGeometry');
 const {filteredSourceText,sourceExclusionPayload}=load('SourceExclusions');const B=load('PromptBoxes');
+test('transfer distinctions separate motion, camera, skin state and palette without broad topic removal',()=>{
+ const text='sitting, running, arms up, blue eyes, closed eyes, looking at viewer, freckles, wet, forest, rain, night, monochrome, lineart, sword, cat, unknown';
+ assert.equal(filterSourceCategories(text,['pose-motion','skin-body-surface','background-weather','art-palette']).text,'sitting, arms up, blue eyes, closed eyes, looking at viewer, freckles, forest, night, lineart, sword, cat, unknown');
+ assert.equal(filterSourceCategories('blue eyes, closed eyes, looking at viewer',['eyes-colour']).text,'closed eyes, looking at viewer');
+ assert.equal(filterSourceCategories('sword, cat, tree, hug',['props-interaction-objects']).text,'cat, tree, hug');
+});
+test('fine attire filters overlap deliberately and parent clothing includes every child',()=>{
+ const text='white shirt, blue skirt, armor, casual, sneakers, mysterious garment';
+ assert.equal(filterSourceCategories(text,['clothing-tops']).text,'blue skirt, armor, casual, sneakers, mysterious garment');
+ assert.equal(filterSourceCategories(text,['clothing-bottoms','clothing-armor']).text,'white shirt, casual, sneakers, mysterious garment');
+ assert.equal(filterSourceCategories(text,['clothing-casual-style']).text,'white shirt, blue skirt, armor, sneakers, mysterious garment');
+ assert.equal(filterSourceCategories(text,['clothing']).text,'mysterious garment');
+});
 test('source-local category masks preserve unknowns, weights and optional probability',()=>{
  assert.equal(filterSourceCategories('long hair, blue eyes, black dress, standing, arms up, from behind, unknown',SOURCE_PRESETS.pose).text,'standing, arms up, from behind, unknown');
  assert.equal(filterSourceCategories('long hair, standing, from behind',SOURCE_PRESETS.appearance).text,'long hair');

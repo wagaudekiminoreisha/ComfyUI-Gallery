@@ -9,7 +9,7 @@ import {loadPrefixes,type SharedLibrary} from './PrefixLibrary';
 import {BATCH_BLACKLIST_KEY,BATCH_BLACKLIST_EVENT,parseBatchBlacklist} from './BatchTagBlacklist';
 import {announceRules,OPEN_RULES,rulesRequest,newRuleBox} from './RulesLibrary';
 import {RuleBoxes} from './RuleBoxes';
-import {activeRuleBoxes,applyRulePreview,type RuleBox,type RulesLibrary,type Ruleset,type RulesetMode} from './RuleEngine';
+import {effectiveRuleBoxes,applyRulePreview,type RuleBox,type RulesLibrary,type Ruleset,type RulesetMode} from './RuleEngine';
 import {availableRules,disabledRulesets,globalRuleBoxes,rulesetMode} from './RuleAvailability';
 import {RulesetTags} from './RulesetTags';
 
@@ -28,7 +28,7 @@ export function RulesManager(){
  useEffect(()=>{const show=(event:Event)=>{setOpen(true);setTarget((event as CustomEvent).detail?.prefixId||'global');if(!dirtyRef.current&&!scriptDirty.current)void reload().catch(error=>setError(String(error)));};window.addEventListener(OPEN_RULES,show);return()=>window.removeEventListener(OPEN_RULES,show);},[]);
  const change=(next:RulesLibrary)=>{setLibrary(next);setDirty(true);};
  const disabled=disabledRulesets(library);
- const attached=library.prefixes[target]||(target.startsWith('snapshot:')?activeRuleBoxes((prefixes.snapshots?.[target.slice(9)]?.rules||[]).filter(box=>box.origin!=='global')).map(box=>({...box,origin:'snapshot' as const})):[]);
+ const attached=library.prefixes[target]||(target.startsWith('snapshot:')?effectiveRuleBoxes((prefixes.snapshots?.[target.slice(9)]?.rules||[]).filter(box=>box.origin!=='global')).map(box=>({...box,origin:'snapshot' as const})):[]);
  const boxes=target==='global'?globalRuleBoxes(library):availableRules(attached,disabled);
  const definition=library.definitions.find(item=>item.id===selected);
  const tagBox=boxes.find(box=>box.definition.id===selected&&box.scope==='main')||boxes.find(box=>box.definition.id===selected);

@@ -5,6 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 ALIASES = json.loads((ROOT/'data/global-tag-rules.json').read_text(encoding='utf-8'))['aliases']
+LEGACY_CHANNELS = json.loads((ROOT/'data/ruleset-policy-channels.json').read_text(encoding='utf-8'))
 OPS = {'exclude', 'protect', 'require', 'select', 'exclusive'}
 
 
@@ -50,6 +51,7 @@ def validate_definition(value):
     ids=set()
     for choice in choices:
         if not isinstance(choice,dict) or not isinstance(choice.get('id'),str) or not choice['id'] or choice['id'] in ids or not isinstance(choice.get('label'),str): raise ValueError('Invalid preference ID/label.')
+        if 'channel' in choice and (not isinstance(choice['channel'],str) or not 1 <= len(choice['channel'].strip()) <= 160):raise ValueError('Invalid preference override channel.')
         ids.add(choice['id']); options=choice.get('options')
         if not isinstance(options,list) or not 1<=len(options)<=100: raise ValueError('Preference needs options.')
         option_ids=set()
@@ -90,15 +92,40 @@ def effective_rule(rule):
     return result
 
 
+def choice_channel(definition, choice):
+    return choice.get('channel') or LEGACY_CHANNELS.get(definition['family'], {}).get(choice['id']) or definition['family']
+
+
+def policy_channels(box):
+    definition = box['definition']
+    return ({definition['family']} if definition.get('rules') or not definition.get('choices') else set()) | {
+        choice_channel(definition, choice) for choice in definition.get('choices', [])}
+
+
+def active_channels(box, boxes):
+    if not box.get('enabled', True):
+        return set()
+    ranks = {'global': 0, 'prefix': 1, 'snapshot': 2, 'encoder': 3}
+    overridden = set().union(*(policy_channels(other) for other in boxes
+        if other.get('enabled', True) and other.get('scope', 'main') == box.get('scope', 'main')
+        and ranks[other.get('origin', 'encoder')] > ranks[box.get('origin', 'encoder')]))
+    return policy_channels(box) - overridden
+
+
 def active_boxes(boxes):
-    boxes=validate_boxes(boxes)
-    ranks={'global':0,'prefix':1,'snapshot':2,'encoder':3}
-    enabled=[box for box in boxes if box.get('enabled',True)]
-    ranks_by_scope={}
-    for box in enabled:
-        key=(box['definition']['family'],box.get('scope','main'))
-        ranks_by_scope[key]=max(ranks_by_scope.get(key,-1),ranks[box.get('origin','encoder')])
-    return [box for box in enabled if ranks[box.get('origin','encoder')]==ranks_by_scope[(box['definition']['family'],box.get('scope','main'))]]
+    boxes = validate_boxes(boxes)
+    return [box for box in boxes if active_channels(box, boxes)]
+
+
+def selected_rules(box, boxes):
+    definition = box['definition']
+    active = active_channels(box, boxes)
+    rows = list(definition.get('rules', [])) if definition['family'] in active else []
+    for choice in definition.get('choices', []):
+        if choice_channel(definition, choice) in active:
+            selected = box.get('preferences', {}).get(choice['id'], choice['default'])
+            rows.extend(next(option for option in choice['options'] if option['id'] == selected).get('rules', []))
+    return rows
 
 
 def apply_rules(text, boxes):
@@ -119,11 +146,8 @@ def apply_rules(text, boxes):
         return found
     initial=set(leaves(text)); excluded=set(); required={}; protected=set(); exclusive=[]; trace=[]
     for box in active_boxes(boxes):
-        definition=box['definition']; rows=list(definition.get('rules',[]))
-        for choice in definition.get('choices',[]):
-            selected=box.get('preferences',{}).get(choice['id'],choice['default'])
-            rows.extend(next(option for option in choice['options'] if option['id']==selected).get('rules',[]))
-        for configured in rows:
+        definition=box['definition']
+        for configured in selected_rules(box, boxes):
             row = effective_rule(configured)
             if row is None:
                 continue
