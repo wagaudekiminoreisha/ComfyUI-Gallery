@@ -8,7 +8,7 @@ Batch selection remains separate: **Select batch images → Use batch** changes 
 
 Individual chips also expose their grouping choices in the right-click menu.
 
-An empty Source box reserves the prompt position, label and source-local filters for a future incoming text connection. It contributes nothing until connected. Automatic source boxes already cover normal connections; the explicit add control is useful when preparing or arranging a workflow in advance.
+Source cards now follow connected positive/negative text wires automatically. Disconnecting hides the card; reconnecting restores its saved filters and edits. **+ Tag box** creates a manual top-level box. Its merge selector combines unbound manual boxes, preserving nested syntax and disabled ingredients; prefix-bound boxes retain their lineage and cannot be merged with this control.
 
 ## Attire hierarchy
 
@@ -57,3 +57,23 @@ Reviewed primary sources:
 Categories intentionally overlap (for example armored dresses and armored boots). They are filtering sets, not mutual-exclusion rules: this change does not make wearing a top and armor contradictory or enable additional global rules. Explicit source filters run before encoder-wide rules; manually added tags continue through the existing rules pipeline. Unknown tags remain untouched. The vocabulary is bounded and curated rather than an exhaustive implication engine.
 
 Validation: production build; JavaScript and Python category/nesting and policy tests; browser tests for staged selection, deletion reflow, history quick-use, per-image nesting/restoration, category inheritance, upper/lower override controls, hidden globals, source editing, snapshot inheritance and ruleset availability. Generators were checked for deterministic output. Tests use the isolated fixture server; the installed ComfyUI and user libraries are unchanged.
+
+## Reusable source batches
+
+The image picker groups images by **Appended together**, **Prefix / provenance**, **Manual groups**, or a flat list. A group checkbox stages all its members. **Use batch** replaces the node membership with that group and selects all its images for batch output. **Switch batch…** also finds removed images in node history, so changing an IPAdapter batch does not require rebuilding it image by image.
+
+Select images, enter a name and use **Save group** to keep a manual group. Saving the same name updates it. Appended groups store only image references; image metadata is not duplicated. Up to 64 saved groups and the existing 128-image history are retained; the node's 32-image limit still applies. Groups can overlap. History is workflow-local, not a permanent external collection.
+
+## Source garment priority
+
+Guaranteed AND tags from sources constrain manual alternatives before sampling. A source T-shirt prevents competing base tops; a source shirt colour prevents a different shirt colour. Compatible outer layers, underwear, accessories and clothing modifiers remain available. A mandatory alternatives group containing a matching source garment selects a matching branch; an impossible mandatory group reports an error. Source duplicates inside such alternatives are shared rather than repeated.
+
+This uses a reviewed literal garment vocabulary, not a general clothing implication engine. Explicit manual AND terms and configured rules still apply normally. Conflicting outfits from multiple sources are not automatically assigned to separate people. BREAK-scoped prompts are left unchanged because cross-section ownership is ambiguous. Existing lower-garment layering rules are respected.
+
+## Prefix and snapshot defaults
+
+A prefix remains the default between server sessions. Queuing can remember a snapshot for the current image during the running ComfyUI session; choosing a different source image returns it to its configured default. Source cards offer a **Source recipe** selector with **Prefix default** and saved snapshots, plus visible added/removed tag details.
+
+The image-prefix association dialog's **Prefer latest snapshot for these images** option opts a particular image/prefix pair into a persistent snapshot default. Snapshot history is preserved. Session identity follows the ComfyUI server process, so restarting ComfyUI ends the session; refreshing the browser does not.
+
+On a known session transition, prefix-associated source-local edits are reset, with **Restore previous session edits** available on the source card. Source category filters remain. Older workflows without a session stamp retain their edits on first load for backward compatibility. Manual tag boxes and the shared prompt library are not reset.

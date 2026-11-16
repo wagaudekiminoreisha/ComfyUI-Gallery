@@ -1,3 +1,4 @@
+import {recordSourceGroup} from './SourceSelectionGroups';
 import { refreshSourcePrefix } from './SourcePrefixes';
 import { fitPopup } from './PopupGeometry';
 import { mergeSourceHistory, type PickerRect } from './SourceHistory';
@@ -76,7 +77,7 @@ export function restoreSourceProvenance(nodeId: number | string | undefined, ima
     if (JSON.stringify(repaired) !== JSON.stringify(manifest.images)) saveSourceManifest(node, { ...manifest, images: repaired });
 }
 
-export function saveSourceManifest(node: any, manifest: ImageSourceManifest, recordChange = true) {
+export function saveSourceManifest(node: any, manifest: ImageSourceManifest, recordChange = true, arrival?:ImageSourceImage[]) {
     const graph = graphNow();
     if (!graph || !nodes().includes(node)) throw new Error('The target node is no longer in the active workflow.');
     const widget = node.widgets?.find((item: any) => item.name === 'sources');
@@ -104,6 +105,7 @@ export function saveSourceManifest(node: any, manifest: ImageSourceManifest, rec
         if (focusedName) node.__galleryFocusImage?.(Math.max(0, manifest.images.findIndex(image => image.input_name === focusedName)));
         if (readSourceManifest(node).images.length !== manifest.images.length) throw new Error('ComfyUI did not retain the appended sources. Check this node’s sources input.');
         node.properties ||= {}; node.properties.gallery_source_history = history;
+        if(arrival)node.properties.gallery_source_groups=recordSourceGroup(node.properties.gallery_source_groups,arrival);
         syncImageOutputs(node, manifest, previous);
         node.__galleryRefreshPreview?.(); window.dispatchEvent(new CustomEvent('gallery-source-changed')); node.setDirtyCanvas?.(true, true);
     }
@@ -358,7 +360,7 @@ export async function addToNode(node: any, images: ImageSourceImage[], urls?: (s
     const manifest = readSourceManifest(node);
     const room = 32 - manifest.images.length;
     if (room <= 0) throw new Error('This node already holds 32 images.');
-    saveSourceManifest(node, { ...manifest, images: [...manifest.images, ...stamped.slice(0, room)], active_index: manifest.layout === 'single' ? manifest.images.length : manifest.active_index });
+    saveSourceManifest(node, { ...manifest, images: [...manifest.images, ...stamped.slice(0, room)], active_index: manifest.layout === 'single' ? manifest.images.length : manifest.active_index },true,stamped.slice(0,room));
     return Math.min(room, stamped.length);
 }
 
@@ -468,7 +470,7 @@ function localCommand(command: string, payload: any): any {
     const graph = graphNow();
     graph.beforeChange?.();
     try {
-    saveSourceManifest(node, { ...manifest, images: [...manifest.images, ...payload.map(image => ({ input_name: image.input_name, title: String(image.title || image.input_name).slice(0, 512), metadata: image.metadata || {}, prompt: image.prompt }))] }, false);
+    saveSourceManifest(node, { ...manifest, images: [...manifest.images, ...payload.map(image => ({ input_name: image.input_name, title: String(image.title || image.input_name).slice(0, 512), metadata: image.metadata || {}, prompt: image.prompt }))] }, false,payload);
     for (const update of updates) { if (update.boxes) { update.boxes.insert(update.text, update.mode, undefined); continue; } update.widget.value = update.value; update.widget.callback?.(update.value); update.node.setDirtyCanvas?.(true, true); }
     } finally { graph.afterChange?.(); }
     target = node;

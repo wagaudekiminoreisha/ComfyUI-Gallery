@@ -94,8 +94,25 @@ def refinement_groups():
     except ImportError:
         from source_prompt_policy import CATALOG, CATEGORY_TAGS
     lookup = dictionary()
-    return {row['id']: {**row, 'tags': frozenset(lookup[tag] for tag in CATEGORY_TAGS[row['id']] if tag in lookup)}
-            for row in CATALOG['categories']}
+    import json
+    curated={row['id']: {**row, 'tags': frozenset(lookup[tag] for tag in CATEGORY_TAGS[row['id']] if tag in lookup), 'hidden':True}
+             for row in CATALOG['categories']}
+    branches=json.loads((Path(__file__).parent/'data/vocabulary-branches.json').read_text(encoding='utf-8'))
+    result=dict(curated)  # Old API IDs remain accepted, but are not library roots.
+    for id,group in sorted(tag_groups().items()):
+        if not group['tags']:continue
+        result[id]={'label':group['label'],'tags':group['tags'],'source':group['source']}
+        covered=set();children=[]
+        for category in CATALOG['categories']:
+            if category.get('parent') not in branches.get(id,[]):continue
+            subset=curated[category['id']]['tags'] & group['tags']
+            if not subset or subset==group['tags']:continue
+            key=id+'::'+category['id']
+            result[key]={'label':category['label'],'tags':subset,'parent':id}
+            covered.update(subset);children.append(key)
+        remainder=group['tags']-covered
+        if children and remainder:result[id+'::other']={'label':'Other '+group['label'].lower()+' tags','tags':frozenset(remainder),'parent':id}
+    return result
 
 
 def browse_vocabulary(data):
@@ -126,7 +143,7 @@ def browse_vocabulary(data):
     limit = max(1, min(10000 if data.get('selection') is True else 100, int(data.get('limit', 60))))
     return {'items': [{'name': row['name'], 'count': row['count']} for row in rows[offset:offset + limit]], 'total': len(rows),
             'categories': [{'value': key, 'label': group['label'], 'count': len(group['tags']), 'source': group['source']} for key, group in sorted(groups.items()) if group['tags']],
-            'refinements': [{'value': key, 'label': group['label'], 'count': len(group['tags']), **({'parent': group['parent']} if group.get('parent') else {})} for key, group in refined.items()]}
+            'refinements': [{'value': key, 'label': group['label'], 'count': len(group['tags']), **({'parent': group['parent']} if group.get('parent') else {})} for key, group in refined.items() if not group.get('hidden')]}
 
 
 @lru_cache(maxsize=1)

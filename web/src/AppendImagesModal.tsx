@@ -1,3 +1,4 @@
+import {defaultSourceRecipe,rememberSourceRecipe} from './SourceRecipeDefaults';
 import {TermsEditor} from './PromptBoxEditor';
 import {promptLeaves} from './RuleImpact';
 import {makeSuggest} from './PromptSuggest';
@@ -61,12 +62,15 @@ export function AppendImagesModal({ entries, onClose,snapshotId }: { entries: Ga
         void loadPrefixes().then(library => { if (live){setLibrary(library); setRows(initial.map(row => {
             const keys = imagePrefixKeys(row.entry, gallery.settings.relativePath);
             const direct = [...new Set(keys.flatMap(key => associationPrefixIds(library.associations?.[key])))];
-            const variantId = snapshotId || sourcePrefixRefs(row.metadata).find(ref => ref.snapshot_id)?.snapshot_id || imageSnapshotIds(library, keys, row.metadata)[0];
+            const candidates=[...new Set([...sourcePrefixRefs(row.metadata).flatMap(ref=>ref.snapshot_id?[ref.snapshot_id]:[]),...imageSnapshotIds(library,keys,row.metadata)])].sort((a,b)=>(library.snapshots?.[b]?.created_at||0)-(library.snapshots?.[a]?.created_at||0));
+            const variantId = snapshotId || candidates[0];
             const variant = variantId ? library.snapshots?.[variantId] : undefined;
             const selected = [...new Set([...direct, ...(variant ? [variant.prefix_id] : [])])];
             const associatedIds = [...new Set([...selected, ...imagePrefixIds(library, keys, row.metadata)])];
             const prefixes = selected.flatMap(id => {
-                const recipe = sourcePrefixRecipe(library, id, variant?.prefix_id === id ? variant.id : undefined);
+                const chosen=snapshotId&&variant?.prefix_id===id?snapshotId:defaultSourceRecipe(library,id,keys,candidates);
+                const recipe = sourcePrefixRecipe(library, id, chosen);
+                rememberSourceRecipe(library,id,keys,chosen||null);
                 return recipe ? [recipe] : [];
             });
             return prefixes.length ? selectPrefixes({ ...row, associatedIds }, prefixes) : { ...row, associatedIds };
@@ -181,7 +185,7 @@ export function AppendImagesModal({ entries, onClose,snapshotId }: { entries: Ga
                 <Select aria-label={'Reference snapshot ' + index + (refIndex ? ' · ' + ref.id : '')} style={{ minWidth: 230 }} value={ref.snapshot_id || ''}
                     options={[{ value: '', label: 'Parent prefix tags' }, ...Object.values(library.snapshots || {}).filter(variant => variant.prefix_id === ref.id)
                         .map(variant => ({ value: variant.id, label: (variant.name || 'Snapshot') + ' · ' + variant.id.slice(0, 8) }))]}
-                    onChange={id => changePrefixes(index, current => current.prefixes.map(item => item.id === ref.id ? sourcePrefixRecipe(library, ref.id, id || undefined) || item : item))} />
+                    onChange={id => {rememberSourceRecipe(library,ref.id,imagePrefixKeys(row.entry,gallery.settings.relativePath),id||null);changePrefixes(index, current => current.prefixes.map(item => item.id === ref.id ? sourcePrefixRecipe(library, ref.id, id || undefined) || item : item));}} />
             </Space>)}
             <Button size="small" onClick={()=>update(index,{usePositive:true,useNegative:true})}>Load both prompts</Button>
             <Space><Checkbox checked={row.usePositive} onChange={event => update(index, { usePositive: event.target.checked })}>Load positive prompt</Checkbox><Tag color={row.usePositive?'green':undefined}>{row.usePositive?'Included':'Not used'}</Tag></Space>

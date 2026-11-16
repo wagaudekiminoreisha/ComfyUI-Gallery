@@ -11,6 +11,7 @@ from urllib.parse import urlsplit
 from aiohttp import web
 
 LOCK = threading.RLock()
+SERVER_SESSION = uuid.uuid4().hex
 
 
 def association_ids(item):
@@ -37,6 +38,7 @@ def set_association(library, key, ids, reference=None):
         'negative_terms': prefix.get('negative_terms', []),
         **({'prefix_ids': ids} if len(ids) > 1 else {}),
         **({'image': image} if image is not None else {}),
+        **({'prefer_snapshots': [id for id in existing.get('prefer_snapshots', []) if id in ids]} if existing.get('prefer_snapshots') else {}),
     }
 
 
@@ -78,6 +80,8 @@ def validate(value):
         if (not isinstance(ids, list) or not ids or ids[0] != item['prefix_id']
                 or any(not isinstance(id, str) or not id for id in ids) or len(set(ids)) != len(ids)):
             raise ValueError('Invalid associated prefixes.')
+        preferred=item.get('prefer_snapshots',[])
+        if not isinstance(preferred,list) or any(not isinstance(id,str) or id not in ids for id in preferred) or len(set(preferred))!=len(preferred):raise ValueError('Invalid snapshot defaults.')
         negatives = item.get('negative_terms', [])
         if not isinstance(negatives, list) or len(negatives) > 500 or any(not isinstance(term, str) or len(term) > 1024 for term in negatives):
             raise ValueError('Invalid associated negative prompts.')
@@ -177,6 +181,17 @@ def update(path, data):
                 for key in image_keys:
                     add_association(library, key, saved['id'], references.get(key))
                 validate(library)
+        elif action == 'snapshot_default':
+            keys=data.get('image_keys',[]);id=data.get('prefix_id');enabled=data.get('enabled')
+            if not isinstance(keys,list) or not 1<=len(keys)<=256 or any(not isinstance(key,str) or len(key)>4096 for key in keys) or not isinstance(enabled,bool):raise ValueError('Invalid snapshot default operation.')
+            for key in keys:
+                item=library.get('associations',{}).get(key)
+                if not item or id not in association_ids(item):raise ValueError('Pair these images with the prefix first.')
+                preferred=[value for value in item.get('prefer_snapshots',[]) if value!=id]
+                if enabled:preferred.append(id)
+                if preferred:item['prefer_snapshots']=preferred
+                else:item.pop('prefer_snapshots',None)
+            validate(library)
         elif action in ('associate', 'dissociate'):
             # Pair images with a saved prefix (or unpair them) without touching the prefix's terms.
             image_keys = data.get('image_keys', [])
@@ -241,7 +256,7 @@ def register_prefix_routes(routes, get_path):
                 if not isinstance(data, dict):
                     raise ValueError('Expected a library operation.')
                 result = update(path, data)
-            return web.json_response(result, headers={'Cache-Control': 'no-store'})
+            return web.json_response({**result,'session_id':SERVER_SESSION}, headers={'Cache-Control': 'no-store'})
         except FileExistsError as error:
             return web.json_response({'error': str(error)}, status=409)
         except (ValueError, KeyError) as error:
@@ -368,7 +383,7 @@ def compose_prompt(text, source_text=None, source_mode='after', sources=None):
     return text if source_text is None else source_text if source_mode == 'replace' else ', '.join(part.strip() for part in ([source_text, text] if source_mode == 'before' else [text, source_text]) if part.strip())
 
 
-def compose_shared_prompt(text, source_text=None, source_mode='after', sources=None):
+def compose_shared_prompt(text, source_text=None, source_mode='after', sources=None, rules=None):
     """The editor's source-first merge, repeated for runtime-only source values."""
     try: from .prompt_deduplication import merge_prompt_contributions
     except ImportError: from prompt_deduplication import merge_prompt_contributions
@@ -395,6 +410,10 @@ def compose_shared_prompt(text, source_text=None, source_mode='after', sources=N
             rows.reverse()
     else:
         rows = [{'text': compose_prompt(text, source_text, source_mode, sources)}]
+    try: from .source_garment_priority import prioritize_source_garments
+    except ImportError: from source_garment_priority import prioritize_source_garments
+    rows,errors=prioritize_source_garments(rows,rules)
+    if errors:raise ValueError('; '.join(errors))
     return ', '.join(row['text'].strip() for row in merge_prompt_contributions(rows) if row['text'].strip())
 
 
@@ -468,9 +487,6 @@ class GalleryPromptEncode:
         try: from .hair_policy import sample_policy
         except ImportError: from hair_policy import sample_policy
         policy = sample_policy(hair_policy)
-        sampling_template = compose_shared_prompt(text, scoped_source, source_mode, scoped_sources)
-        effective, choices = resolve_dynamic(sampling_template)
-        effective = filter_hair_prompt(effective, policy)
         try: from .prompt_rules import apply_rules, validate_boxes
         except ImportError: from prompt_rules import apply_rules, validate_boxes
         try: rules = json.loads(rules_state) if isinstance(rules_state, str) else rules_state
@@ -483,6 +499,9 @@ class GalleryPromptEncode:
             disabled = set(availability['disabled'])
             rules = validate_boxes(availability.get('globals')) + [box for box in validate_boxes(rules)
                                                 if box.get('origin') != 'global' and box['definition']['id'] not in disabled]
+        sampling_template = compose_shared_prompt(text, scoped_source, source_mode, scoped_sources,rules)
+        effective, choices = resolve_dynamic(sampling_template)
+        effective = filter_hair_prompt(effective, policy)
         before_rules = effective
         effective, rules_trace = apply_rules(effective, rules)
         record_resolution(extra_pnginfo, unique_id, composed, effective, choices, raw_source, source_exclusions(text) if source_mode == 'boxes' else None)

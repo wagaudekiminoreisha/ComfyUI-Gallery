@@ -1,7 +1,7 @@
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');const assert=require('node:assert/strict');
 (async()=>{const browser=await chromium.launch({executablePath:process.env.CHROME_PATH,headless:true});const page=await browser.newPage({viewport:{width:1650,height:1150}});const errors=[];page.on('pageerror',e=>errors.push(e.message));const base='http://127.0.0.1:8191';
 const M='\u27e6source\u27e7';
-const choose=async(scope,label,title)=>{const input=scope.getByRole('combobox',{name:label,exact:true});if(label==='Danbooru wiki categories')await input.fill(title.replace(/ \(\d+\)$/,''));await input.press('ArrowDown');const id=await input.getAttribute('aria-controls');await page.locator('[id="'+id+'"]').locator('xpath=ancestor::div[contains(@class,"ant-select-dropdown")][1]').getByTitle(title,{exact:true}).click();};
+const choose=async(scope,label,title)=>{if(label==='Danbooru wiki categories'){const tree=scope.getByRole('combobox',{name:'Tag categories and subcategories',exact:true});await tree.click();await tree.fill(title.replace(/ \(\d+\)$/,''));await tree.press('ArrowDown');await page.getByText(title,{exact:true}).last().click();await tree.press('Escape');return;} const input=scope.getByRole('combobox',{name:label,exact:true});if(label==='Danbooru wiki categories')await input.fill(title.replace(/ \(\d+\)$/,''));await input.press('ArrowDown');const id=await input.getAttribute('aria-controls');await page.locator('[id="'+id+'"]').locator('xpath=ancestor::div[contains(@class,"ant-select-dropdown")][1]').getByTitle(title,{exact:true}).click();};
 // The encoder compiles its boxes into the text widget; the source box is a marker the backend replaces when the workflow runs.
 const value=()=>page.evaluate(()=>window.qaBulkNode.widgets[0].value);
 const reset=()=>page.evaluate(()=>{window.qaBulkNode.__galleryPromptBoxes.insert('base','replace');});
@@ -43,7 +43,7 @@ try{
  const spelled=async items=>[...new Set((await(await page.request.post(base+'/Gallery/hydrus/format_terms',{data:{terms:items.map(x=>x.name),prefer_spaces:true}})).json()).terms)];
  const hair=await browse([hairKey]);assert(hair.total>60);const hairGroup=hair.categories.find(x=>x.value===hairKey);
  await choose(palette,'Danbooru wiki categories',hairGroup.label+' ('+hairGroup.count+')');
- await palette.getByRole('combobox',{name:'Danbooru wiki categories',exact:true}).press('Escape');
+
  // Select-all spans every page, and the selection survives paging.
  await selectAll(palette).click();await palette.getByRole('button',{name:'Append selected ('+hair.total+')',exact:false}).waitFor();
  await palette.getByRole('button',{name:'Next vocabulary page',exact:true}).click();assert(await palette.getByRole('button',{name:'Append selected ('+hair.total+')',exact:false}).isVisible());
@@ -54,7 +54,7 @@ try{
  await reset();
  const attire=await browse([attireKey]);const attireGroup=attire.categories.find(x=>x.value===attireKey);
  await choose(palette,'Danbooru wiki categories',attireGroup.label+' ('+attireGroup.count+')');
- await palette.getByRole('combobox',{name:'Danbooru wiki categories',exact:true}).press('Escape');
+
  const both=await browse([hairKey,attireKey]);assert(both.total>hair.total);
  await setInsertion(palette,{format:'Optional group {a, b, c|}',position:'Append after'});
  await selectAll(palette).click();await palette.getByRole('button',{name:'Append selected ('+both.total+')',exact:false}).waitFor();
