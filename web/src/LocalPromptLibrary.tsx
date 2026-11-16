@@ -1,3 +1,4 @@
+import { usePopupWidth, POPUP_ALIGN } from './usePopupWidth';
 import {BookOutlined} from '@ant-design/icons';
 import {findLineage} from './PrefixLineage';
 import {fetchLocalHashes} from './TagSearchPanel';
@@ -26,6 +27,7 @@ export { indexPrompts } from './SearchPool';
 const nodePrompt = (node: any) => node?.widgets?.find((widget: any) => ['prefix', 'text'].includes(widget.name))?.value || '';
 
 export function LocalPromptSearch({ onLocalSearch, managerOnly = false }: { onLocalSearch: () => void; managerOnly?: boolean }) {
+    const popupWidth = usePopupWidth(480);
     const gallery = useGalleryContext();
     const [shared, setShared] = useState<SharedLibrary>({ version: 2, tags: [], prefixes: [] });
     const [seed, setSeed] = useState<PrefixSeed>({});
@@ -161,7 +163,7 @@ export function LocalPromptSearch({ onLocalSearch, managerOnly = false }: { onLo
         }}><Select mode="tags" aria-label="Filter local files" value={gallery.localTerms} searchValue={gallery.searchFileName}
             onSearch={value => { gallery.setSearchFileName(value); onLocalSearch(); }}
             onChange={values=>void applyMainTerms(Array.from(new Set(values))).catch(error=>message.error(String(error)))}
-            style={{ width: '100%' }} popupMatchSelectWidth={480} filterOption={false} optionLabelProp="value" allowClear
+            style={{ width: '100%' }} popupClassName="cg-select-popup" dropdownAlign={POPUP_ALIGN} popupMatchSelectWidth={popupWidth} filterOption={false} optionLabelProp="value" allowClear
             options={options.filter(item => !gallery.localTerms.includes(item.value)).map((item, i) => ({ key: item.side + i, value: item.side === 'Library prefix' ? '@' + item.label : item.value, label: <span>{item.label} <small>· {item.side}{item.count ? ' · ' + item.count + ' local files' : ''}</small></span> }))}
             placeholder="Local search · Enter stacks a term (AND)" /></div>
         <Select aria-label="Local search category" value={gallery.localSearchField} onChange={value => { gallery.setLocalSearchField(value); onLocalSearch(); }} style={{ width: 150 }} options={[{ value: 'all', label: 'All fields' }, { value: 'positive', label: 'Positive prompt' }, { value: 'negative', label: 'Negative prompt' }, { value: 'hydrus', label: 'Hydrus tag' }, { value: 'name', label: 'Filename' }]} />

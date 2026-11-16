@@ -1,3 +1,5 @@
+import { PopupMenu } from './PopupMenu';
+import { suggestionPlacement } from './PopupGeometry';
 import {SOURCE_CATEGORIES,SOURCE_PRESETS,filterSourceCategories} from './SourceTagPolicy';
 import {exclusionsFor,replacementsFor,filteredSourceText,type SourceSegment} from './SourceExclusions';
 import {emptyGroup,sourceInput,addSourceBox,SOURCE_INPUTS} from './PromptBoxes';
@@ -41,7 +43,7 @@ const S: Record<string, CSSProperties> = {
     header: { display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px', flexWrap: 'wrap' },
     body: { display: 'flex', flexDirection: 'column', gap: 6, padding: '0 6px 6px' },
     chips: { display: 'flex', flexWrap: 'wrap', gap: 4, minHeight: 22 },
-    chip: { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '1px 4px 1px 8px', borderRadius: 12, border: `1px solid ${border}`, background: 'var(--comfy-menu-bg, #353535)', maxWidth: '100%', overflowWrap: 'anywhere' },
+    chip: { display: 'inline-flex', boxSizing: 'border-box', minWidth: 0, alignItems: 'center', gap: 4, padding: '1px 4px 1px 8px', borderRadius: 12, border: `1px solid ${border}`, background: 'var(--comfy-menu-bg, #353535)', maxWidth: '100%', overflowWrap: 'anywhere' },
     orChip: { borderStyle: 'dashed', borderRadius: 6 },
     selected: { outline: `2px solid ${accent}` },
     handle: { cursor: 'grab', opacity: .7, padding: '0 2px', userSelect: 'none' },
@@ -75,7 +77,7 @@ function ChipParts({ chip, suggest, onItems,used,onPartSelect,selectedParts,onMe
     const parts = chipItems(chip);
     const separator = kind === 'group' ? 'AND' : 'OR';
     return <span style={{ display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: 2, padding: '2px 4px' }}>
-        {memberMenu&&createPortal(<div role="menu" style={{position:'fixed',left:memberMenu.x,top:memberMenu.y,zIndex:2147483001,background:'var(--comfy-menu-bg,#333)',color:'var(--input-text,#ddd)',padding:6,border:'1px solid #888',borderRadius:6}} onMouseLeave={()=>setMemberMenu(undefined)}><button type="button" role="menuitem" onClick={event=>{event.stopPropagation();void navigator.clipboard.writeText(memberMenu.text);setMemberMenu(undefined);}}>Copy tag syntax</button></div>,document.body)}
+        {memberMenu&&<PopupMenu x={memberMenu.x} y={memberMenu.y} onClose={()=>setMemberMenu(undefined)}><button type="button" role="menuitem" onClick={event=>{event.stopPropagation();void navigator.clipboard.writeText(memberMenu.text);setMemberMenu(undefined);}}>Copy tag syntax</button></PopupMenu>}
         {parts.map((part, index) => <span key={index + part} style={{ display: 'inline-flex', alignItems: 'center' }}>
             {index > 0 && <span aria-hidden style={{ color, fontWeight: 700, padding: kind === 'group' ? '0 4px 0 0' : '0 4px' }}><LogicBadge name={separator}/></span>}
             <span style={onItems ? { display: 'inline-flex', alignItems: 'center', borderRadius: 4, background: '#ffffff12', padding: '0 0 0 4px' } : undefined}>
@@ -166,10 +168,10 @@ function ChipView({ chip, selected, picked, onSelect, onPick, onRemove, onDrop, 
         onDragLeave={() => setMark(undefined)}
         onDrop={event => { if (!onDrop || dragging?.kind !== 'chip') return; event.preventDefault(); event.stopPropagation(); const after = right(event), current = dragging; setMark(undefined); if (current.chip !== chip) onDrop(current.chip, after); }}
         style={{ ...S.chip, borderColor: color, ...(grouped ? { flexDirection: 'column', alignItems: 'stretch', gap: 0, padding: 0, borderRadius: 6, borderColor: color, overflow: 'visible' } : {}), ...(selected ? S.selected : {}), ...(picked ? { outline: `2px dashed ${accent}` } : {}), opacity: transferable.enabled&&!omitted ? 1 : .45, textDecoration: transferable.enabled&&!omitted ? 'none' : 'line-through', userSelect: 'none', touchAction: 'none', cursor: 'grab', boxShadow: mark === 'before' ? `inset 3px 0 0 ${accent}` : mark === 'after' ? `inset -3px 0 0 ${accent}` : undefined }}>
-        {copyMenu&&createPortal(<div role="menu" style={{position:'fixed',left:copyMenu.x,top:copyMenu.y,zIndex:2147483001,background:'#333',padding:6,border:'1px solid #888',borderRadius:6}} onMouseLeave={()=>setCopyMenu(undefined)}><button role="menuitem" onClick={event=>{event.stopPropagation();void navigator.clipboard.writeText(transferable.enabled?compileChip({...transferable,enabled:true}):'');setCopyMenu(undefined);}}>Copy syntax</button></div>,document.body)}{grouped
+        {copyMenu&&<PopupMenu x={copyMenu.x} y={copyMenu.y} onClose={()=>setCopyMenu(undefined)}><button role="menuitem" onClick={event=>{event.stopPropagation();void navigator.clipboard.writeText(transferable.enabled?compileChip({...transferable,enabled:true}):'');setCopyMenu(undefined);}}>Copy syntax</button></PopupMenu>}{grouped
             ? <>
                 {/* The header names the grouping (and changes it); the body keeps the separators. */}
-                <span data-group-header title="Click header to collapse or expand; use the dropdown to change grouping" onClick={event=>{if((event.target as HTMLElement).closest('select,button,input'))return;event.stopPropagation();setFolded(!folded);}} style={{ display: 'flex', alignItems: 'center', gap: 4, background: color, color: '#fff', fontSize: 10, lineHeight: '15px', padding: '0 2px 0 4px', textTransform: 'uppercase', letterSpacing: .3, borderRadius: '5px 5px 0 0' }}>
+                <span data-group-header title="Click header to collapse or expand; use the dropdown to change grouping" onClick={event=>{if((event.target as HTMLElement).closest('select,button,input'))return;event.stopPropagation();setFolded(!folded);}} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, background: color, color: '#fff', fontSize: 10, lineHeight: '15px', padding: '0 2px 0 4px', textTransform: 'uppercase', letterSpacing: .3, borderRadius: '5px 5px 0 0' }}>
                     <button type="button" aria-label={folded?'Expand tag group':'Collapse tag group'} onClick={event=>{event.stopPropagation();setFolded(!folded);}} style={{...S.btn,minWidth:30,minHeight:26,background:'transparent',color:'white',border:0}}>{folded?'▸':'▾'}</button><span style={{flex:1,minWidth:55,cursor:'pointer'}}> {promptLeaves(compileChip({...chip,enabled:true})).length} tags </span>{onKind
                         ? <select aria-label="Chip kind" value={mode} onClick={event => event.stopPropagation()} onChange={event => onKind(event.target.value as AddMode)}
                             style={{ width:150, minWidth:110, minHeight:26, background: 'transparent', color: '#fff', border: 0, font: 'inherit', textTransform: 'uppercase', letterSpacing: .3, cursor: 'pointer', padding: 0 }}>
@@ -227,16 +229,26 @@ function SuggestionMenu({ anchor, items, active, onPick }: { anchor: HTMLElement
     const [rect, setRect] = useState<DOMRect>();
     useLayoutEffect(() => {
         if (!anchor || !items.length) return;
-        const update = () => setRect(anchor.getBoundingClientRect());
+        const update = () => {
+            const rect = anchor.getBoundingClientRect();
+            let left = 0, top = 0, right = innerWidth, bottom = innerHeight;
+            for (let parent = anchor.parentElement; parent; parent = parent.parentElement) {
+                const style = getComputedStyle(parent), clip = parent.getBoundingClientRect();
+                if (/(auto|scroll|hidden|clip)/.test(style.overflowX)) { left = Math.max(left, clip.left); right = Math.min(right, clip.right); }
+                if (/(auto|scroll|hidden|clip)/.test(style.overflowY)) { top = Math.max(top, clip.top); bottom = Math.min(bottom, clip.bottom); }
+            }
+            setRect(rect.right > left && rect.left < right && rect.bottom > top && rect.top < bottom ? rect : undefined);
+        };
         update();
-        window.addEventListener('scroll', update, true); window.addEventListener('resize', update);
-        return () => { window.removeEventListener('scroll', update, true); window.removeEventListener('resize', update); };
+        const observer = new ResizeObserver(update); observer.observe(anchor);
+        window.addEventListener('scroll', update, true); window.addEventListener('resize', update); window.addEventListener('pointermove', update);
+        return () => { observer.disconnect(); window.removeEventListener('scroll', update, true); window.removeEventListener('resize', update); window.removeEventListener('pointermove', update); };
     }, [anchor, items]);
     if (!anchor || !items.length || !rect || typeof document === 'undefined') return null;
-    const below = window.innerHeight - rect.bottom > 190 || rect.top < 190;
+    const placement = suggestionPlacement(rect, { width: innerWidth, height: innerHeight });
     // The menu lives in <body>, outside the editor: take the editor's look (node colours, or the gallery's) from the input.
     const look = getComputedStyle(anchor), value = (name: string) => look.getPropertyValue(name).trim() || undefined;
-    return createPortal(<div data-suggestion-menu role="listbox" onMouseDown={event => event.preventDefault()} style={{ ...S.menu, position: 'fixed', left: rect.left, width: Math.max(rect.width, 200), right: 'auto', top: below ? rect.bottom + 2 : undefined, bottom: below ? undefined : window.innerHeight - rect.top + 2, zIndex: 100000, color: value('--input-text') || '#ddd', background: value('--comfy-menu-bg') || '#353535', borderColor: value('--border-color'), font: look.font || '12px system-ui, sans-serif', ['--comfy-menu-hover-bg' as string]: value('--comfy-menu-hover-bg') } as CSSProperties}>
+    return createPortal(<div data-suggestion-menu role="listbox" onMouseDown={event => event.preventDefault()} style={{ ...S.menu, position: 'fixed', ...placement, boxSizing: 'border-box', overflowWrap: 'anywhere', right: 'auto', zIndex: 100000, color: value('--input-text') || '#ddd', background: value('--comfy-menu-bg') || '#353535', borderColor: value('--border-color'), font: look.font || '12px system-ui, sans-serif', ['--comfy-menu-hover-bg' as string]: value('--comfy-menu-hover-bg') } as CSSProperties}>
         {items.map((item, index) => <div key={item.kind + item.label} role="option" aria-selected={index === active} onClick={() => onPick(item)} style={{ ...S.option, background: index === active ? 'var(--comfy-menu-hover-bg, #444)' : 'transparent' }}>
             {item.kind === 'prefix' ? '@' : ''}{item.label}{item.kind === 'prefix' && <small style={{ opacity: .6 }}> · prefix</small>}
         </div>)}

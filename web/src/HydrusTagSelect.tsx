@@ -1,3 +1,4 @@
+import { usePopupWidth, POPUP_ALIGN } from './usePopupWidth';
 import {parsePrompt,compileChip} from './PromptBoxes';
 import { loadPrefixes, expandSearchTerms, type PrefixLibrary } from './PrefixLibrary';
 import { useEffect, useRef, useState } from 'react';
@@ -19,6 +20,7 @@ export function HydrusTagSelect({ localSuggestions = [], value = [], onChange, d
     const [library, setLibrary] = useState<PrefixLibrary>({ version: 2, tags: [], prefixes: [] });
     const [dictionary, setDictionary] = useState<string[]>([]);
     useEffect(() => { const load = () => { void loadPrefixes().then(setLibrary).catch(() => {}); }; load(); window.addEventListener('gallery-prefix-library-changed', load); return () => window.removeEventListener('gallery-prefix-library-changed', load); }, [active]);
+    const popupWidth = usePopupWidth(440);
     const { settings } = useHydrus();
     const [query, setQuery] = useState('');
     const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -57,7 +59,7 @@ export function HydrusTagSelect({ localSuggestions = [], value = [], onChange, d
     }}><Select ref={inputRef} aria-label={label} mode="tags" value={value} onChange={change} disabled={disabled}
         searchValue={query} onSearch={setQuery} open={open && active} onOpenChange={setOpen}
         loading={loading} filterOption={false} optionLabelProp="value" autoClearSearchValue={false}
-        style={{ width: '100%' }} popupMatchSelectWidth={440} placeholder={placeholder || 'Type for Hydrus recommendations · Enter adds a tag'}
+        style={{ width: '100%' }} popupClassName="cg-select-popup" dropdownAlign={POPUP_ALIGN} popupMatchSelectWidth={popupWidth} placeholder={placeholder || 'Type for Hydrus recommendations · Enter adds a tag'}
         options={choices.map(tag => ({ ...tag, value: prefix + tag.value.replace(/^-/, '') })).filter(tag => !value.includes(tag.value)).map(tag => ({ value: tag.value, label: <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><span>{tag.value}</span><Typography.Text type="secondary"><strong>{tag.local ? (tag.value.startsWith('@') ? 'saved prefix' : 'vocabulary') : `${tag.count?.toLocaleString() ?? '—'} files`}</strong></Typography.Text></div> }))}
         notFoundContent={loading ? 'Loading recommendations…' : 'Press Enter to add your own tag.'}
         popupRender={menu => <div>
