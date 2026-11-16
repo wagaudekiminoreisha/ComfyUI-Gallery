@@ -1,6 +1,6 @@
 /**
  * "Find images" for a prefix: the images paired with it, plus every image generated from one of those
- * (through Gallery Image Source), whatever prompt the generation used. Generations of generations count too.
+ * (through Gallery Image Source), respecting the prefixes selected for each source. Generations of generations count too.
  *
  * Links between images are by SHA-256: Gallery Image Source copies its inputs as `<sha256>.<ext>`, Hydrus
  * identifies files by the same hash, and local gallery files are hashed by the backend on demand. Images
@@ -63,6 +63,25 @@ export function sourceLinks(metadata: unknown): SourceLinks {
     return { hashes: [...hashes], prefixIds: [...prefixIds] };
 }
 
+/** Prefix credit stops at an explicit recipe selection, including an empty one.
+ * Older sources without a selection retain their hash-based inheritance. Image
+ * ancestry remains available separately through sourceLinks / madeFrom.
+ */
+export function prefixLinks(metadata: unknown, maxDepth = 6): SourceLinks {
+    const hashes = new Set<string>(), prefixIds = new Set(sourceLinks(metadata).prefixIds);
+    if (maxDepth <= 0) return { hashes: [], prefixIds: [] };
+    for (const image of usedSources(metadata)) {
+        const value = object(image?.metadata);
+        if (Array.isArray(value.gallery_prefixes) || typeof value.gallery_prefix?.id === 'string') continue;
+        const hash = HASH.exec(String(image?.input_name || ''))?.[1]?.toLowerCase();
+        if (hash) hashes.add(hash);
+        const inherited = prefixLinks(value, maxDepth - 1);
+        inherited.hashes.forEach(hash => hashes.add(hash));
+        inherited.prefixIds.forEach(id => prefixIds.add(id));
+    }
+    return { hashes: [...hashes], prefixIds: [...prefixIds] };
+}
+
 export type LineageResult = {
     /** Local images paired with the prefix. */
     paired: FileDetails[];
@@ -73,14 +92,17 @@ export type LineageResult = {
 };
 
 const linkCache = new WeakMap<object, SourceLinks>();
-const linksOf = (file: FileDetails) => {
+const prefixLinkCache = new WeakMap<object, SourceLinks>();
+const linksOf = (file: FileDetails, prefixCredit = false) => {
     const metadata = file.metadata as unknown;
+    const cache = prefixCredit ? prefixLinkCache : linkCache;
+    const linksFor = prefixCredit ? prefixLinks : sourceLinks;
     if (metadata && typeof metadata === 'object') {
-        let links = linkCache.get(metadata);
-        if (!links) { links = sourceLinks(metadata); linkCache.set(metadata, links); }
+        let links = cache.get(metadata);
+        if (!links) { links = linksFor(metadata); cache.set(metadata, links); }
         return links;
     }
-    return sourceLinks(metadata);
+    return linksFor(metadata);
 };
 
 export type HashLookup = (urls: string[]) => Promise<Record<string, string>>;
@@ -125,9 +147,13 @@ export async function lineageTree(files: FileDetails[], seedHashes: Iterable<str
         const found: string[] = [];
         for (const file of candidates) {
             if (nodes.has(file.url)) continue;
-            const links = linksOf(file);
+            const links = linksOf(file, prefixIds.size > 0);
             const parents = links.hashes.filter(hash => frontier.has(hash));
-            if (parents.length || (depth === 1 && links.prefixIds.some(id => prefixIds.has(id)))) { nodes.set(file.url, { depth, parents }); found.push(file.url); }
+            if (parents.length || (depth === 1 && links.prefixIds.some(id => prefixIds.has(id)))) {
+                // Scope membership by recipe; retain physical parents for the lineage display.
+                const physicalParents = linksOf(file).hashes.filter(hash => frontier.has(hash));
+                nodes.set(file.url, { depth, parents: physicalParents }); found.push(file.url);
+            }
         }
         if (!found.length || depth === maxDepth) break;
         const hashes = await hashOf(found);
@@ -217,8 +243,8 @@ export function ancestry(metadata: unknown, maxDepth = 6): { hashes: Set<string>
 }
 
 /**
- * The prefixes an image belongs to: paired with it, paired with any image it descends from,
- * or the prefix one of its sources was appended under.
+ * Prefixes paired directly with an image, selected for its sources, or inherited
+ * from older sources that have no explicit recipe selection.
  * @param pairedHashes hash → prefix ids of every paired image (see pairedHashIndex)
  */
 export function imagePrefixIds(library: PrefixLibrary, keys: string[], metadata: unknown, pairedHashes: Map<string, Set<string>> = new Map()): string[] {
@@ -226,7 +252,7 @@ export function imagePrefixIds(library: PrefixLibrary, keys: string[], metadata:
     for (const key of keys) associationPrefixIds(library.associations?.[key]).forEach(id => ids.add(id));
     imageSnapshotIds(library,keys,metadata).forEach(id=>{const parent=library.snapshots?.[id]?.prefix_id;if(parent)ids.add(parent);});
     for(const row of metadataSources(metadata).gallery_associations||[])if(typeof row?.prefix_id==='string')ids.add(row.prefix_id);
-    const { hashes, prefixIds } = ancestry(metadata);
+    const { hashes, prefixIds } = prefixLinks(metadata);
     prefixIds.forEach(id => ids.add(id));
     hashes.forEach(hash => pairedHashes.get(hash)?.forEach(id => ids.add(id)));
     return [...ids].filter(id => library.prefixes.some(prefix => prefix.id === id));

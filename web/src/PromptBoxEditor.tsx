@@ -1,4 +1,6 @@
 import { PopupMenu } from './PopupMenu';
+import { inheritedRuleIdentity, isInheritedRuleIgnored, selectedInheritedRules } from './InheritedRules';
+import { omittedSourceGroups, restoreAllSourceGroups } from './SourceGroupRestore';
 import { suggestionPlacement } from './PopupGeometry';
 import {SOURCE_CATEGORIES,SOURCE_PRESETS,filterSourceCategories} from './SourceTagPolicy';
 import {exclusionsFor,replacementsFor,filteredSourceText,type SourceSegment} from './SourceExclusions';
@@ -518,6 +520,8 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
     const parts = sourceText ? splitTop(sourceText, ',').map(part => part.trim()).filter(Boolean) : [];
     const kept = parts.filter(part => !dropped.has(sourceKey(part)));
     const replacements=replacementsFor(box,segment);
+    const omittedGroups=kept.flatMap(part=>Object.prototype.hasOwnProperty.call(replacements,sourceKey(part))
+        ? omittedSourceGroups(part,replacements[sourceKey(part)]).map(group=>({...group,part})) : []);
     const [selectedChip,setSelectedChip]=useState<string>();
     const [selectedMember,setSelectedMember]=useState<{option:number;index:number}>();
     const chipsFor=(part:string)=>parsePrompt(Object.prototype.hasOwnProperty.call(replacements,sourceKey(part))?replacements[sourceKey(part)]:part).map((chip,index)=>({...chip,id:JSON.stringify([segment?.key,part,index])}));
@@ -526,6 +530,19 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
     const patch = (value: Partial<Omit<SourceBox,'id'|'kind'>>) => onChange(updateBox(state, box.id, value));
     const setExcluded = (next: string[]) => segment?patch({excludedBySource:{...box.excludedBySource,[segment.key]:next}}):patch({ excluded: next.length ? next : undefined });
     const setReplacements=(next:Record<string,string>)=>segment?patch({replacementsBySource:{...box.replacementsBySource,[segment.key]:next}}):patch({replacements:next});
+    const restoreGroup=(part:string,text:string)=>{
+        const next={...replacements};if(text===part)delete next[sourceKey(part)];else next[sourceKey(part)]=text;
+        setReplacements(next);setSelectedChip(undefined);setSelectedMember(undefined);
+    };
+    const restoreAll=()=>{
+        const next={...replacements};
+        for(const part of parts)if(Object.prototype.hasOwnProperty.call(next,sourceKey(part))){
+            const text=restoreAllSourceGroups(part,next[sourceKey(part)]);
+            if(text===part)delete next[sourceKey(part)];else next[sourceKey(part)]=text;
+        }
+        patch(segment?{excludedBySource:{...box.excludedBySource,[segment.key]:[]},replacementsBySource:{...box.replacementsBySource,[segment.key]:next}}:{excluded:undefined,replacements:next});
+        setSelectedChip(undefined);setSelectedMember(undefined);
+    };
     const editPart=(part:string,edit:(chips:Chip[])=>Chip[])=>{
         const text=edit(chipsFor(part)).map(compileChip).filter(Boolean).join(', ');
         if(!text){setExcluded([...excluded,part]);setSelectedChip(undefined);return;}
@@ -548,7 +565,8 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
     };
     const localFilter=filterSourceCategories(sourceChips.map(entry=>compileChip(entry.chip)).join(', '),box.categoryExclusions);
     const effective=useRuleImpact();const leaves=promptLeaves(localFilter.text);const retained=leaves.filter(tag=>!effective||effective.has(ruleTag(tag))).length;
-    const status = !source.connected ? 'not connected' : sourceText ? (retained<leaves.length?retained+'/'+leaves.length+' retained':leaves.length+' tags') + (kept.length < parts.length ? ` · ${parts.length - kept.length} left out` : '') : 'connected';
+    const leftOutCount=parts.length-kept.length+omittedGroups.length;
+    const status = !source.connected ? 'not connected' : sourceText ? (retained<leaves.length?retained+'/'+leaves.length+' retained':leaves.length+' tags') + (leftOutCount ? ` · ${leftOutCount} left out` : '') : 'connected';
     return <div data-prompt-drop data-source-input={sourceInput(box)} ref={ref}
         onClick={event => { if (!(event.target as HTMLElement).closest('button,input,select,[data-chip-id]')) ref.current?.querySelector<HTMLInputElement>('[data-add-input] input')?.focus(); }}
         onDragOver={event => { if (dragging?.kind === 'chip' && source.append && selectedPrefix && !saving) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; } else if (dragging?.kind === 'box' && dragging.id !== box.id) { event.preventDefault(); setMark(lower(event) ? 'after' : 'before'); } }}
@@ -589,11 +607,12 @@ function SourceView({ box, index, count, state, onChange, source, suggest }: Com
                     : <div style={{ ...S.body, ...S.chips, padding: '0 6px 6px' }}>{sourceChips.map(({part,chip},at)=><span key={chip.id} style={{display:'contents'}}>{at>0&&<LogicBadge name="AND"/>}<ChipView chip={chip} selected={selectedChip===chip.id} onSelect={()=>{setSelectedMember(undefined);setSelectedChip(chip.id);}} onMemberEdit={(option,index)=>{setSelectedChip(chip.id);setSelectedMember({option,index});}} onRemove={()=>removeChip(part,chip)} suggest={suggest} onKind={mode=>changeKind(part,chip,mode)} onItems={items=>editPart(part,chips=>chips.flatMap(item=>item.id===chip.id?(withItems(item,items)?[withItems(item,items)!]:[]):[item]))}/>{Object.prototype.hasOwnProperty.call(replacements,sourceKey(part))&&<Btn label={'Reset source tag '+part} onClick={()=>{const next={...replacements};delete next[sourceKey(part)];setReplacements(next);setSelectedChip(undefined);}}>↺</Btn>}</span>)}</div>}
             {selected&&!memberChip&&<ChipEditor chip={selected.chip} onClose={()=>setSelectedChip(undefined)} onKind={mode=>changeKind(selected.part,selected.chip,mode)} onRemove={()=>removeChip(selected.part,selected.chip)} onSplit={()=>editPart(selected.part,chips=>chips.flatMap(chip=>chip.id===selected.chip.id?parsePrompt(chipTerms(chip).join(', ')):[chip]))} onMove={delta=>editPart(selected.part,chips=>moveItem(chips,selected.chip.id,delta))} onChange={next=>editPart(selected.part,chips=>chips.map(chip=>chip.id===selected.chip.id?next:chip))}/>}
             {memberChip&&<ChipEditor chip={memberChip} onClose={()=>setSelectedMember(undefined)} onKind={mode=>editMember(chips=>{const group=emptyGroup('Member',chips);return (convertChip({version:1,boxes:[group]},group.id,memberChip.id,mode).boxes[0] as GroupBox).chips;})} onRemove={()=>{editMember(chips=>chips.filter(chip=>chip.id!==memberChip.id));setSelectedMember(undefined);}} onSplit={()=>editMember(chips=>chips.flatMap(chip=>chip.id===memberChip.id?parsePrompt(chipTerms(chip).join(', ')):[chip]))} onMove={delta=>editMember(chips=>moveItem(chips,memberChip.id,delta))} onChange={next=>editMember(chips=>chips.map(chip=>chip.id===memberChip.id?next:chip))}/>}
-            {!!excluded.length && <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, padding: '0 6px 6px' }} aria-label="Source tags left out">
+            {!!(excluded.length+omittedGroups.length) && <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, padding: '0 6px 6px' }} aria-label="Source tags left out">
                 <small style={{ opacity: .65 }} title="Removed here only: the source and the image lineage are unchanged">Left out:</small>
                 {excluded.map(tag => <button key={tag} type="button" title="Put this source tag back" aria-label={'Restore ' + tag} onClick={() => setExcluded(excluded.filter(item => item !== tag))}
-                    style={{ ...S.btn, textDecoration: 'line-through', opacity: sourceText && !parts.some(part => sourceKey(part) === sourceKey(tag)) ? .45 : .8 }}>{tag} ↺</button>)}
-                {excluded.length > 1 && <Btn label="Restore all source tags" onClick={() => setExcluded([])}>restore all</Btn>}
+                    style={{ ...S.btn, maxWidth:'100%', whiteSpace:'normal', overflowWrap:'anywhere', textDecoration: 'line-through', opacity: sourceText && !parts.some(part => sourceKey(part) === sourceKey(tag)) ? .45 : .8 }}>{tag} ↺</button>)}
+                {omittedGroups.map(group=><button key={group.part+group.key} type="button" title="Put this source group back; keep the other edits" aria-label={'Restore '+group.text} onClick={()=>restoreGroup(group.part,group.replacement)} style={{...S.btn,maxWidth:'100%',whiteSpace:'normal',overflowWrap:'anywhere',textDecoration:'line-through',opacity:.8}}>{group.text} ↺</button>)}
+                {excluded.length+omittedGroups.length > 1 && <Btn label="Restore all source tags" onClick={restoreAll}>restore all</Btn>}
             </div>}
         </>}
     </div>;
@@ -634,8 +653,11 @@ function PromptTrash({ owner }: { owner: string }) {
     </div>,document.body);
 }
 
-export function PromptBoxEditor({ state, source, sources, preview, suggest, onChange, notice, lastEncodedPrompt, unfilteredPreview, ruleDefinitions = [], inheritedRules = [], globalRules = [], disabledRules = new Set(), ruleErrors = [], ruleProtected = [], onReloadRules, rulesNotice,snapshotReferences=[],onOpenSnapshot }: { state: BoxState; source: SourceInfo; sources?:Record<string,SourceInfo>; preview: string; suggest: (query: string) => Promise<Suggestion[]>; onChange: (state: BoxState) => void; notice?: string; lastEncodedPrompt?: string; unfilteredPreview?: string; ruleDefinitions?: Ruleset[]; inheritedRules?: RuleBox[]; globalRules?: RuleBox[]; disabledRules?: ReadonlySet<string>; ruleErrors?: string[]; ruleProtected?: string[]; onReloadRules?: ()=>void; rulesNotice?: string;snapshotReferences?:import('./EncoderSnapshots').SnapshotReference[];onOpenSnapshot?:(reference:import('./EncoderSnapshots').SnapshotReference)=>void }) {
+export function PromptBoxEditor({ state, source, sources, preview, suggest, onChange, notice, lastEncodedPrompt, unfilteredPreview, ruleDefinitions = [], inheritedRules: allInheritedRules = [], globalRules = [], disabledRules = new Set(), ruleErrors = [], ruleProtected = [], onReloadRules, rulesNotice,snapshotReferences=[],onOpenSnapshot }: { state: BoxState; source: SourceInfo; sources?:Record<string,SourceInfo>; preview: string; suggest: (query: string) => Promise<Suggestion[]>; onChange: (state: BoxState) => void; notice?: string; lastEncodedPrompt?: string; unfilteredPreview?: string; ruleDefinitions?: Ruleset[]; inheritedRules?: RuleBox[]; globalRules?: RuleBox[]; disabledRules?: ReadonlySet<string>; ruleErrors?: string[]; ruleProtected?: string[]; onReloadRules?: ()=>void; rulesNotice?: string;snapshotReferences?:import('./EncoderSnapshots').SnapshotReference[];onOpenSnapshot?:(reference:import('./EncoderSnapshots').SnapshotReference)=>void }) {
     const owner = useId();
+    const inheritedRules=selectedInheritedRules(allInheritedRules,state.excludedInheritedRules);
+    const ignoredRules=[...new Map(allInheritedRules.filter(box=>box.origin!=='global'&&isInheritedRuleIgnored(box,state.excludedInheritedRules)).map(box=>[inheritedRuleIdentity(box),box])).values()];
+    const restoreInherited=(box:RuleBox)=>onChange({...state,excludedInheritedRules:(state.excludedInheritedRules||[]).filter(key=>key!==inheritedRuleIdentity(box)&&key!==box.id)});
     return <RuleImpact.Provider value={new Set(promptLeaves(preview).map(ruleTag))}><RuleProtection.Provider value={ruleProtected}><div data-prompt-editor={owner} style={S.root} onMouseDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
         <PromptTrash owner={owner} />
         {state.boxes.map((box, index) => box.kind === 'source'
@@ -650,8 +672,11 @@ export function PromptBoxEditor({ state, source, sources, preview, suggest, onCh
             <RuleBoxes template={unfilteredPreview??preview} hairPrompting={{value:state.hairPolicy??null,onChange:hairPolicy=>onChange({...state,hairPolicy})}}
                 definitions={ruleDefinitions.filter(definition=>!disabledRules.has(definition.id))}
                 value={(state.rulesets||[]).filter(box=>box.origin!=='global'&&!disabledRules.has(box.definition.id))}
-                inherited={inheritedRules} background={globalRules} promote onChange={rulesets=>onChange({...state,
+                inherited={inheritedRules} background={globalRules} promote onRemoveInherited={box=>onChange({...state,excludedInheritedRules:[...new Set([...(state.excludedInheritedRules||[]),inheritedRuleIdentity(box)])]})} onChange={rulesets=>onChange({...state,
                     rulesets:[...rulesets,...(state.rulesets||[]).filter(box=>box.origin!=='global'&&disabledRules.has(box.definition.id))]})}/>
+            {!!state.excludedInheritedRules?.length&&<details className="cg-rule-controls"><summary>Ignored source rules · {state.excludedInheritedRules.length}</summary>
+                <div className="cg-rule-toolbar">{ignoredRules.map(box=><button type="button" key={box.id} aria-label={'Restore inherited ruleset '+box.definition.name} onClick={()=>restoreInherited(box)}>{box.definition.name} ↺</button>)}<button type="button" onClick={()=>onChange({...state,excludedInheritedRules:[]})}>Restore all inherited rules</button></div><small>Ignored on this encoder only. Global defaults still apply.</small>
+            </details>}
             <div className="cg-rule-controls cg-rule-toolbar"><button type="button" onClick={()=>openRules()}>Manage rulesets</button> <button type="button" onClick={onReloadRules}>Refresh rules</button></div>
             {rulesNotice&&<p role="status">{rulesNotice}</p>}
             {ruleErrors.map(error=><div role="alert" key={error}>{error} Encoding will stop until the rules agree.</div>)}

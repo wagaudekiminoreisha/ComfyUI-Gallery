@@ -15,6 +15,9 @@ import shutil
 from .folder_monitor import FileSystemMonitor
 from .folder_scanner import _scan_for_images, DEFAULT_EXTENSIONS
 from .gallery_config import disable_logs, gallery_log
+from .media_cache import register_media_cache_policy
+
+register_media_cache_policy(PromptServer.instance.app)
 
 # Add ComfyUI root to sys.path HERE
 import sys

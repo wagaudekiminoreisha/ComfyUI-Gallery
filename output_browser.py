@@ -40,9 +40,11 @@ def list_output(root, relative='', offset=0, limit=48, order='date'):
                 path='/'.join(filter(None,[relative,entry.name]))
                 if entry.is_dir(follow_symlinks=False): rows.append({'kind':'folder','name':entry.name,'path':path,'timestamp':0})
                 elif entry.is_file(follow_symlinks=False) and target.suffix.lower() in MEDIA_EXTENSIONS:
-                    url='/Gallery/output-file?path='+quote(path,safe='')
+                    stamp=entry.stat(follow_symlinks=False)
+                    revision=f'{stamp.st_mtime_ns:x}-{stamp.st_size:x}'
+                    url='/Gallery/output-file?path='+quote(path,safe='')+'&gallery_revision='+revision
                     rows.append({'kind':'file','name':entry.name,'path':path,'url':url,
-                                 'thumbnailUrl':'/Gallery/output-thumbnail?url='+quote('/static_gallery/'+quote(path,safe='/'),safe=''),
+                                 'thumbnailUrl':'/Gallery/output-thumbnail?url='+quote('/static_gallery/'+quote(path,safe='/'),safe='')+'&v='+revision,
                                  'mime':mimetypes.guess_type(entry.name)[0] or '', 'timestamp':entry.stat(follow_symlinks=False).st_mtime})
             except (OSError,ValueError): continue # Files may disappear while generation is running.
     rows.sort(key=lambda row:(row['kind']!='folder',row['name'].casefold() if order=='name' or row['kind']=='folder' else -row['timestamp'],row['name']))
@@ -64,5 +66,5 @@ def register_output_routes(routes,get_root):
         try:
             target=output_path(get_root(),request.query.get('path',''))
             if not target.is_file() or target.suffix.lower() not in MEDIA_EXTENSIONS: raise ValueError('Not output media.')
-            return web.FileResponse(target,headers={'X-Content-Type-Options':'nosniff','Cache-Control':'private, max-age=30'})
+            return web.FileResponse(target,headers={'X-Content-Type-Options':'nosniff','Cache-Control':'private, no-cache'})
         except (OSError,ValueError): return web.json_response({'error':'Output file is unavailable.'},status=404)

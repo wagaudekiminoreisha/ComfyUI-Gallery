@@ -55,6 +55,9 @@ function syncSources(library: PrefixLibrary) {
     if (changed) { graph?.change?.(); window.dispatchEvent(new Event('gallery-source-changed')); }
 }
 function changed(result: { library: PrefixLibrary; revision: string }) {
+    // The server is authoritative. A full or unavailable browser cache must not
+    // turn a successful save into an apparent failure and leave the editor dirty.
+    try { localStorage.setItem('comfy.prompt-library.v2', JSON.stringify(result.library)); } catch { /* Optional offline migration cache. */ }
     libraryGeneration++;
     latestLibrary = { ...result.library, revision: result.revision };
     syncSources(latestLibrary);
@@ -95,20 +98,17 @@ export function expandSearchTerms(library: PrefixLibrary, value: string): string
 }
 export async function savePrefix(name: string, values: string[], revision?: string, imageKeys?: string[], negativeTerms?: string[], imageRefs?: Record<string, PrefixImage>) {
     const result = await request({ action: 'save', name, terms: values, image_keys: imageKeys || [], negative_terms: negativeTerms, image_refs: imageRefs || {}, revision: revision || (await loadPrefixes()).revision });
-    localStorage.setItem('comfy.prompt-library.v2', JSON.stringify(result.library));
     changed(result);
     return 'Saved to shared Prompt Library';
 }
 /** Pair images with an existing prefix without changing its terms. */
 export async function associateImages(prefixId: string, imageKeys: string[], imageRefs: Record<string, PrefixImage> = {}, revision?: string) {
     const result = await request({ action: 'associate', prefix_id: prefixId, image_keys: imageKeys, image_refs: imageRefs, revision: revision || (await loadPrefixes()).revision });
-    localStorage.setItem('comfy.prompt-library.v2', JSON.stringify(result.library));
     changed(result);
 }
 /** Remove image pairings (the prefix itself is kept). */
 export async function dissociateImages(imageKeys: string[], revision?: string, prefixId?: string) {
     const result = await request({ action: 'dissociate', image_keys: imageKeys, prefix_id: prefixId, revision: revision || (await loadPrefixes()).revision });
-    localStorage.setItem('comfy.prompt-library.v2', JSON.stringify(result.library));
     changed(result);
 }
 export type PrefixPolarity = 'all' | 'positive' | 'negative' | 'both';
@@ -123,7 +123,6 @@ export const matchesPolarity = (prefix: { tags: string[]; negative_terms?: strin
 export const POLARITY_OPTIONS: { value: PrefixPolarity; label: string }[] = [{ value: 'all', label: 'All prefixes' }, { value: 'positive', label: 'Positive only' }, { value: 'negative', label: 'Negative only' }, { value: 'both', label: 'Positive and negative' }];
 export async function deletePrefix(id: string, revision: string) {
     const result = await request({ action: 'delete', id, revision });
-    localStorage.setItem('comfy.prompt-library.v2', JSON.stringify(result.library));
     changed(result);
 }
 const isPrefixNode = (node: any) => ['TagPrefixPromptLibrary', 'GalleryPromptLibrary', 'GalleryPromptEncode'].includes(node?.comfyClass || node?.type || node?.constructor?.comfyClass);

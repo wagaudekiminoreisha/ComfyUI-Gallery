@@ -1,4 +1,5 @@
 import {SOURCE_INPUTS,sourceInput,addSourceBox} from './PromptBoxes';
+import { inheritedRuleKey, privateRuleBoxes, selectedInheritedRules, snapshotRuleBoxes } from './InheritedRules';
 import {installEncoderSerialization,repairEncoderValues,orderEncoderWidgets} from './EncoderSerialization';
 import {bindLegacySourceExclusions,sourceExclusionPayload,filteredSourceText} from './SourceExclusions';
 import {sourcePrefixRefs, sourcePrefixTerms} from './SourcePrefixes';
@@ -118,7 +119,7 @@ export function installPromptBoxes(node: any, deps: Deps) {
     let globals:RuleBox[]=node.properties?.gallery_global_rules ?? state.rulesets?.filter(box=>box.origin==='global') ?? [];
     let disabled=new Set<string>(node.properties?.gallery_disabled_rulesets||[]);
     let rulesNotice='';let alive=true;let rulesRequestId=0;let rulesPending:Promise<void>=Promise.resolve();
-    const effectiveRules=()=>availableRules([...globals,...inheritedRules,...(state.rulesets||[]).filter(box=>box.origin!=='global')],disabled);
+    const effectiveRules=()=>availableRules([...globals,...selectedInheritedRules(inheritedRules,state.excludedInheritedRules),...(state.rulesets||[]).filter(box=>box.origin!=='global')],disabled);
     const syncRules=()=>{const rules=widget('rules_state');if(rules)rules.value=JSON.stringify(effectiveRules());};
     const suggest = makeSuggest(deps);
 
@@ -182,9 +183,9 @@ export function installPromptBoxes(node: any, deps: Deps) {
             const visited=new Set<string>();
             const visit=(id:string)=>{if(visited.has(id)||visited.size>=100)return;const prefix=prefixes.prefixes.find(item=>item.id===id);if(!prefix?.tags.length)return;visited.add(id);for(const tagId of prefix?.tags||[]){const text=prefixes.tags.find(tag=>tag.id===tagId)?.text.trim();if(text?.startsWith('@')){const child=prefixes.prefixes.find(item=>item.name.toLowerCase()===text.slice(1).toLowerCase());if(child)visit(child.id);}}};
             ids.forEach(visit);
-            inheritedRules=[...visited].flatMap(id=>(rulesLibrary.prefixes[id]||[]).map(box=>({...box,id:'prefix:'+id+':'+box.id,origin:'prefix' as const,label:'Prefix '+(prefixes.prefixes.find(item=>item.id===id)?.name||id)})));
+            inheritedRules=[...visited].flatMap(id=>privateRuleBoxes(rulesLibrary.prefixes[id]||[],rulesLibrary).map(box=>({...box,id:'prefix:'+id+':'+box.id,inheritanceKey:inheritedRuleKey(id,box),origin:'prefix' as const,label:'Prefix '+(prefixes.prefixes.find(item=>item.id===id)?.name||id)})));
             const snapshotIds=[...new Set([...state.boxes.flatMap(box=>box.kind==='group'&&box.enabled&&box.inheritRules!==false&&box.prefixSnapshotId?[box.prefixSnapshotId]:[]),...inheritedSources.flatMap(info=>(info.snapshotTargets||[]).flatMap(target=>target.snapshotId?[target.snapshotId]:[]))])];
-            for(const id of snapshotIds){const snapshot=prefixes.snapshots?.[id];if(!snapshot)continue;const privateRules=rulesLibrary.prefixes['snapshot:'+id]||[];const overridden=new Set(privateRules.map(box=>box.definition.family+'\n'+box.scope));const chosen=[...snapshot.rules.filter(box=>box.origin!=='global'&&!overridden.has(box.definition.family+'\n'+box.scope)),...privateRules];inheritedRules.push(...chosen.map(box=>({...box,id:'snapshot:'+id+':'+box.id,origin:'snapshot' as const,label:'Snapshot '+id.slice(0,8)})));}
+            for(const id of snapshotIds){const snapshot=prefixes.snapshots?.[id];if(!snapshot)continue;inheritedRules.push(...snapshotRuleBoxes(snapshot,rulesLibrary).map(box=>({...box,id:'snapshot:'+id+':'+box.id,inheritanceKey:inheritedRuleKey(snapshot.prefix_id,box),origin:'snapshot' as const,label:'Snapshot '+id.slice(0,8)})));}
             node.properties ||= {};node.properties.gallery_inherited_rules=inheritedRules;node.properties.prompt_boxes=state;
             rulesNotice='';syncRules();render();sizing.request(false);
         } catch(error){if(alive&&requestId===rulesRequestId){rulesNotice='Using saved rules where the library is unavailable. '+String(error);syncRules();render();}}})();

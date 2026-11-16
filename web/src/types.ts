@@ -15,6 +15,8 @@ export interface FileDetails {
     name: string;
     url: string;
     timestamp: number;
+    /** Filesystem fingerprint or execution revision for cache invalidation. */
+    revision?: string;
     date: string;
     metadata: Metadata;
     type: "image" | "media" | "audio" | "3d" | "divider" | "empty-space";

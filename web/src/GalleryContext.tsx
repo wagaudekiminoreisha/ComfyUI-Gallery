@@ -1,3 +1,4 @@
+import { localMediaUrl } from './LocalMediaUrl';
 import { useMediaArchive } from './MediaArchive';
 import type { ImageQualities } from './LocalImageSearch';
 import React, { createContext, useContext, useState, useMemo, useEffect, useRef, useCallback } from 'react';
@@ -340,8 +341,8 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
 
     // Memoized list of image URLs for preview
     const imagesUrlsLists = useMemo(() =>
-        filteredFolderImages.map(image => `${BASE_PATH}${image.url}`),
-        [filteredFolderImages]
+        filteredFolderImages.map(image => `${BASE_PATH}${localMediaUrl(image, settingsState.relativePath)}`),
+        [filteredFolderImages, settingsState.relativePath]
     );
 
     // Memoized autocomplete options for image names

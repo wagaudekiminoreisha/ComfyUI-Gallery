@@ -1,3 +1,4 @@
+import { localMediaUrl } from './LocalMediaUrl';
 import {extractLocalPrompts} from './LocalImageSearch';
 import {ReadOnlyPromptChips} from './PromptBoxEditor';
 import { PreviewMedia } from './PreviewMedia';
@@ -86,7 +87,7 @@ export function MetadataView({
         try {
             const img = new window.Image();
             img.crossOrigin = 'anonymous';
-            img.src = `${BASE_PATH}${image.url}`;
+            img.src = `${BASE_PATH}${localMediaUrl(image, settings.relativePath)}`;
             img.onload = async () => {
                 const canvas = document.createElement('canvas');
                 canvas.width = img.width;
@@ -118,12 +119,12 @@ export function MetadataView({
         } catch (err) {
             message.error('Failed to copy image');
         }
-    }, [image.url]);
+    }, [image.url, image.timestamp, image.revision, settings.relativePath]);
 
     // Memoize download handler using FileSaver.js
     const handleDownload = useCallback(async () => {
         try {
-            const response = await fetch(`${BASE_PATH}${image.url}`, { mode: 'cors' });
+            const response = await fetch(`${BASE_PATH}${localMediaUrl(image, settings.relativePath)}`, { mode: 'cors', cache: 'no-store' });
             if (!response.ok) throw new Error('Network response was not ok');
             const blob = await response.blob();
             saveAs(blob, image.name);
@@ -140,7 +141,7 @@ export function MetadataView({
         } else {
             message.error('Failed to delete image');
         }
-    }, [image.url]);
+    }, [image.url, image.timestamp, image.revision, settings.relativePath]);
 
     return (
         <div
@@ -248,7 +249,7 @@ export function MetadataView({
                                         try {
                                             const img = new window.Image();
                                             img.crossOrigin = 'anonymous';
-                                            img.src = `${BASE_PATH}${image.url}`;
+                                            img.src = `${BASE_PATH}${localMediaUrl(image, settings.relativePath)}`;
                                             img.onload = async () => {
                                                 const canvas = document.createElement('canvas');
                                                 canvas.width = img.width;
@@ -311,7 +312,7 @@ export function MetadataView({
                                 borderRadius: 12,
                                 background: '#222',
                             }}
-                            src={`${BASE_PATH}${image.url}`}
+                            src={`${BASE_PATH}${localMediaUrl(image, settings.relativePath)}`}
                             loading="lazy"
                         />
                     )}
@@ -324,7 +325,7 @@ export function MetadataView({
                                 borderRadius: 12,
                                 background: '#222',
                             }}
-                            src={`${BASE_PATH}${image.url}`}
+                            src={`${BASE_PATH}${localMediaUrl(image, settings.relativePath)}`}
                             autoPlay={true}
                             controls={true}
                             preload="none"
@@ -335,7 +336,7 @@ export function MetadataView({
                             <SoundOutlined style={{ fontSize: '100px', color: '#1890ff', marginBottom: '40px' }} />
                             <PreviewMedia audio
                                 style={{ width: '80%' }}
-                                src={`${BASE_PATH}${image.url}`}
+                                src={`${BASE_PATH}${localMediaUrl(image, settings.relativePath)}`}
                                 autoPlay={true}
                                 controls={true}
                                 preload="none"
@@ -348,7 +349,7 @@ export function MetadataView({
                             onMouseDown={e => e.stopPropagation()}
                             onTouchStart={e => e.stopPropagation()}
                         >
-                            <ModelViewer url={`${BASE_PATH}${image.url}`} type={image.name.split('.').pop()?.toLowerCase() || ''} />
+                            <ModelViewer url={`${BASE_PATH}${localMediaUrl(image, settings.relativePath)}`} type={image.name.split('.').pop()?.toLowerCase() || ''} />
                         </div>
                     )}
                 </div>
