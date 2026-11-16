@@ -70,7 +70,7 @@ def register_direct_connection(app, routes, get_root, identity, get_settings, ge
                     preview = await thumbnails.get('/static_gallery/' + quote(record['path'], safe='/'))
                     return web.Response(body=preview.data, content_type=preview.content_type)
                 except (OSError, ValueError): raise web.HTTPNotFound(text='Thumbnail unavailable; open the original.')
-            return web.FileResponse(target)
+            return web.FileResponse(target, headers={'Cache-Control': 'private, no-cache'})
         origin = origin_of(request)
         if tail == '/health' and request.method == 'GET':
             prune(challenges)

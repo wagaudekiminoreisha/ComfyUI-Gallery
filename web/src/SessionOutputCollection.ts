@@ -12,10 +12,15 @@ export function collectSessionOutputs(previous: FileDetails[], output: unknown, 
             ? '/view?' + new URLSearchParams({ filename: image.filename, subfolder: image.subfolder || '', type: 'temp' }).toString()
             : '/static_gallery/' + path.map(encodeURIComponent).join('/');
         entries.delete(url);
-        entries.set(url, { name: image.filename, url, timestamp: now / 1000, date: new Date(now).toISOString(), type: 'image',
+        entries.set(url, { name: image.filename, url, timestamp: now / 1000, revision: 'execution:' + now, date: new Date(now).toISOString(), type: 'image',
             metadata: { fileinfo: { filename: image.filename, resolution: '', date: new Date(now).toISOString(), size: '' } } });
     }
     return [...entries.values()].reverse();
+}
+
+/** Keep indexed metadata, but do not lose a newer execution's media revision. */
+export function sessionOutputFile(output: FileDetails, indexed?: FileDetails): FileDetails {
+    return !indexed ? output : output.timestamp > indexed.timestamp ? { ...indexed, timestamp: output.timestamp, date: output.date, revision: output.revision || String(output.timestamp) } : indexed;
 }
 
 /** Keep execution previews available for opt-in viewing without pinning them ahead of saved outputs. */

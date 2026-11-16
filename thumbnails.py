@@ -151,7 +151,7 @@ def register_thumbnail_routes(routes, get_root, cache=None, route_path="/Gallery
             return web.Response(status=404, text="Thumbnail unavailable.",
                                 headers={"Cache-Control": "no-store"})
         etag = '"' + result.etag + '"'
-        headers = {"ETag": etag, "Cache-Control": "private, max-age=30, must-revalidate",
+        headers = {"ETag": etag, "Cache-Control": "private, no-cache",
                    "X-Content-Type-Options": "nosniff"}
         candidates = request.headers.get("If-None-Match", "").split(",")
         if any(candidate.strip().removeprefix("W/") in (etag, "*") for candidate in candidates):
