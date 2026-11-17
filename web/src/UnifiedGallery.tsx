@@ -281,7 +281,8 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
         ...(targets(entry).some(item => item.remote) ? [{ key: 'trash', danger: true, label: `Delete from Hydrus — send to trash (${targets(entry).filter(item => item.remote).length})` }] : []),
         ...(targets(entry).some(item => item.local) ? [{ key: 'delete', danger: true, label: `Delete local file(s) (${targets(entry).filter(item => item.local).length})` }] : []),
     ], onClick: ({ key }: { key: string }) => { void act(key, entry); } });
-    const move = (step: number) => { const next = shown[index + step]; if (next) { stopMedia(viewerRef.current); setViewer(next.id); } };
+    const goTo = (position: number) => { const next = shown[Math.max(0, Math.min(shown.length - 1, position))]; if (next && next.id !== viewer) { if(viewerRef.current?.contains(document.activeElement)&&document.activeElement?.closest('button'))viewerRef.current.focus({preventScroll:true});stopMedia(viewerRef.current); setViewer(next.id); } };
+    const move = (step: number) => goTo(index + step);
     const advanceAfterRemoval = (removed: Set<string>) => {
         if (!removed.size) return;
         viewerRequest.current++;
@@ -398,21 +399,35 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
             initialSize={detached ? { width: Math.min(960, innerWidth * .78), height: Math.min(720, innerHeight * .82) } : { width: innerWidth * .96, height: innerHeight - 76 }} bodyStyle={{ padding: 8, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
             afterOpenChange={opened => { if (opened) viewerRef.current?.focus(); }}>
             {current && viewerActive && <div ref={viewerRef} tabIndex={-1} style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minHeight: 0, outline: 'none' }} onKeyDown={event => {
-                if ((event.target as HTMLElement).closest('input,textarea,select,[role="menu"],[role="combobox"]')) return;
-                if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); event.stopPropagation(); move(event.key === 'ArrowLeft' ? -1 : 1); }
-                if (event.key === ' ' && !(event.target as HTMLElement).closest('button')) { event.preventDefault(); toggle(current, event.shiftKey); }
+                if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || (event.target as HTMLElement).closest('input:not([type="range"]),textarea,select,video,audio,[contenteditable]:not([contenteditable="false"]),[role="menu"],[role="combobox"],[role="slider"]')) return;
+                const key=event.key.toLowerCase();
+                if((event.target as HTMLElement).closest('input[type="range"]')&&['arrowleft','arrowright','home','end'].includes(key))return;
+                if (!['arrowleft','arrowright','home','end',' ','s','+','=','-','0','i','p','a','g','escape','delete'].includes(key)) return;
+                event.preventDefault(); event.stopPropagation();
+                if(event.repeat && [' ','s','i','p','a','g','escape','delete'].includes(key))return;
+                if(key==='arrowleft'||key==='arrowright')move(key==='arrowleft'?-1:1);
+                else if(key==='home'||key==='end')goTo(key==='home'?0:shown.length-1);
+                else if(key===' '||key==='s')toggle(current,event.shiftKey);
+                else if(key==='+'||key==='=')setZoom(value=>Math.min(8,value*1.5));
+                else if(key==='-')setZoom(value=>Math.max(.25,value/1.5));
+                else if(key==='0')setZoom(1);
+                else if(key==='g'||key==='escape')closeViewer();
+                else if(key==='i'&&current.source!=='node')openImageInfo({url:current.local?.url,remote:current.local?undefined:current.remote});
+                else if(key==='p'&&current.source!=='node')openSourcePrefix([current]);
+                else if(key==='a'&&!disabled&&current.source!=='node'&&targets(current).some(isImage))void act('source',current);
+                else if(key==='delete'&&!disabled&&current.source!=='node')void act(current.local?'delete':'trash',current);
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', flex: 'none' }}>
                     <Space.Compact><Button size="small" disabled={index === 0} title="Previous image (←)" onClick={() => move(-1)}>◀</Button><Button size="small" disabled={index === shown.length - 1} title="Next image (→)" onClick={() => move(1)}>▶</Button></Space.Compact>
-                    <Checkbox className="cg-file-checkbox" checked={selected.has(current.id)} disabled={disabled || current.source === 'node'} onClick={event => toggle(current, event.shiftKey)}>Selected</Checkbox>
-                    <Space.Compact><Button size="small" title="Zoom out" onClick={() => setZoom(value => Math.max(.25, value / 1.5))}>−</Button><Button size="small" title="Fit to the window" onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</Button><Button size="small" title="Zoom in" onClick={() => setZoom(value => Math.min(8, value * 1.5))}>+</Button></Space.Compact>
-                    <Button size="small" disabled={current.source === 'node'} onClick={() => openImageInfo({ url: current.local?.url, remote: current.local ? undefined : current.remote })}>Metadata</Button>
-                    <Button size="small" disabled={current.source === 'node'} onClick={() => openSourcePrefix([current])}>Prefix associations…</Button>
-                    <Button size="small" disabled={disabled || current.source === 'node' || !targets(current).some(isImage)} onClick={() => void act('source', current)}>Append for img2img</Button>
-                    <Button size="small" onClick={closeViewer}>{viewerList ? 'Close' : 'Show in grid'}</Button>
+                    <Checkbox className="cg-file-checkbox" title="Select image (S / Space; Shift adds a range)" aria-keyshortcuts="S Space" checked={selected.has(current.id)} disabled={disabled || current.source === 'node'} onClick={event => toggle(current, event.shiftKey)}>Selected</Checkbox>
+                    <Space.Compact><Button size="small" title="Zoom out (-)" onClick={() => setZoom(value => Math.max(.25, value / 1.5))}>−</Button><Button size="small" title="Fit to the window (0)" onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</Button><Button size="small" title="Zoom in (+)" onClick={() => setZoom(value => Math.min(8, value * 1.5))}>+</Button></Space.Compact>
+                    <Button size="small" title="Metadata (I)" disabled={current.source === 'node'} onClick={() => openImageInfo({ url: current.local?.url, remote: current.local ? undefined : current.remote })}>Metadata</Button>
+                    <Button size="small" title="Prefix associations (P)" disabled={current.source === 'node'} onClick={() => openSourcePrefix([current])}>Prefix associations…</Button>
+                    <Button size="small" title="Append for img2img (A)" disabled={disabled || current.source === 'node' || !targets(current).some(isImage)} onClick={() => void act('source', current)}>Append for img2img</Button>
+                    <Button size="small" title="Return to grid / close viewer (G or Esc)" onClick={closeViewer}>{viewerList ? 'Close' : 'Show in grid'}</Button>
                     <Button size="small" disabled={disabled || !current.local?.url.startsWith('/static_gallery/')} onClick={() => void act('archive', current)}>{gallery.archiveView ? 'Restore' : 'Archive'}</Button>
-                    <Button size="small" danger disabled={disabled || current.source === 'node'} onClick={() => void act(current.local ? 'delete' : 'trash', current)}>Delete</Button>
-                    <Typography.Text type="secondary" style={{ marginLeft: 'auto', fontSize: 12 }}>← → browse · Space selects · right-click for actions</Typography.Text>
+                    <Button size="small" title="Delete (Delete key; confirmation required)" danger disabled={disabled || current.source === 'node'} onClick={() => void act(current.local ? 'delete' : 'trash', current)}>Delete</Button>
+                    <Typography.Text type="secondary" style={{ marginLeft: 'auto', fontSize: 12 }}>← → browse · S / Space selects · right-click for actions</Typography.Text>
                 </div>
                 <Dropdown trigger={['contextMenu']} menu={menu(current)}>
                     <div style={{ flex: 1, minHeight: 160, overflow: zoom === 1 ? 'hidden' : 'auto', background: token.colorFillQuaternary, borderRadius: 4, display: 'flex', alignItems: zoom === 1 ? 'center' : 'flex-start', justifyContent: zoom === 1 ? 'center' : 'flex-start' }}>
@@ -436,6 +451,11 @@ export function UnifiedGallery({onNearEnd,hasMore=false,loadingMore=false,onLoad
                         {entry.local && entry.local.type !== 'image' ? entry.local.type : <img alt="" src={thumbnail(entry)} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 2 }} />}
                         {selected.has(entry.id) && <span style={{ position: 'absolute', top: 1, right: 3, color: '#52c41a', fontWeight: 700 }}>✓</span>}
                     </button>)}
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:10,flex:'none',minWidth:0}}>
+                    <Typography.Text style={{fontSize:12,whiteSpace:'nowrap'}}>{index+1} / {shown.length}</Typography.Text>
+                    <input type="range" aria-label="Viewer position" aria-valuetext={`${index+1} of ${shown.length}: ${current.name}`} min={1} max={Math.max(1,shown.length)} step={1} value={index+1} disabled={shown.length<2} onChange={event=>goTo(Number(event.target.value)-1)} style={{flex:1,minWidth:0,accentColor:token.colorPrimary,cursor:'pointer'}}/>
+                    <Tooltip trigger={['hover','focus']} title="←/→: previous/next · Home/End: first/last · S or Space: select (Shift: range) · +/-: zoom · 0: fit · I: metadata · P: prefixes · A: append · G/Esc: close · Delete: confirmation. Shortcuts pause in text fields and media controls."><Button size="small" aria-label="Viewer keyboard shortcuts">?</Button></Tooltip>
                 </div>
             </div>}
         </FloatingPanel>
