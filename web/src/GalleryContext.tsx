@@ -1,3 +1,4 @@
+import {usePromptTagVocabulary,reloadPromptTagVocabulary} from './usePromptTagVocabulary';
 import { localMediaUrl } from './LocalMediaUrl';
 import { useMediaArchive } from './MediaArchive';
 import type { ImageQualities } from './LocalImageSearch';
@@ -97,6 +98,8 @@ export const DEFAULT_SETTINGS: SettingsState = {
 export const STORAGE_KEY = 'comfy-ui-gallery-settings';
 
 export interface GalleryContextType {
+    promptVocabulary:ReturnType<typeof usePromptTagVocabulary>;
+    reloadPromptVocabulary:()=>Promise<void>;
     archiveView: boolean;
     setArchiveView: Dispatch<SetStateAction<boolean>>;
     archiveBusy: boolean;
@@ -177,6 +180,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
     const initialFolderChosen=useRef(false);
     const [searchFileName, setSearchFileName] = useState("");
     const [qualities, setQualities] = useState<ImageQualities>({ minWidth: 0, minHeight: 0, format: '' });
+    const promptVocabulary=usePromptTagVocabulary();
     const [localTerms, setLocalTerms] = useState<string[]>([]);
     const [librarySearch, setLibrarySearch] = useState<LibrarySearch | null>(null);
     const [localScope, setLocalScope] = useState<GalleryScope | null>(null);
@@ -307,7 +311,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         const prompts = localPrompts.get(file.url) || { positive: '', negative: '' };
         if (librarySearch) return matchesLibrarySearch(file, librarySearch, tags, prompts);
         return [...localTerms, ...(searchFileName.trim() ? [searchFileName] : [])].filter(term=>!term.startsWith('@')).every(term => matchesLocalImage(file, term, localSearchField, tags, prompts));
-    }), [sortedFolderImages, searchFileName, localSearchField, localHydrusTags, localPrompts, qualities, localTerms, librarySearch, localScope]);
+    }), [sortedFolderImages, promptVocabulary.version,searchFileName, localSearchField, localHydrusTags, localPrompts, qualities, localTerms, librarySearch, localScope]);
 
     // Search the complete folder before adding layout dividers or applying virtualized rendering.
     const imagesDetailsList = useMemo(() => {
@@ -437,6 +441,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
     [cardSettings, selectedImages, selectedImageSet, selectImage]);
 
     const value = useMemo(() => ({
+        promptVocabulary,reloadPromptVocabulary:reloadPromptTagVocabulary,
         archiveView, setArchiveView, archiveBusy: archive.busy, archiveError: archive.error, setMediaArchived: archive.update,
         currentFolder, setCurrentFolder,
         searchFileName, setSearchFileName,
@@ -466,7 +471,7 @@ export function GalleryProvider({ children }: { children: React.ReactNode }) {
         siderCollapsed,
         setSiderCollapsed,
     }), [
-        archiveView, archive.busy, archive.error, archive.update,
+        promptVocabulary,archiveView, archive.busy, archive.error, archive.update,
         currentFolder,
         searchFileName,
         localSearchField, qualities, localTerms, localHydrusTags, librarySearch, localScope,

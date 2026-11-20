@@ -1,3 +1,4 @@
+import {canonicalPromptTag} from './PromptTagVocabulary';
 import {parsePrompt} from './PromptBoxes';
 import type { FileDetails } from './types';
 import { encoderRecords, promptTemplates, stripUnresolved, type EncoderRecord } from './PromptResolution';
@@ -12,13 +13,14 @@ export function matchesLibrarySearch(file: FileDetails, search: LibrarySearch, t
     const hasRemote = search.tags.length > 0 || search.orGroups.length > 0;
     if (!hasRemote && !search.localTerms.length) return true;
     const normalize = (value: string) => value.toLocaleLowerCase().replace(/_/g, ' ').trim();
-    const phrases = resolvedTagNames(prompts.positive);
+    const phrases = searchablePromptTags(prompts.positive);
     const cached = [...tags, ...extractHydrusTags(file.metadata)].map(normalize);
     const term = (value: string): boolean => {
         const negative = value.startsWith('-');
         const wanted = normalize(negative ? value.slice(1) : value);
         if (wanted.startsWith('system:')) return false;
-        const found = cached.includes(wanted) || phrases.includes(wanted);
+        const canonical=canonicalPromptTag(wanted);
+        const found = cached.includes(wanted) || !!canonical&&phrases.includes(canonical);
         return negative ? !found : found;
     };
     const positive = search.tags.filter(value => !value.startsWith('-') && !value.startsWith('system:'));
@@ -212,11 +214,11 @@ export function matchesLocalImage(file: Pick<FileDetails, 'name' | 'metadata'>, 
     hydrusTags: string[] = [], prompts?: LocalPrompts): boolean {
     let needle=query.trim();const excluded=needle.startsWith('-');if(excluded)needle=needle.slice(1).trim();
     if(!needle)return true;
-    const parsed=prompts||extractLocalPrompts(file.metadata),key=tagIdentity(needle);
+    const parsed=prompts||extractLocalPrompts(file.metadata),key=tagIdentity(needle),canonical=canonicalPromptTag(needle);
     const found=field==='name'?(file.name||'').toLocaleLowerCase().includes(needle.toLocaleLowerCase()):
         ((field==='all'||field==='hydrus')&&[...hydrusTags,...extractHydrusTags(file.metadata)].some(tag=>tagIdentity(tag)===key))||
-        ((field==='all'||field==='positive')&&resolvedTagNames(parsed.positive).includes(key))||
-        ((field==='all'||field==='negative')&&resolvedTagNames(parsed.negative).includes(key));
+        ((field==='all'||field==='positive')&&!!canonical&&searchablePromptTags(parsed.positive).includes(canonical))||
+        ((field==='all'||field==='negative')&&!!canonical&&searchablePromptTags(parsed.negative).includes(canonical));
     return excluded?!found:found;
 }
 
@@ -236,3 +238,6 @@ export function resolvedTagNames(text:string,depth=0):string[]{
  if(depth>32)return [];
  return parsePrompt(stripUnresolved(text).replace(/\r?\n/g,', ')).flatMap(chip=>chip.kind==='or'?[]:chip.weight!==undefined||chip.emphasis?resolvedTagNames(chip.text,depth+1):[tagIdentity(chip.text)]);
 }
+
+/** Gallery filters index complete database-defined tags, never arbitrary prompt fragments. */
+export function searchablePromptTags(text:string):string[]{return [...new Set(resolvedTagNames(text).flatMap(term=>{const canonical=canonicalPromptTag(term);return canonical?[canonical]:[];}))];}
