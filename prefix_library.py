@@ -1,5 +1,6 @@
 """One user-scoped Prompt Library file, shared by the gallery and prefix nodes."""
 import hashlib
+import asyncio
 import json
 import os
 from pathlib import Path
@@ -221,6 +222,25 @@ def update(path, data):
 
 
 def register_prefix_routes(routes, get_path):
+    @routes.get('/Gallery/prompt-tag-vocabulary')
+    async def prompt_vocabulary(request):
+        try:
+            resolved=get_path(request)
+            if not resolved:raise ValueError('Current ComfyUI user is unavailable.')
+            path=Path(resolved)
+            try:from .prompt_tag_vocabulary import custom_identities,dictionary_identities
+            except ImportError:from prompt_tag_vocabulary import custom_identities,dictionary_identities
+            value,revision=await asyncio.to_thread(read,path)
+            dictionary_file=Path(__file__).parent/'data/danbooru.csv.gz';stat=dictionary_file.stat()
+            custom=await asyncio.to_thread(custom_identities,value)
+            signature=json.dumps(custom,sort_keys=True,ensure_ascii=False)+str(stat.st_mtime_ns)+str(stat.st_size)
+            etag='"'+hashlib.sha256(signature.encode()).hexdigest()+'"'
+            headers={'Cache-Control':'private, no-store','ETag':etag}
+            if request.headers.get('If-None-Match')==etag:return web.Response(status=304,headers=headers)
+            aliases={**dictionary_identities(),**custom}
+            response=web.json_response({'version':1,'aliases':aliases},headers=headers);response.enable_compression();return response
+        except (OSError,ValueError) as error:return web.json_response({'error':'Cannot load prompt tag vocabulary: '+str(error)},status=400)
+
     @routes.get('/Gallery/prefixes')
     @routes.post('/Gallery/prefixes')
     async def library(request):

@@ -32,7 +32,7 @@ export function HydrusBrowser({ open, source = 'hydrus', searchMode, viewRevisio
     const [localField, setLocalField] = useViewState<LocalSearchField>(viewKey, 'positive');
     const [localQuery, setLocalQuery] = useViewState(viewKey, '');
     const [localEditor, setLocalEditor] = useViewState(viewKey, false);
-    const localSuggestions = useMemo(() => Array.from(new Set(indexPrompts(gallery.data?.folders || {}).map(item => item.value).concat(Object.values(gallery.localHydrusTags).flat()))), [gallery.data, gallery.localHydrusTags]);
+    const localSuggestions = useMemo(() => Array.from(new Set(indexPrompts(gallery.data?.folders || {}).map(item => item.value).concat(Object.values(gallery.localHydrusTags).flat()))), [gallery.data, gallery.localHydrusTags,gallery.promptVocabulary.version]);
     const [tab, setTab] = useViewState(viewKey, 'search');
     const [tags, setTags] = useViewState<string[]>(viewKey, []);
     const [prefixScope,setPrefixScope]=useState<{library:SharedLibrary;ids:string[];hashes:Map<string,Set<string>>}>();
