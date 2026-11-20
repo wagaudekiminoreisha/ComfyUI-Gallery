@@ -1,0 +1,71 @@
+{
+  "format": "gallery-hybrid",
+  "version": 1,
+  "document": {
+    "version": 1,
+    "seed": 42,
+    "components": [
+      {
+        "id": "example-subject",
+        "name": "Subject tags",
+        "type": "tags",
+        "text": "1girl, red hair, black dress, sitting, indoors, night"
+      },
+      {
+        "id": "example-scene",
+        "name": "Scene and interaction",
+        "type": "prose",
+        "text": "The woman is sitting beside a rain-streaked window. One hand rests on the worn wooden sill, and she looks toward the quiet street outside.\n\nThe window is on the left of the composition. The interior recedes into shadow behind her, leaving the brightest contrast around her face and hair."
+      },
+      {
+        "id": "example-style-reference",
+        "name": "Visual identity",
+        "type": "reference",
+        "ref": "example-identity"
+      }
+    ]
+  },
+  "library": {
+    "version": 2,
+    "tags": [],
+    "prefixes": [],
+    "hybrid": {
+      "version": 1,
+      "components": {
+        "example-identity": {
+          "id": "example-identity",
+          "name": "Visual identity",
+          "type": "group",
+          "children": [
+            {
+              "id": "example-render",
+              "name": "Painterly rendering",
+              "type": "prose",
+              "text": "Render the scene as a painterly anime illustration. Skin has soft, varied shading; the dark fabric has a subtle woven texture."
+            },
+            {
+              "id": "example-light",
+              "name": "Moonlit interior",
+              "type": "prose",
+              "enabled": false,
+              "text": "Warm interior light falls across her face, contrasting with the cool blue evening outside. Raindrops catch small highlights along the window."
+            }
+          ],
+          "rules": [
+            {
+              "id": "example-night-light",
+              "target": "example-light",
+              "action": "enable",
+              "priority": 10,
+              "tags": [
+                "night"
+              ],
+              "components": [],
+              "unless": []
+            }
+          ]
+        }
+      }
+    }
+  }
+}

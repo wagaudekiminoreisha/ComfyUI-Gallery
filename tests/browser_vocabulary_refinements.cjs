@@ -3,7 +3,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright'),assert=req
  const browser=await chromium.launch({executablePath:process.env.CHROME_PATH,headless:true}),page=await browser.newPage({viewport:{width:1400,height:1000}}),base='http://127.0.0.1:8191',errors=[];page.setDefaultTimeout(12000);page.on('pageerror',error=>errors.push(error.message));
  const browse=async refinements=>(await(await page.request.post(base+'/Gallery/hydrus/dictionary',{data:{browse:true,refinements,selection:true,limit:10000}})).json());
  try{
-  const tops=await browse(['clothing-tops']),both=await browse(['clothing-tops','clothing-bottoms']);
+  const tops=await browse(['tag_group:attire::clothing-tops']),both=await browse(['tag_group:attire::clothing-tops','tag_group:attire::clothing-bottoms']);
   await page.goto(base);await page.getByRole('tab',{name:'Gallery workspace',exact:true}).click();
   await page.evaluate(()=>{
    const host=document.createElement('div');document.body.append(host);
@@ -18,9 +18,9 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright'),assert=req
    const label=page.getByText(item.label+' ('+item.count+')',{exact:true}).last();
    await label.click();await tree.press('Escape');
   };
-  await pick('clothing-tops','Tops');await palette.getByRole('button',{name:'Select all matching ('+tops.total+')',exact:true}).waitFor();
+  await pick('tag_group:attire::clothing-tops','Tops');await palette.getByRole('button',{name:'Select all matching ('+tops.total+')',exact:true}).waitFor();
   await palette.getByRole('button',{name:'Select all matching ('+tops.total+')',exact:true}).click();await palette.getByRole('button',{name:'Append selected ('+tops.total+')',exact:true}).waitFor();
-  await pick('clothing-bottoms','Bottoms');await palette.getByRole('button',{name:'Select all matching ('+both.total+')',exact:true}).waitFor();
+  await pick('tag_group:attire::clothing-bottoms','Bottoms');await palette.getByRole('button',{name:'Select all matching ('+both.total+')',exact:true}).waitFor();
   await palette.getByRole('button',{name:'Select all matching ('+both.total+')',exact:true}).click();await palette.getByRole('button',{name:'Append selected ('+both.total+')',exact:true}).waitFor();
   await palette.getByRole('button',{name:'Append selected ('+both.total+')',exact:true}).click();
   const compiled=await page.evaluate(()=>window.qaVocabularyNode.widgets.find(widget=>widget.name==='text').value);assert.ok(compiled.includes('shirt'));assert.ok(compiled.includes('skirt'));assert.ok(!compiled.includes('blue eyes'));

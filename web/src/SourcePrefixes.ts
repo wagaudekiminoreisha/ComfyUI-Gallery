@@ -1,3 +1,4 @@
+import {defaultSourceRecipe} from './SourceRecipeDefaults';
 import type { ImageSourceImage } from './ImageSourceGeometry';
 import type { PrefixLibrary } from './PrefixLibrary';
 import { associationPrefixIds } from './PrefixAssociations';
@@ -8,6 +9,7 @@ export type SourcePrefix = {
     id: string;
     name?: string;
     snapshot_id?: string;
+    session_id?: string;
     positive: string[];
     negative: string[];
     positive_enabled?: boolean;
@@ -31,7 +33,7 @@ export function sourcePrefixRecipe(library: PrefixLibrary, id: string, snapshotI
     if (!prefix) return;
     const snapshot = snapshotId ? library.snapshots?.[snapshotId] : undefined;
     return {
-        id, name: prefix.name, snapshot_id: snapshotId,
+        id, name: prefix.name, snapshot_id: snapshotId,session_id:library.session_id,
         positive: terms(snapshot?.terms ?? prefix.tags.map(tagId => library.tags.find(tag => tag.id === tagId)?.text || '')),
         negative: terms(snapshot?.negative_terms ?? prefix.negative_terms),
     };
@@ -80,10 +82,14 @@ export function refreshSourcePrefix(image: ImageSourceImage, library: PrefixLibr
     }
     if (!selected.length) return image;
     const next = selected.flatMap(old => {
-        const recipe = sourcePrefixRecipe(library, old.id, old.snapshot_id);
+        const hash=/([a-f0-9]{64})/i.exec(image.input_name)?.[1]?.toLowerCase();
+        const keys=[...(hash?['sha256:'+hash]:[]),...Object.keys(library.associations||{}).filter(key=>url&&key.endsWith(':'+url))];
+        const candidates=Object.values(library.snapshots||{}).filter(row=>row.prefix_id===old.id&&(row.id===old.snapshot_id||keys.some(key=>row.members?.[key]))).sort((a,b)=>b.created_at-a.created_at).map(row=>row.id);
+        const chosen=!library.session_id||old.session_id===library.session_id?old.snapshot_id:defaultSourceRecipe(library,old.id,keys,candidates);
+        const recipe = sourcePrefixRecipe(library, old.id, chosen);
         if (!recipe) return [];
         // Keep a workflow's frozen recipe even if its snapshot isn't available on this installation.
-        const saved = old.snapshot_id && !library.snapshots?.[old.snapshot_id] ? old : recipe;
+        const saved = chosen && !library.snapshots?.[chosen] ? old : recipe;
         return [{ ...old, ...saved }];
     });
     const surviving = previous.filter(old => next.some(ref => ref.id === old.id));

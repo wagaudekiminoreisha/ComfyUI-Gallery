@@ -80,16 +80,31 @@ class HydrusSync:
                 db.execute('INSERT OR REPLACE INTO sync_text VALUES(?,?,?,?,?,?,?)',
                            (self.scope(settings), record['hash'], *[values[k].lower().replace('_', ' ') for k in ('positive', 'negative', 'hydrus', 'name', 'all_text')]))
 
-    def search(self, settings, field, terms):
+    def search(self, settings, field, terms, vocabulary=None):
         column = 'all_text' if field == 'all' else field
         if column not in ('positive', 'negative', 'hydrus', 'name', 'all_text'):
             raise ValueError('Invalid metadata field.')
+        try:from .prompt_tag_vocabulary import dictionary_identities,identity
+        except ImportError:from prompt_tag_vocabulary import dictionary_identities,identity
+        vocabulary=dictionary_identities() if vocabulary is None else vocabulary
         positive=[term for term in terms if not term.startswith('-')]
-        where = ' AND '.join('instr(t.' + column + ',?)>0' for _ in positive) or '1'
+        wanted={vocabulary.get(identity(term)) for term in positive}
+        aliases={canonical:[] for canonical in wanted if canonical} if field in ('positive','negative','all') else {}
+        if field in ('positive','negative','all'):
+            for alias,canonical in vocabulary.items():
+                if canonical in aliases:aliases[canonical].append(alias)
+        groups=[];parameters=[]
+        for term in positive:
+            # A conservative SQL prefilter admits aliases and varied whitespace; exact identities are checked below.
+            variants=aliases.get(vocabulary.get(identity(term)),[identity(term)])
+            chunks=sorted({variant.split()[0] for variant in variants if variant.split()})
+            if not chunks:continue
+            groups.append('('+' OR '.join('instr(t.'+column+',?)>0' for _ in chunks)+')');parameters.extend(chunks)
+        where=' AND '.join(groups) or '1'
         with self.bridge.memory.connect() as db:
             return [record for row in db.execute(
                 'SELECT i.record FROM sync_index i JOIN sync_text t ON i.target=t.target AND i.hash=t.hash WHERE i.target=? AND ' + where,
-                (self.scope(settings), *[term.lower().replace('_', ' ') for term in positive])) if matches(record:=json.loads(row[0]),field,terms)]
+                (self.scope(settings), *parameters)) if matches(record:=json.loads(row[0]),field,terms,vocabulary)]
 
     def status(self, settings):
         target = self.scope(settings)
@@ -256,7 +271,7 @@ class HydrusSync:
                 pass
 
 
-def search_values(record):
+def search_values(record, structured_only=False):
     try:
         from .local_library import prompts
     except ImportError:
@@ -270,7 +285,7 @@ def search_values(record):
                     metadata.append(parsed)
             except (ValueError, TypeError):
                 pass
-    generated = [prompts(value) for value in metadata]
+    generated = [prompts(value,structured_only) for value in metadata]
     tags = []
     for service in record.get('tags', {}).values():
         for key in ('display_tags', 'storage_tags'):
@@ -301,13 +316,17 @@ def tag_phrases(text, depth=0):
     return result
 
 
-def matches(record, field, terms):
-    values=search_values(record)
-    pool=set(tag_phrases(', '.join(values[key] for key in (['positive','negative','hydrus'] if field=='all' else [field]))))
+def matches(record, field, terms, vocabulary=None):
+    values=search_values(record,True)
+    try:from .prompt_tag_vocabulary import dictionary_identities,recognized_tags
+    except ImportError:from prompt_tag_vocabulary import dictionary_identities,recognized_tags
+    vocabulary=dictionary_identities() if vocabulary is None else vocabulary
+    prompt_pool=set(tag for key in (['positive','negative'] if field=='all' else [field] if field in ('positive','negative') else []) for tag in recognized_tags(values[key],vocabulary))
+    cached=set(tag_phrases(values['hydrus'])) if field in ('all','hydrus') else set()
     def match(term):
         negative=term.startswith('-');term=term[1:] if negative else term
         key=re.sub(r'\s+',' ',term.strip().lower().replace('_',' '))
-        found=key in values['name'].lower() if field=='name' else key in pool
+        found=key in values['name'].lower() if field=='name' else key in cached or vocabulary.get(key) in prompt_pool
         return not found if negative else found
     return all(match(term) for term in terms)
 

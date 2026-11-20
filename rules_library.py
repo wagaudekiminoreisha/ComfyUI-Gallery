@@ -71,7 +71,7 @@ def install_prompt_rules(server, get_path):
             payload = await request.json()
             prompt = payload.get('prompt', {}) if isinstance(payload, dict) else {}
             if not isinstance(prompt, dict) or not any(
-                    isinstance(node, dict) and node.get('class_type') == 'GalleryPromptEncode' for node in prompt.values()):
+                    isinstance(node, dict) and node.get('class_type') in ('GalleryPromptEncode','GalleryHybridPrompt') for node in prompt.values()):
                 return await handler(request)
             path = get_path(request)
             if not path:
@@ -90,7 +90,7 @@ def install_prompt_rules(server, get_path):
         prompt = payload.get('prompt') if isinstance(payload, dict) else None
         if encoded is not None and isinstance(prompt, dict):
             for node in prompt.values():
-                if (isinstance(node, dict) and node.get('class_type') == 'GalleryPromptEncode'
+                if (isinstance(node, dict) and node.get('class_type') in ('GalleryPromptEncode','GalleryHybridPrompt')
                         and isinstance(node.get('inputs'), dict)):
                     node['inputs']['rules_policy'] = encoded
         return payload

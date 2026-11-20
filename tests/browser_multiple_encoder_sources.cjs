@@ -56,16 +56,13 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');const asse
   assert(refs.some(row=>row.prefix_id===prefixes[0].id));assert(refs.some(row=>row.prefix_id===prefixes[1].id));
   assert.deepEqual(refs.find(row=>row.prefix_id===prefixes[0].id).terms,['standing']);
   assert.deepEqual(refs.find(row=>row.prefix_id===prefixes[1].id).terms,['blue eyes','red hair']);
-  await editor.getByRole('button',{name:'Add source input',exact:true}).click();
-  const third=editor.locator('[data-source-input="source_text_3"]');await third.waitFor();await third.getByRole('button',{name:'Remove source input',exact:true}).click();await third.waitFor({state:'detached'});
-  await page.evaluate(()=>{window.qaMultiSources[1].widgets[0].value=window.qaMultiSources[1].widgets[0].value.replace('blonde hair','black hair');window.dispatchEvent(new Event('gallery-source-changed'));});
-  await second.getByRole('button',{name:'Edit black hair',exact:true}).waitFor();await first.getByRole('button',{name:'Restore blue eyes',exact:true}).waitFor();
   await page.evaluate(()=>{window.qaMulti.inputs[1].link=null;window.qaMulti.onConnectionsChange?.(1,1,false);});
-  await second.getByText(/Connect a text output/).waitFor();assert.deepEqual((await rules()).map(box=>box.definition.name),['Pose rule']);
-  await editor.getByRole('button',{name:'Add source input',exact:true}).click();
+  await second.waitFor({state:'detached'});assert.deepEqual((await rules()).map(box=>box.definition.name),['Pose rule']);
+  assert.equal(await editor.getByRole('button',{name:'Add source input',exact:true}).count(),0);
+  const third=editor.locator('[data-source-input="source_text_3"]');
   await page.evaluate(()=>{
    const graph=window.qaMulti.graph,external={type:'ExternalText'};graph.add(external);graph.links[73]={origin_id:external.id,origin_slot:0};
-   const index=window.qaMulti.inputs.findIndex(pin=>pin.name==='source_text_3');window.qaMulti.inputs[index].link=73;window.qaMulti.onConnectionsChange?.(1,index,true);
+   let index=window.qaMulti.inputs.findIndex(pin=>pin.name==='source_text_3');if(index<0){window.qaMulti.addInput('source_text_3','STRING');index=window.qaMulti.inputs.length-1;}window.qaMulti.inputs[index].link=73;window.qaMulti.onConnectionsChange?.(1,index,true);
    window.qaMulti.onExecuted({source_texts:[{source_text:'blue eyes, standing',source_text_3:'external text'}]});
   });
   await third.getByRole('button',{name:'Edit external text',exact:true}).waitFor();

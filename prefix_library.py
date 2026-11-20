@@ -1,5 +1,6 @@
 """One user-scoped Prompt Library file, shared by the gallery and prefix nodes."""
 import hashlib
+import asyncio
 import json
 import os
 from pathlib import Path
@@ -11,6 +12,7 @@ from urllib.parse import urlsplit
 from aiohttp import web
 
 LOCK = threading.RLock()
+SERVER_SESSION = uuid.uuid4().hex
 
 
 def association_ids(item):
@@ -37,6 +39,7 @@ def set_association(library, key, ids, reference=None):
         'negative_terms': prefix.get('negative_terms', []),
         **({'prefix_ids': ids} if len(ids) > 1 else {}),
         **({'image': image} if image is not None else {}),
+        **({'prefer_snapshots': [id for id in existing.get('prefer_snapshots', []) if id in ids]} if existing.get('prefer_snapshots') else {}),
     }
 
 
@@ -68,6 +71,10 @@ def validate(value):
         negatives = row.get('negative_terms', [])
         if not isinstance(negatives, list) or len(negatives) > 500 or any(not isinstance(term, str) or len(term) > 1024 for term in negatives):
             raise ValueError('Invalid negative prefix terms.')
+    if 'hybrid' in value:
+        try:from .hybrid_prompt import validate_extension
+        except ImportError:from hybrid_prompt import validate_extension
+        result['hybrid']=validate_extension(value['hybrid'])
     associations = value.get('associations', {})
     if not isinstance(associations, dict) or len(associations) > 50000:
         raise ValueError('Invalid image associations.')
@@ -78,6 +85,8 @@ def validate(value):
         if (not isinstance(ids, list) or not ids or ids[0] != item['prefix_id']
                 or any(not isinstance(id, str) or not id for id in ids) or len(set(ids)) != len(ids)):
             raise ValueError('Invalid associated prefixes.')
+        preferred=item.get('prefer_snapshots',[])
+        if not isinstance(preferred,list) or any(not isinstance(id,str) or id not in ids for id in preferred) or len(set(preferred))!=len(preferred):raise ValueError('Invalid snapshot defaults.')
         negatives = item.get('negative_terms', [])
         if not isinstance(negatives, list) or len(negatives) > 500 or any(not isinstance(term, str) or len(term) > 1024 for term in negatives):
             raise ValueError('Invalid associated negative prompts.')
@@ -110,7 +119,37 @@ def update(path, data):
         if data.get('revision') != revision:
             raise FileExistsError('The shared library changed. Refresh it before saving; your draft has been kept.')
         action = data.get('action')
-        if action == 'migrate':
+        if action in ('hybrid_save','hybrid_import','hybrid_delete','hybrid_associate'):
+            try:from .hybrid_prompt import validate_component,validate_extension
+            except ImportError:from hybrid_prompt import validate_component,validate_extension
+            extension=library.setdefault('hybrid',{'version':1,'components':{}})
+            if action=='hybrid_save':
+                row=validate_component(data.get('component'));extension['components'][row['id']]=row
+            elif action=='hybrid_import':
+                incoming=validate_extension(data.get('hybrid'))
+                portable=data.get('library')
+                if portable is not None:
+                    portable=validate(portable)
+                    for field in ('tags','prefixes'):
+                        existing={row['id']:row for row in library[field]}
+                        for row in portable[field]:
+                            if row['id'] in existing and existing[row['id']]!=row:raise ValueError('Portable '+field+' ID collision: '+row['id'])
+                            if row['id'] not in existing:library[field].append(row);existing[row['id']]=row
+                for id,row in incoming['components'].items():
+                    if id in extension['components'] and extension['components'][id]!=row:raise ValueError('Reusable component ID collision: '+id+'. Rename the imported ID or explicitly save over it.')
+                    extension['components'][id]=row
+                for key,ids in incoming.get('images',{}).items():extension.setdefault('images',{})[key]=list(dict.fromkeys([*extension.get('images',{}).get(key,[]),*ids]))
+            elif action=='hybrid_delete':
+                id=data.get('id')
+                if not isinstance(id,str) or len(id)>160:raise ValueError('Invalid reusable component ID.')
+                extension['components'].pop(id,None)
+                for key,ids in list(extension.get('images',{}).items()):extension['images'][key]=[ref for ref in ids if ref!=id]
+            else:
+                keys=data.get('image_keys');ids=data.get('components')
+                if not isinstance(keys,list) or not 1<=len(keys)<=256 or any(not isinstance(key,str) or len(key)>4096 for key in keys) or not isinstance(ids,list) or len(ids)>100 or any(not isinstance(id,str) or id not in extension['components'] for id in ids):raise ValueError('Invalid image component associations.')
+                for key in keys:extension.setdefault('images',{})[key]=list(dict.fromkeys(ids))
+            validate(library)
+        elif action == 'migrate':
             if library['tags'] or library['prefixes']:
                 raise ValueError('Migration only applies to an empty shared library.')
             library = validate(data.get('library'))
@@ -177,6 +216,17 @@ def update(path, data):
                 for key in image_keys:
                     add_association(library, key, saved['id'], references.get(key))
                 validate(library)
+        elif action == 'snapshot_default':
+            keys=data.get('image_keys',[]);id=data.get('prefix_id');enabled=data.get('enabled')
+            if not isinstance(keys,list) or not 1<=len(keys)<=256 or any(not isinstance(key,str) or len(key)>4096 for key in keys) or not isinstance(enabled,bool):raise ValueError('Invalid snapshot default operation.')
+            for key in keys:
+                item=library.get('associations',{}).get(key)
+                if not item or id not in association_ids(item):raise ValueError('Pair these images with the prefix first.')
+                preferred=[value for value in item.get('prefer_snapshots',[]) if value!=id]
+                if enabled:preferred.append(id)
+                if preferred:item['prefer_snapshots']=preferred
+                else:item.pop('prefer_snapshots',None)
+            validate(library)
         elif action in ('associate', 'dissociate'):
             # Pair images with a saved prefix (or unpair them) without touching the prefix's terms.
             image_keys = data.get('image_keys', [])
@@ -206,6 +256,13 @@ def update(path, data):
         if len(raw) > 16 * 1024 * 1024:
             raise ValueError('Prompt Library exceeds 16 MiB.')
         path.parent.mkdir(parents=True, exist_ok=True)
+        if action.startswith('hybrid_'):
+            backup=path.with_name(path.name+'.pre-hybrid.bak')
+            if not backup.exists():
+                original=path.read_bytes() if path.exists() else json.dumps({'version':2,'tags':[],'prefixes':[]}).encode()
+                try:
+                    with backup.open('xb') as stream:stream.write(original);stream.flush();os.fsync(stream.fileno())
+                except FileExistsError:pass
         temporary = None
         try:
             with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as stream:
@@ -221,6 +278,26 @@ def update(path, data):
 
 
 def register_prefix_routes(routes, get_path):
+    @routes.get('/Gallery/prompt-tag-vocabulary')
+    async def prompt_vocabulary(request):
+        try:
+            resolved=get_path(request)
+            if not resolved:raise ValueError('Current ComfyUI user is unavailable.')
+            path=Path(resolved)
+            try:from .prompt_tag_vocabulary import custom_identities,dictionary_identities
+            except ImportError:from prompt_tag_vocabulary import custom_identities,dictionary_identities
+            value,revision=await asyncio.to_thread(read,path)
+            dictionary_file=Path(__file__).parent/'data/danbooru.csv.gz';stat=dictionary_file.stat()
+            custom=await asyncio.to_thread(custom_identities,value)
+            signature=json.dumps(custom,sort_keys=True,ensure_ascii=False)+str(stat.st_mtime_ns)+str(stat.st_size)
+            etag='"'+hashlib.sha256(signature.encode()).hexdigest()+'"'
+            headers={'Cache-Control':'private, no-store','ETag':etag}
+            if request.headers.get('If-None-Match')==etag:return web.Response(status=304,headers=headers)
+            aliases={**dictionary_identities(),**custom}
+            response=web.json_response({'version':1,'aliases':aliases},headers=headers);response.enable_compression();return response
+        except (OSError,ValueError) as error:return web.json_response({'error':'Cannot load prompt tag vocabulary: '+str(error)},status=400)
+
+    @routes.post('/Gallery/hybrid/compile')
     @routes.get('/Gallery/prefixes')
     @routes.post('/Gallery/prefixes')
     async def library(request):
@@ -240,8 +317,41 @@ def register_prefix_routes(routes, get_path):
                 data = await request.json()
                 if not isinstance(data, dict):
                     raise ValueError('Expected a library operation.')
+                if request.path=='/Gallery/hybrid/compile':
+                    try:
+                        from .hybrid_prompt import compile_hybrid,library_subset,validate_document
+                        from .rules_library import read_library,validate_library
+                    except ImportError:
+                        from hybrid_prompt import compile_hybrid,library_subset,validate_document
+                        from rules_library import read_library,validate_library
+                    value,revision=await asyncio.to_thread(read,path)
+                    fallback=data.get('fallback_library',{})
+                    if not isinstance(fallback,dict):raise ValueError('Invalid fallback library.')
+                    portable=validate({'version':2,'tags':fallback.get('tags',[]),'prefixes':fallback.get('prefixes',[]),'snapshots':fallback.get('snapshots',{})})
+                    value['snapshots']={**portable.get('snapshots',{}),**value.get('snapshots',{})}
+                    # Missing portable references can be restored without importing or writing a library.
+                    for field in ('tags','prefixes'):
+                        known={row['id'] for row in value[field]}
+                        value[field]=value[field]+[row for row in portable[field] if row['id'] not in known]
+                    frozen=fallback.get('hybrid',{'version':1,'components':{}})
+                    try:from .hybrid_prompt import validate_extension
+                    except ImportError:from hybrid_prompt import validate_extension
+                    frozen=validate_extension(frozen)
+                    current=value.get('hybrid',{'version':1,'components':{}})
+                    value['hybrid']={'version':1,'components':{**frozen['components'],**current['components']},'images':{**frozen.get('images',{}),**current.get('images',{})}}
+                    document=validate_document(data.get('document'))
+                    rules,_=await asyncio.to_thread(read_library,path.parent/'gallery-rulesets.json')
+                    frozen_rules=fallback.get('rule_library',{})
+                    if not isinstance(frozen_rules,dict):raise ValueError('Invalid portable rules library.')
+                    if frozen_rules:validate_library(frozen_rules)
+                    rules={**rules,'prefixes':{**frozen_rules.get('prefixes',{}),**rules.get('prefixes',{})}}
+                    result=await asyncio.to_thread(compile_hybrid,document,value,data.get('sources'),rules)
+                    subset=await asyncio.to_thread(library_subset,document,value)
+                    ids={row['id'] for row in subset['prefixes']}|{'snapshot:'+id for id in subset.get('snapshots',{})}
+                    subset['rule_library']={'version':1,'globals':rules.get('globals',[]),'availability':rules.get('availability',{}),'prefixes':{id:rows for id,rows in rules.get('prefixes',{}).items() if id in ids}}
+                    return web.json_response({**result,'library':subset,'revision':revision},headers={'Cache-Control':'no-store'})
                 result = update(path, data)
-            return web.json_response(result, headers={'Cache-Control': 'no-store'})
+            return web.json_response({**result,'session_id':SERVER_SESSION}, headers={'Cache-Control': 'no-store'})
         except FileExistsError as error:
             return web.json_response({'error': str(error)}, status=409)
         except (ValueError, KeyError) as error:
@@ -368,7 +478,7 @@ def compose_prompt(text, source_text=None, source_mode='after', sources=None):
     return text if source_text is None else source_text if source_mode == 'replace' else ', '.join(part.strip() for part in ([source_text, text] if source_mode == 'before' else [text, source_text]) if part.strip())
 
 
-def compose_shared_prompt(text, source_text=None, source_mode='after', sources=None):
+def compose_shared_prompt(text, source_text=None, source_mode='after', sources=None, rules=None):
     """The editor's source-first merge, repeated for runtime-only source values."""
     try: from .prompt_deduplication import merge_prompt_contributions
     except ImportError: from prompt_deduplication import merge_prompt_contributions
@@ -395,6 +505,10 @@ def compose_shared_prompt(text, source_text=None, source_mode='after', sources=N
             rows.reverse()
     else:
         rows = [{'text': compose_prompt(text, source_text, source_mode, sources)}]
+    try: from .source_garment_priority import prioritize_source_garments
+    except ImportError: from source_garment_priority import prioritize_source_garments
+    rows,errors=prioritize_source_garments(rows,rules)
+    if errors:raise ValueError('; '.join(errors))
     return ', '.join(row['text'].strip() for row in merge_prompt_contributions(rows) if row['text'].strip())
 
 
@@ -468,9 +582,6 @@ class GalleryPromptEncode:
         try: from .hair_policy import sample_policy
         except ImportError: from hair_policy import sample_policy
         policy = sample_policy(hair_policy)
-        sampling_template = compose_shared_prompt(text, scoped_source, source_mode, scoped_sources)
-        effective, choices = resolve_dynamic(sampling_template)
-        effective = filter_hair_prompt(effective, policy)
         try: from .prompt_rules import apply_rules, validate_boxes
         except ImportError: from prompt_rules import apply_rules, validate_boxes
         try: rules = json.loads(rules_state) if isinstance(rules_state, str) else rules_state
@@ -483,6 +594,9 @@ class GalleryPromptEncode:
             disabled = set(availability['disabled'])
             rules = validate_boxes(availability.get('globals')) + [box for box in validate_boxes(rules)
                                                 if box.get('origin') != 'global' and box['definition']['id'] not in disabled]
+        sampling_template = compose_shared_prompt(text, scoped_source, source_mode, scoped_sources,rules)
+        effective, choices = resolve_dynamic(sampling_template)
+        effective = filter_hair_prompt(effective, policy)
         before_rules = effective
         effective, rules_trace = apply_rules(effective, rules)
         record_resolution(extra_pnginfo, unique_id, composed, effective, choices, raw_source, source_exclusions(text) if source_mode == 'boxes' else None)

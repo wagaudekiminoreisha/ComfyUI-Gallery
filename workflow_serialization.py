@@ -8,7 +8,7 @@ MAX_BYTES = 64 * 1024 * 1024
 
 
 def restore_workflow_node(node):
-    if node.get('type') not in ('GalleryImageSource', 'GalleryPromptEncode'):
+    if node.get('type') not in ('GalleryImageSource', 'GalleryPromptEncode', 'GalleryHybridPrompt'):
         return node
     archive = node.get('properties', {}).get('gallery_workflow_archive')
     if not archive:
@@ -39,6 +39,10 @@ def restore_workflow_node(node):
             return copy.deepcopy(pool[index])
 
         widgets = result.get('widgets_values', [])
+        if 'hybridWidgets' in payload:
+            saved=payload['hybridWidgets']
+            if not isinstance(saved,list) or len(saved)!=2 or any(not isinstance(value,str) for value in saved) or len(widgets)<2:raise ValueError('Invalid hybrid workflow widget archive')
+            widgets[:2]=saved
         if 'sourceMetadata' in payload:
             manifest = json.loads(widgets[0])
             for image, index in payload['sourceMetadata']:

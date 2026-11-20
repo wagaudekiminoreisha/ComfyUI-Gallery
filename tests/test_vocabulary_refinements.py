@@ -28,8 +28,14 @@ class RefinementTests(unittest.TestCase):
     def test_tree_metadata_and_invalid_filters(self):
         data=browse_vocabulary({})
         nodes={node['value']:node for node in data['refinements']}
-        self.assertEqual(nodes['clothing-tops']['parent'],'clothing')
-        self.assertEqual(nodes['clothing-tops']['count'],len(names(refinements=['clothing-tops'])))
+        self.assertEqual(nodes['tag_group:attire::clothing-tops']['parent'],'tag_group:attire')
+        self.assertEqual(nodes['tag_group:attire::clothing-tops']['count'],len(names(refinements=['tag_group:attire::clothing-tops'])))
+        for root in data['categories']:
+            self.assertEqual(nodes[root['value']]['count'],root['count'])
+            children=[node for node in nodes.values() if node.get('parent')==root['value']]
+            if children:
+                union=set().union(*(names(refinements=[child['value']]) for child in children))
+                self.assertEqual(union,names(refinements=[root['value']]))
         for node in nodes.values():
             if node.get('parent'):self.assertIn(node['parent'],nodes)
         for value in ('clothing-tops',['missing'],[{}],['hair']*101,None):

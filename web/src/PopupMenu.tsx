@@ -22,7 +22,7 @@ export function PopupMenu({ x, y, children, onClose }: { x: number; y: number; c
         update(); window.addEventListener('resize', update);
         return () => window.removeEventListener('resize', update);
     }, [x, y]);
-    return createPortal(<div ref={ref} role="menu" onMouseLeave={onClose} onKeyDown={event => {
+    return createPortal(<div ref={ref} role="menu" onPointerDown={event=>event.stopPropagation()} onContextMenu={event=>event.preventDefault()} onKeyDown={event => {
         if(event.key==='Escape'){event.preventDefault();event.stopPropagation();onClose();}
         else if(['ArrowDown','ArrowUp','Home','End'].includes(event.key)){
             event.preventDefault();event.stopPropagation();const items=[...ref.current!.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)')];const at=items.indexOf(document.activeElement as HTMLElement);

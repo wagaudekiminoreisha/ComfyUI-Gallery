@@ -31,3 +31,7 @@ NODE_DISPLAY_NAME_MAPPINGS['GalleryPromptEncode'] = 'Gallery Prompt Encode (Libr
 from .load_report import GalleryLoadReport
 NODE_CLASS_MAPPINGS['GalleryLoadReport'] = GalleryLoadReport
 NODE_DISPLAY_NAME_MAPPINGS['GalleryLoadReport'] = 'Gallery Load Report'
+
+from .hybrid_prompt import GalleryHybridPrompt
+NODE_CLASS_MAPPINGS['GalleryHybridPrompt'] = GalleryHybridPrompt
+NODE_DISPLAY_NAME_MAPPINGS['GalleryHybridPrompt'] = 'Gallery Hybrid Prompt (Anima / Text)'

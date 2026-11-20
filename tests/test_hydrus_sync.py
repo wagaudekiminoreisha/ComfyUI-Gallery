@@ -125,7 +125,9 @@ class SyncTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(status['indexed'], 251)
         self.assertTrue(status['last_complete'])
         self.remote.offline = True
-        result = await self.bridge.browse('search', {'metadata_terms': ['pose_251'], 'metadata_field': 'positive'})
+        from prompt_tag_vocabulary import build_vocabulary
+        vocabulary=build_vocabulary({'tags':[{'text':'pose_251'}]})
+        result = await self.bridge.browse('search', {'metadata_terms': ['pose_251'], 'metadata_field': 'positive'},vocabulary)
         self.assertEqual([r['file_id'] for r in result['items']], [251])
         self.assertEqual(self.bridge.sync.search(self.settings, 'negative', ['pose_251']), [])
         predicates = json.loads(next(kwargs['params']['tags'] for path, kwargs in self.remote.calls if path.endswith('search_files')))
