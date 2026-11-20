@@ -7,6 +7,7 @@ import random
 from pathlib import Path
 
 KINDS={'tags','prose','group','prefix','reference','source'}
+ROLES=('identity','appearance','clothing','pose','expression','composition','environment','lighting','style','unassigned')
 INPUTS=('source_text',)+tuple('source_text_'+str(i) for i in range(2,9))
 MAX_BYTES=4*1024*1024
 
@@ -28,7 +29,12 @@ def validate_component(value,depth=0,budget=None):
     if not isinstance(value,dict) or not isinstance(value.get('type'),str) or value.get('type') not in KINDS:raise ValueError('Unknown hybrid component type.')
     if not _text(value.get('id'),'component ID',160).strip():raise ValueError('A component needs an ID.')
     _text(value.get('name',''),'component name',200)
-    for key in ('enabled',):
+    if 'role' in value and (not isinstance(value['role'],str) or value['role'] not in ROLES):raise ValueError('Invalid component role.')
+    if 'subject' in value:_text(value['subject'],'component subject',120)
+    if 'source_roles' in value:
+        roles=value['source_roles']
+        if not isinstance(roles,list) or len(roles)>len(ROLES) or any(not isinstance(role,str) or role not in ROLES for role in roles):raise ValueError('Invalid source roles.')
+    for key in ('enabled','inherit_rules','source_text_enabled','source_components_enabled'):
         if key in value and not isinstance(value[key],bool):raise ValueError('Invalid component '+key+'.')
     if value.get('side','positive') not in ('positive','negative'):raise ValueError('Invalid component polarity.')
     if value.get('placement','body') not in ('prefix','body','suffix'):raise ValueError('Invalid component placement.')
@@ -183,13 +189,14 @@ def compile_hybrid(document,library=None,sources=None,rule_library=None):
 
     if not isinstance(sources,dict) or any(key not in INPUTS or not isinstance(value,str) or len(value)>1000000 for key,value in sources.items()):raise ValueError('Invalid hybrid source strings.')
     hybrid=validate_extension(library.get('hybrid',{'version':1,'components':{}}));nodes=[];expanded_by_uid={};prefix_ids=set();trace=[];counter=[0]
-    def expand(row,parent=None,side='positive',placement='body',stack=()):
+    def expand(row,parent=None,side='positive',placement='body',stack=(),editor_id=None):
         counter[0]+=1
         if counter[0]>5000 or len(stack)>32:raise ValueError('Expanded hybrid tree exceeds limits.')
-        record={**row,'uid':str(counter[0]),'parent':parent,'side':row.get('side',side),'placement':row.get('placement',placement)};nodes.append(record)
+        ancestor=expanded_by_uid.get(parent,{})
+        record={**row,'uid':str(counter[0]),'parent':parent,'side':row.get('side',side),'placement':row.get('placement',placement),'role':row.get('role',ancestor.get('role','unassigned')),'subject':row.get('subject',ancestor.get('subject','')),'editor_id':editor_id or row['id']};nodes.append(record)
         uid=record['uid'];side=record['side'];placement=record['placement']
         if parent in expanded_by_uid and expanded_by_uid[parent].get('source'):
-            record['source']=True;record.setdefault('image_keys',expanded_by_uid[parent].get('image_keys',[]))
+            record['source']=True;record.setdefault('image_keys',ancestor.get('image_keys',[]));record['source_uid']=ancestor.get('source_uid',parent)
         expanded_by_uid[uid]=record
         if row.get('mode')=='disabled':return
         if row['type']=='reference':
@@ -197,9 +204,9 @@ def compile_hybrid(document,library=None,sources=None,rule_library=None):
             if id in stack:raise ValueError('Circular component reference: '+id)
             target=hybrid['components'].get(id)
             if not target:raise ValueError('Missing reusable component: '+id)
-            expand({**target,**({key:row[key] for key in ('side','placement') if key in row})},uid,side,placement,(*stack,id))
+            expand({**target,**({key:row[key] for key in ('side','placement','role','subject') if key in row})},uid,side,placement,(*stack,id),record['editor_id'])
         elif row['type']=='group':
-            for child in row.get('children',[]):expand(child,uid,side,placement,stack)
+            for child in row.get('children',[]):expand(child,uid,side,placement,stack,editor_id)
         elif row['type']=='prefix':
             record['prefix_ref']=row['ref'];record['text']=', '.join(prefix_terms(library,row['ref'],side=='negative'));record['type']='tags'
         elif row['type']=='source':
@@ -207,7 +214,7 @@ def compile_hybrid(document,library=None,sources=None,rule_library=None):
             ids=set()
             for key in record['image_keys']:
                 for id in hybrid.get('images',{}).get(key,[]):
-                    if id not in ids:expand({'id':'image:'+id,'type':'reference','ref':id},uid,side,placement,stack);ids.add(id)
+                    if id not in ids:expand({'id':'image:'+id,'type':'reference','ref':id},uid,side,placement,stack,record['editor_id']);ids.add(id)
     referenced=set()
     def refs(row):
         if row['type']=='reference' and row['ref'] not in referenced:
@@ -223,17 +230,39 @@ def compile_hybrid(document,library=None,sources=None,rule_library=None):
         expanded_bytes+=len(row.get('text','').encode('utf-8'))
         if expanded_bytes>MAX_BYTES:raise ValueError('Expanded hybrid prompt exceeds 4 MiB.')
     by_uid={row['uid']:row for row in nodes};base={row['uid']:row.get('enabled',True) for row in nodes};rng=random.Random(document.get('seed',0))
+    def source_owner(row):return by_uid.get(row.get('source_uid'),row if row.get('input') in INPUTS else {})
+    def contribution_reason(row):
+        owner=source_owner(row)
+        if not owner:return None
+        if row['uid']!=owner['uid'] and not owner.get('source_components_enabled',True):return 'Associated components excluded'
+        if row['type'] not in ('tags','prose'):return None
+        if row['uid']==owner['uid'] and not owner.get('source_text_enabled',True):return 'Raw source text excluded'
+        if 'source_roles' in owner and row['role'] not in owner['source_roles']:return 'Role excluded by source'
+        return None
+    children_by_uid={row['uid']:[] for row in nodes}
+    for row in nodes:
+        if row['parent'] is not None:children_by_uid[row['parent']].append(row)
+    def eligible(row):
+        if contribution_reason(row) is not None:return False
+        if source_owner(row) and row['type'] not in ('tags','prose'):
+            return any(eligible(child) for child in children_by_uid[row['uid']])
+        return True
+    def candidate(row):
+        if row.get('mode')=='disabled' or not base[row['uid']]:return False
+        if row['type'] in ('tags','prose') and eligible(row) and row.get('text','').strip():return True
+        return any(candidate(child) for child in children_by_uid[row['uid']])
+
     for row in nodes:
         if row['type']!='group':continue
-        selection=row.get('selection','all');children=[child for child in nodes if child['parent']==row['uid'] and base[child['uid']] and child.get('mode')!='disabled']
+        selection=row.get('selection','all');children=[child for child in children_by_uid[row['uid']] if (candidate(child) if source_owner(row) and 'source_roles' in source_owner(row) else base[child['uid']] and child.get('mode')!='disabled')]
         if selection=='optional':base[row['uid']]=base[row['uid']] and rng.random()<row.get('chance',0.5)
         elif selection in ('one','optional-one') and children:
             chosen=rng.choice(children+([None] if selection=='optional-one' else []))
             for child in children:base[child['uid']]=child is chosen
             trace.append({'stage':'group-choice','group':row['id'],'selection':selection,'selected':chosen['id'] if chosen else None})
     states=dict(base)
-    def active(row,state):return row.get('mode')!='disabled' and state[row['uid']] and (row['parent'] is None or active(by_uid[row['parent']],state))
-    def tag_values(state):return {tag_key(tag) for row in nodes if active(row,state) and row['type']=='tags' for tag in split_top(row.get('text','')) if tag.strip()}
+    def active(row,state):return row.get('mode')!='disabled' and state[row['uid']] and (not row.get('source_uid') or source_owner(row).get('source_components_enabled',True)) and (row['parent'] is None or active(by_uid[row['parent']],state))
+    def tag_values(state):return {tag_key(tag) for row in nodes if active(row,state) and eligible(row) and row['type']=='tags' for tag in split_top(row.get('text','')) if tag.strip()}
     owned_rules=[(rule,None) for rule in document.get('rules',[])]+[(rule,row) for row in nodes for rule in row.get('rules',[])]
     component_rules=[rule for rule,owner in owned_rules]
     known={row['id'] for row in nodes}
@@ -243,9 +272,9 @@ def compile_hybrid(document,library=None,sources=None,rule_library=None):
     for _ in range(64):
         signature=tuple(states.items())
         if signature in seen:raise ValueError('Component rule activation cycle. Review the rule trace and dependencies.')
-        seen.add(signature);tags=tag_values(states);enabled={row['id'] for row in nodes if active(row,states)};decisions={};fired=[]
+        seen.add(signature);tags=tag_values(states);enabled={row['id'] for row in nodes if active(row,states) and eligible(row)};decisions={};fired=[]
         for rule,owner in owned_rules:
-            if owner is not None and not active(owner,states):continue
+            if owner is not None and (not active(owner,states) or not eligible(owner)):continue
             if rule.get('enabled',True) is False or not all(tag_key(tag) in tags for tag in rule.get('tags',[])) or not all(id in enabled for id in rule.get('components',[])) or any(id in enabled for id in rule.get('unless',[])):continue
             target=rule['target'];decision=(rule.get('priority',0),rule['action']=='enable');prior=decisions.get(target)
             if prior and prior[0]==decision[0] and prior[1]!=decision[1]:raise ValueError('Conflicting component rules at equal priority: '+target)
@@ -258,8 +287,10 @@ def compile_hybrid(document,library=None,sources=None,rule_library=None):
     trace.extend({'stage':'component',**row} for row in fired)
     availability=rule_library.get('availability',{})
     policy={'globals':[dict(box,origin='global') for box in rule_library.get('globals',[]) if availability.get(box['definition']['id'],'global')=='global'],'disabled':[id for id,mode in availability.items() if mode=='disabled']}
-    prefix_ids={row['prefix_ref'] for row in nodes if row.get('prefix_ref') and active(row,states)}
-    source_nodes=[row for row in nodes if row.get('input') in INPUTS and row['side']=='positive' and row.get('inherit_rules',True) and active(row,states)]
+    prefix_ids={row['prefix_ref'] for row in nodes if row.get('prefix_ref') and active(row,states) and eligible(row)}
+    def inherit_source_rules(row):return row.get('inherit_rules','source_roles' not in row or set(row['source_roles'])==set(ROLES))
+    source_nodes=[row for row in nodes if row.get('input') in INPUTS and row['side']=='positive' and inherit_source_rules(row) and active(row,states)]
+    trace.extend({'stage':'source-policy','component':row['id'],'input':row['input'],'roles':row.get('source_roles',list(ROLES)),'raw_text':row.get('source_text_enabled',True),'associated_components':row.get('source_components_enabled',True),'inherit_rules':inherit_source_rules(row)} for row in nodes if row.get('input') in INPUTS and active(row,states))
     prefix_ids.update(id for row in source_nodes for id in document.get('source_prefixes',{}).get(row['input'],[]))
     inherited=[dict(box,origin='prefix') for id in sorted(prefix_ids) for box in rule_library.get('prefixes',{}).get(id,[])]
     snapshot_ids={id for row in source_nodes for id in document.get('source_snapshots',{}).get(row['input'],[])}
@@ -274,7 +305,7 @@ def compile_hybrid(document,library=None,sources=None,rule_library=None):
             if not channels:continue
             definition=box['definition'];choices=[choice for choice in definition.get('choices',[]) if choice_channel(definition,choice) in channels]
             inherited.append({**box,'origin':'snapshot','definition':{**definition,'rules':definition['rules'] if definition['family'] in channels else [],'choices':choices},'preferences':{key:value for key,value in box.get('preferences',{}).items() if key in {choice['id'] for choice in choices}}})
-    tag_rules=[box for box in [*policy['globals'],*inherited,*document.get('tag_rules',[]),*[rule for row in nodes if active(row,states) for rule in row.get('tag_rules',[])]] if box['definition']['id'] not in policy['disabled']]
+    tag_rules=[box for box in [*policy['globals'],*inherited,*document.get('tag_rules',[]),*[rule for row in nodes if active(row,states) and eligible(row) for rule in row.get('tag_rules',[])]] if box['definition']['id'] not in policy['disabled']]
     validate_boxes(tag_rules)
     # Seeded tag alternatives use a local RNG. Literal prose never enters this grammar.
     def sample(text,depth=0):
@@ -292,9 +323,9 @@ def compile_hybrid(document,library=None,sources=None,rule_library=None):
         return text[:start]+sample(rng.choice(options),depth+1)+sample(text[end+1:],depth+1)
     outputs={};components=[]
     for side in ('positive','negative'):
-        selected=[row for place in ('prefix','body','suffix') for row in nodes if active(row,states) and row['side']==side and row['placement']==place and row['type'] in ('tags','prose')]
+        selected=[row for place in ('prefix','body','suffix') for row in nodes if active(row,states) and eligible(row) and row['side']==side and row['placement']==place and row['type'] in ('tags','prose')]
         rows=[{'text':row.get('text',''),'source':row.get('source',False)} for row in selected if row['type']=='tags']
-        rules=tag_rules if side=='positive' else document.get('negative_tag_rules',[])+[rule for row in nodes if active(row,states) for rule in row.get('negative_tag_rules',[])]
+        rules=tag_rules if side=='positive' else document.get('negative_tag_rules',[])+[rule for row in nodes if active(row,states) and eligible(row) for rule in row.get('negative_tag_rules',[])]
         rules=[box for box in rules if box['definition']['id'] not in policy['disabled']]
         rows,errors=prioritize_source_garments(rows,rules)
         if errors:raise ValueError('; '.join(errors))
@@ -308,7 +339,7 @@ def compile_hybrid(document,library=None,sources=None,rule_library=None):
         digest=hashlib.sha256(json.dumps(document,sort_keys=True).encode()).hexdigest()
         for row in selected:
             text=next(iterator)['text'] if row['type']=='tags' else row.get('text','')
-            components.append({'id':row['id'],'name':row.get('name',row['id']),'type':row['type'],'side':side,'source':row.get('source',False),'text':text,'image_keys':row.get('image_keys',[]),**({'prefix_id':row['prefix_ref']} if row.get('prefix_ref') else {})})
+            components.append({'id':row['id'],'uid':row['uid'],'editor_id':row['editor_id'],'role':row['role'],'subject':row['subject'],'name':row.get('name',row['id']),'type':row['type'],'side':side,'source':row.get('source',False),'text':text,'image_keys':row.get('image_keys',[]),**({'prefix_id':row['prefix_ref']} if row.get('prefix_ref') else {})})
             if not text.strip():continue
             if row['type']=='prose':
                 marker='__gallery_literal_'+digest+'_'+str(len(literals))+'__';literals[marker]=text;parts.append(marker)
@@ -325,7 +356,17 @@ def compile_hybrid(document,library=None,sources=None,rule_library=None):
     compiled=dict(outputs)
     if document.get('override',{}).get('enabled'):
         outputs={side:document['override'].get(side,'') for side in ('positive','negative')};trace.append({'stage':'override','message':'Final text override active; components retained.'})
-    return {**outputs,'compiled':compiled,'trace':trace,'components':components,'active_components':sorted({row['id'] for row in nodes if active(row,states)}),'warnings':['Anima weighting and token limits are handled by the selected conditioning node; no SDXL defaults are applied.']+['Source '+row['input']+' is not available in this preview; its wire is resolved at execution.' for row in nodes if row.get('input') in INPUTS and row['input'] not in sources and active(row,states)]}
+    contributions={row['uid']:row for row in components};inspection=[]
+    for row in nodes:
+        if row['type'] not in ('tags','prose'):continue
+        compiled_row=contributions.get(row['uid']);reason=contribution_reason(row)
+        if not reason and not active(row,states):
+            reason='Disabled component or parent' if row.get('mode')=='disabled' or not row.get('enabled',True) else 'Inactive group, choice or component rule'
+        if not reason and not (compiled_row or {}).get('text','').strip():reason='Empty or merged duplicate contribution'
+        inspection.append({'uid':row['uid'],'id':row['id'],'editor_id':row['editor_id'],'name':row.get('name',row['id']),'type':row['type'],'side':row['side'],'role':row['role'],'subject':row['subject'],'source':row.get('source',False),'input':source_owner(row).get('input'),'image_keys':row.get('image_keys',[]),'status':'suppressed' if reason else 'included','reason':reason or 'Included before final tag rules','text':(compiled_row or row).get('text',''),'overridden':bool(document.get('override',{}).get('enabled'))})
+    order={row['uid']:i for i,row in enumerate(components)}
+    inspection.sort(key=lambda row:order.get(row['uid'],len(components)+int(row['uid'])))
+    return {**outputs,'compiled':compiled,'trace':trace,'components':components,'inspection':inspection,'active_components':sorted({row['id'] for row in nodes if active(row,states)}),'warnings':['Anima weighting and token limits are handled by the selected conditioning node; no SDXL defaults are applied.']+['Source '+row['input']+' is not available in this preview; its wire is resolved at execution.' for row in nodes if row.get('input') in INPUTS and row['input'] not in sources and active(row,states)]}
 
 class GalleryHybridPrompt:
     @classmethod

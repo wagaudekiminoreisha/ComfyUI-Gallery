@@ -69,6 +69,25 @@ ComfyUI workflow exports compress large hybrid widget documents using the existi
 
 Before downgrading to a plugin version without hybrid support, export portable prompts and copy the current server library. Such older versions cannot be expected to preserve unknown extension fields when they save. The `.pre-hybrid.bak` file restores the exact pre-extension state; preserve subsequent edits separately before using it. To roll back only the extension, work on a copy of the current library and remove its optional `hybrid` field, retaining all legacy fields.
 
+## Roles, source contributions and inspection
+
+Each hybrid component can carry a role: identity, appearance, clothing, pose, expression, composition, environment, lighting or style. **Unassigned** explicitly clears an inherited role; **Inherit role** uses its parent's role. Optional subject labels, such as `subject A` or `whole scene`, also inherit through groups and references. These are organizational metadata: they neither rewrite descriptions nor guarantee that a model binds an action to a subject. A reference occurrence can override labels without modifying its shared definition. Library search includes an entry's role and subject.
+
+Source cards expose independent **Raw prompt text** and **Associated components** toggles, plus role checkboxes. Existing documents default to both toggles on and all roles included. **No roles** excludes every source contribution; **All roles** restores the unrestricted default. Controls persist with the document, reusable presets and portable workflow exports.
+
+To use an image for its pose alone:
+
+1. Save separate reusable descriptions or tag components for identity, pose and clothing; assign their roles and associate them (or their enclosing preset) with the image.
+2. Connect its Gallery Image Source positive/negative STRING output to the hybrid node. The source card appears automatically.
+3. Choose **No roles**, then check **pose**. The image's pose components remain; identity, clothing and unassigned raw text are excluded before group choices and component/tag rules.
+4. If the raw source string itself is exclusively a pose description, give the source the **pose** role to include that entire string as well. Otherwise leave raw text off or unassigned. The composer does not extract pose phrases from a mixed sentence or infer roles from tag categories.
+
+Restricted role selections turn source prefix/snapshot rule inheritance off by default. **Inherit source prefix rules** can explicitly override that default; enabling it can add tags outside the selected roles. Unrestricted older sources retain their existing inheritance behavior. Explicitly attached prefix components and document/global rules retain their own scope. Role controls only restrict the selected source, not unrelated manual or global components.
+
+Open **Assembly inspector** below the compiled output to see included contributions in assembly order, followed by suppressed entries and their reasons. Entries show effective role/subject, input and image references, and the text after choice sampling and duplicate merging. **Locate component** opens the corresponding document card or source card; implicit global entries open their shared library editor. Final tag-rule changes are shown separately as before/after tag lists and a detailed trace. “Included” describes contribution before final tag rules, not a promise that every tag survives them. Final-text overrides remain visibly marked and retain the underlying composition.
+
+All additions are optional version-1 fields; loading an older document does not migrate or write the shared library. Suppressed components remain editable and portable for restoration. This inspector does not estimate hardware use or tokenize text; those remain separate from source selection and assembly.
+
 ## Validation and boundaries
 
 The regression suite covers empty/populated libraries; tag/prose searches; prefixes/suffixes; legacy rule conflicts/priorities; component activation chains/cycles; nested references; literal paragraphs; image associations; source attribution; final overrides; portable import/export; backups and rollback data; compressed round trips; positive/negative metadata and native conditioning STRING wiring. Existing Illustrious/tag-only tests remain in the suite.
