@@ -93,6 +93,11 @@ class HybridCompilerTests(unittest.TestCase):
   result=compile_hybrid(value,lib,{'source_text':'night'},rules);self.assertIn('snapshot_tag',result['positive']);self.assertNotIn('global_tag',result['positive']);self.assertNotIn('prefix_tag',result['positive']);self.assertEqual(library_subset(value,lib)['snapshots'][id]['members'],{})
   rules['prefixes']['snapshot:'+id]=[];self.assertIn('prefix_tag',compile_hybrid(value,lib,{'source_text':'night'},rules)['positive'])
   value['components'][0]['inherit_rules']=False;result=compile_hybrid(value,lib,{'source_text':'night'},rules);self.assertIn('global_tag',result['positive']);self.assertNotIn('prefix_tag',result['positive'])
+ def test_typed_prose_is_not_a_gallery_tag_in_hydrus_cached_search(self):
+  from hydrus_sync import matches,NOTE
+  value=doc(prose('p','night'));metadata={};GalleryHybridPrompt().compose(json.dumps(value),json.dumps(LIB),extra_pnginfo=metadata,unique_id='1')
+  metadata['positive']='night';metadata['prompt']={'1':{'class_type':'GalleryHybridPrompt','inputs':{}},'2':{'class_type':'KSampler','inputs':{'positive':['1',0]}}}
+  record={'hash':'a'*64,'notes':{NOTE:json.dumps(metadata)}};self.assertFalse(matches(record,'positive',['night']));self.assertEqual(prompts(metadata)['positive'],'night');self.assertEqual(prompts(metadata,True)['positive'],'')
  def test_native_anima_api_example_compiles_and_feeds_native_conditioning(self):
   api=json.loads((Path(__file__).resolve().parents[1]/'examples/anima-hybrid-api.json').read_text(encoding='utf-8'));inputs=api['4']['inputs'];result=GalleryHybridPrompt().compose(**inputs)['result']
   self.assertIn('Warm interior light',result[0]);self.assertEqual(api['5']['inputs']['text'],['4',0]);self.assertEqual(api['6']['inputs']['text'],['4',1]);self.assertEqual(api['2']['inputs']['clip_name'],'qwen_3_06b_base.safetensors')

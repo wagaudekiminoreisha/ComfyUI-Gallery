@@ -40,7 +40,7 @@ def local_path(root, url):
     return path
 
 
-def prompts(metadata):
+def prompts(metadata, structured_only=False):
     """Resolve API text connections by polarity; ignore model and filename inputs."""
     def obj(value):
         if isinstance(value, str):
@@ -66,6 +66,9 @@ def prompts(metadata):
             record=obj(obj(meta.get('gallery_prompts')).get(key))
             if node.get('class_type') == 'GalleryHybridPrompt':
                 text=record.get('negative' if value[1]==1 else 'resolved','') if value[1] in (0,1) else ''
+                if structured_only:
+                    channel='negative' if value[1]==1 else 'positive'
+                    text='' if record.get('overridden') else ', '.join(next((row.get('after_tags',[]) for row in record.get('trace',[]) if row.get('stage')=='tag-rules' and row.get('side')==channel),[]))
                 if isinstance(text,str) and text:result[polarity].append(text)
                 return
             if node.get('class_type') == 'GalleryPromptEncode' and isinstance(record.get('resolved'),str):
@@ -95,13 +98,14 @@ def prompts(metadata):
             polarity = side(name)
             if not polarity and name == 'conditioning' and obj(node).get('class_type') == 'BasicGuider': polarity = 'positive'
             if polarity: collect(value, polarity, set())
+    typed=structured_only and any(obj(row).get('hybrid') for row in obj(meta.get('gallery_prompts')).values())
     for polarity in result:
-        if not result[polarity]:
+        if not result[polarity] and not typed:
             for source in (graph, meta):
                 value = source.get(polarity) or source.get(polarity + '_prompt')
                 if isinstance(value, str): result[polarity].append(value)
     parameters = meta.get('parameters', '')
-    if isinstance(parameters, str):
+    if isinstance(parameters, str) and not typed:
         parts = re.split(r'\nNegative prompt:\s*', re.split(r'\nSteps:\s*\d', parameters, flags=re.I)[0], flags=re.I)
         if not result['positive']: result['positive'] = parts[:1]
         if not result['negative']: result['negative'] = parts[1:]

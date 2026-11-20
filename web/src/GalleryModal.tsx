@@ -109,6 +109,8 @@ const GalleryModal = () => {
                 <Button type={targetOpen ? 'primary' : 'default'} onClick={() => setTargetOpen(value => !value)}>Image Source</Button>
             </div>
             {targetOpen && <div className="cg-target"><ImageSourceTarget /></div>}
+            {gallery.promptVocabulary.loading&&!gallery.promptVocabulary.ready&&<div role="status" style={{padding:8}}>Loading searchable prompt tags…</div>}
+            {gallery.promptVocabulary.error&&<div role="alert" style={{padding:8}}>Prompt tag definitions could not be refreshed. {gallery.promptVocabulary.error} <Button size="small" onClick={()=>void gallery.reloadPromptVocabulary()}>Retry tag definitions</Button></div>}
             {gallery.loading&&<div role="status" style={{padding:8}}>Loading local files…</div>}
             {gallery.error&&<div role="alert" style={{padding:8}}>Cannot load local files: {String(gallery.error)}</div>}
             {gallery.archiveError && <div role="alert" style={{padding:8}}>Archive unavailable: {gallery.archiveError}. Archive state could not be verified; local files may include archived media. Reload or refocus to retry.</div>}

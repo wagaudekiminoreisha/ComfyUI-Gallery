@@ -8,6 +8,8 @@ const { load } = require('./ts_loader.cjs');
 const compiled = { exports: load('LocalImageSearch') };
 const { extractLocalPrompts, extractHydrusTags, matchesLocalImage } = compiled.exports;
 const { promptTags } = load('PromptTags');
+// Explicit dictionary/custom definitions used by these field/grammar fixtures.
+load('PromptTagVocabulary').installPromptTagVocabulary(Object.fromEntries(['blue hair','red eyes','green eyes','short hair','green hair','red hair','bright sunshine'].map(tag=>[tag,tag])));
 
 test('prompt tags keep positive and negative phrases separately namespaced without splitting prose', () => {
     assert.deepEqual(promptTags(' blue sky, mountain\nblue sky,, a long sentence about a forest. ', 'positive_prompt'),
