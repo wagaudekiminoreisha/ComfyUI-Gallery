@@ -37,6 +37,7 @@ function wrapper(text:string):[string,string]|undefined{
     }
 }
 export type Contribution={text:string;source?:boolean};
+export {wrapper as promptWrapper};
 export type SharedReference={from:number;to:number;text:string};
 type Node={kind:'opaque';raw:string}|{kind:'tag';raw:string;key:string;entry:number}|{kind:'group';raw:string;part:string;inner:string;suffix:string;children:Node[]};
 /** Match complete optional/alternative expressions before any random choice. */

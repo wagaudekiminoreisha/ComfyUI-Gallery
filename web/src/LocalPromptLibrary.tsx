@@ -1,3 +1,5 @@
+import {HYBRID_EVENT} from './HybridComposer';
+import {canonicalPromptTag} from './PromptTagVocabulary';
 import { usePopupWidth, POPUP_ALIGN } from './usePopupWidth';
 import {BookOutlined} from '@ant-design/icons';
 import {findLineage} from './PrefixLineage';
@@ -47,13 +49,13 @@ export function LocalPromptSearch({ onLocalSearch, managerOnly = false }: { onLo
     const [paletteTarget, setPaletteTarget] = useState<'workflow' | 'positive' | 'negative'>('workflow');
     const openRef = useRef(open || editorOpen); openRef.current = open || editorOpen;
     const [libraryOpen, setLibraryOpen] = useState(false);
-    const [library, setLibrary] = useState<Phrase[]>([]);
+    const library=useMemo(()=>libraryPhrases(shared),[shared,gallery.promptVocabulary.version]);
     const [status, setStatus] = useState('');
     useEffect(() => { if (openRef.current) void getPromptTargets().then(setPromptTargets).catch(error => setStatus(String(error))); }, [seed]);
-    const indexed = useMemo(() => indexPrompts(gallery.data?.folders || {}), [gallery.data]);
+    const indexed = useMemo(() => indexPrompts(gallery.data?.folders || {}), [gallery.data,gallery.promptVocabulary.version]);
     const load = async () => {
         try {
-            const data = await loadPrefixes(); setShared(data); setLibrary(libraryPhrases(data));
+            const data = await loadPrefixes(); setShared(data);
             setStatus('Shared ComfyUI user library'); return data;
         } catch (error) { setStatus(String(error)); return undefined; }
     };
@@ -158,10 +160,19 @@ export function LocalPromptSearch({ onLocalSearch, managerOnly = false }: { onLo
             onDragOver={event => { if ([...event.dataTransfer.types].some(type => type === 'application/x-gallery-image' || type === 'custom' || type === 'text/uri-list')) event.preventDefault(); }}
             onDrop={event => { const image = droppedImage(event); if (!image) return; event.preventDefault(); openImageSearch({ field: gallery.localSearchField, chips: [...gallery.localTerms.map(text => ({ kind: 'tag' as const, text })), image] }); }}
             onKeyDownCapture={event => {
+            if(event.key==='Enter'&&gallery.searchFileName.trim()&&(['name','hydrus'].includes(gallery.localSearchField)||canonicalPromptTag(gallery.searchFileName.trim().replace(/^-/,'')))){
+                event.preventDefault();event.stopPropagation();void applyMainTerms([...new Set([...gallery.localTerms,gallery.searchFileName.trim()])]).catch(error=>message.error(String(error)));return;
+            }
+            if(event.key==='Enter'&&gallery.searchFileName.trim()&&!options.length){
+                event.preventDefault();event.stopPropagation();const value=gallery.searchFileName.trim();
+                if(['name','hydrus'].includes(gallery.localSearchField)||canonicalPromptTag(value.replace(/^-/,'')))void applyMainTerms([...new Set([...gallery.localTerms,value])]).catch(error=>message.error(String(error)));
+                else message.info('Prompt filters use defined tags. Search prose in the metadata viewer.');
+                return;
+            }
             if (event.key === 'Enter' && (!gallery.searchFileName.trim() || gallery.localTerms.includes(gallery.searchFileName.trim()))) {
                 event.preventDefault(); event.stopPropagation(); void applyMainTerms(gallery.localTerms).catch(error=>message.error(String(error)));
             }
-        }}><Select mode="tags" aria-label="Filter local files" value={gallery.localTerms} searchValue={gallery.searchFileName}
+        }}><Select mode="multiple" showSearch autoClearSearchValue={false} aria-label="Filter local files" value={gallery.localTerms} searchValue={gallery.searchFileName}
             onSearch={value => { gallery.setSearchFileName(value); onLocalSearch(); }}
             onChange={values=>void applyMainTerms(Array.from(new Set(values))).catch(error=>message.error(String(error)))}
             style={{ width: '100%' }} popupClassName="cg-select-popup" dropdownAlign={POPUP_ALIGN} popupMatchSelectWidth={popupWidth} filterOption={false} optionLabelProp="value" allowClear
@@ -172,7 +183,7 @@ export function LocalPromptSearch({ onLocalSearch, managerOnly = false }: { onLo
         <FloatingPanel panelKey="prompt-library" title="Prompts & prefixes" open={open} onCancel={() => setOpen(false)} footer={null} width={1050}>
             <Space wrap style={{ width: '100%', justifyContent: 'space-between', marginBottom: 10 }}>
                 <Space wrap><Typography.Text>Append directly to workflow:</Typography.Text><Select aria-label="Library append target" placeholder="Choose a prompt node or text field" value={appendTarget} onChange={setAppendTarget} options={promptTargets} style={{ minWidth: 350 }} /><Button onClick={() => { void getPromptTargets().then(setPromptTargets).catch(error => setStatus(String(error))); }}>Refresh prompt targets</Button></Space>
-                <Space wrap><Button onClick={() => openTagSearch([])}>Tag search…</Button><Button icon={<BookOutlined/>} onClick={() => setLibraryOpen(true)}>Library search…</Button></Space>
+                <Space wrap><Button onClick={()=>window.dispatchEvent(new CustomEvent(HYBRID_EVENT))}>Hybrid composer…</Button><Button onClick={() => openTagSearch([])}>Tag search…</Button><Button icon={<BookOutlined/>} onClick={() => setLibraryOpen(true)}>Library search…</Button></Space>
             </Space>
             {!shared.tags.length && !shared.prefixes.length && <Button style={{ marginBottom: 10 }} onClick={() => { void migrateBrowserPrefixes(shared.revision!).then(load).catch(error => message.error(String(error))); }}>Import legacy browser library</Button>}
             {boxed && <Typography.Paragraph type="secondary">Editing {seed.node.title || 'Prompt Encode'} #{seed.node.id}. Appends from here become boxes on the node; reorder, edit or delete them there.</Typography.Paragraph>}

@@ -736,7 +736,7 @@ class HydrusBridge:
         await asyncio.to_thread(self.sync.put_records, settings, records)
         return records
 
-    async def browse(self, action, data):
+    async def browse(self, action, data, vocabulary=None):
         settings = self.settings.load()
         limit = data.get("limit", 100)
         offset = data.get("offset", 0)
@@ -766,7 +766,7 @@ class HydrusBridge:
                         except ImportError:from hydrus_sync import sort_records
                         has_tags=bool(data.get('tags') or data.get('or_groups'))
                         tag_ids=await self.search_identifiers(client,data,None) if has_tags else []
-                        self.sync.wake.set();matched=await asyncio.to_thread(self.sync.search,settings,field,terms)
+                        self.sync.wake.set();matched=await asyncio.to_thread(self.sync.search,settings,field,terms,vocabulary)
                         if has_tags and join=='all':
                             allowed=set(tag_ids);matched=[record for record in matched if record.get('file_id') in allowed]
                         sort_type,ascending=data.get('file_sort_type',2),data.get('file_sort_asc',False)
@@ -1159,7 +1159,19 @@ def register_hydrus_routes(routes, get_root, storage_dir=None, get_input_root=No
                     async with bridge.client_factory(settings) as client:
                         result = {'items': await bridge.cache_records(await bridge.remote_metadata(client, hashes, True), settings)}
                 elif action in ("search", "pages", "page"):
-                    result = await bridge.browse(action, data)
+                    vocabulary=None
+                    if action=='search' and data.get('metadata_terms') and get_prefix_library_path:
+                        try:
+                            from .prefix_library import read
+                            from .prompt_tag_vocabulary import build_vocabulary
+                        except ImportError:
+                            from prefix_library import read
+                            from prompt_tag_vocabulary import build_vocabulary
+                        prefix_path=get_prefix_library_path(request)
+                        if not prefix_path:raise HydrusError('Current ComfyUI user is unavailable.')
+                        library,_=await asyncio.to_thread(read,Path(prefix_path))
+                        vocabulary=await asyncio.to_thread(build_vocabulary,library)
+                    result = await bridge.browse(action, data,vocabulary)
                 elif action == "import":
                     result = await bridge.import_from_hydrus(data, get_input_root)
                 elif action == "trash":

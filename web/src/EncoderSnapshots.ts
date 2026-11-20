@@ -1,3 +1,4 @@
+import {rememberSourceRecipe} from './SourceRecipeDefaults';
 import {filterSourceCategories} from './SourceTagPolicy';
 import {filteredSourceText,type SourceSegment} from './SourceExclusions';
 import type {SourceMerge} from './ImageSourceGeometry';
@@ -29,6 +30,7 @@ export async function preparePrefixSnapshots(node:any,state:BoxState,source:Snap
   const payload={prefix_id:target.prefixId,terms:target.terms,negative_terms:target.negative_terms,rules,hair_policy:state.hairPolicy,image_keys:target.image_keys||[],image_refs:target.image_refs||{}};
   const digest=crypto.subtle?Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify({payload,parent:library.prefixes.find(p=>p.id===target.prefixId),tags:library.tags}))))).map(value=>value.toString(16).padStart(2,'0')).join(''):'';
   const snapshot_id=digest&&Object.prototype.hasOwnProperty.call(cache,digest)?cache[digest]:await capturePrefixSnapshot(payload);if(digest)cache[digest]=snapshot_id;
+  rememberSourceRecipe(library,target.prefixId,target.image_keys||[],snapshot_id,Object.values(target.image_refs||{}).flatMap(ref=>ref.local_url?[ref.local_url]:[]));
   result.push({prefix_id:target.prefixId,prefix_name:library.prefixes.find(row=>row.id===target.prefixId)?.name||'Prefix',snapshot_id,terms:target.terms,negative_terms:target.negative_terms,image_keys:target.image_keys||[]});
  }
  node.properties.gallery_snapshot_cache=Object.fromEntries(Object.entries(cache).slice(-100));node.properties.gallery_prefix_snapshots=result;return result;

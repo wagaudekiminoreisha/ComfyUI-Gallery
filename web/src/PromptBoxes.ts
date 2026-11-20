@@ -178,6 +178,13 @@ export function composeWithSource(compiled: string, source?: string, sources?: R
 }
 
 export const emptyGroup = (name: string, chips: Chip[] = []): GroupBox => ({ id: newId(), kind: 'group', name, chips, enabled: true, collapsed: false });
+export const canMergeManualBox=(box:PromptBox):box is GroupBox=>box.kind==='group'&&!box.prefixId&&!box.prefixIds?.length&&!box.prefixSnapshotId&&(!box.format||box.format==='tag');
+export function mergeManualBoxes(state:BoxState,targetId:string,otherId:string):BoxState{
+    const target=state.boxes.find(box=>box.id===targetId),other=state.boxes.find(box=>box.id===otherId);
+    if(!target||!other||target===other||!canMergeManualBox(target)||!canMergeManualBox(other))return state;
+    const chips=state.boxes.filter(box=>box===target||box===other).flatMap(box=>(box as GroupBox).chips.map(chip=>({...chip,enabled:box.enabled&&chip.enabled})));
+    return {...state,boxes:state.boxes.filter(box=>box!==other).map(box=>box===target?{...target,enabled:true,chips}:box)};
+}
 export const sourceBox = (input = 'source_text'): SourceBox => ({ id: newId(), kind: 'source', ...(input==='source_text'?{}:{input}), enabled: true, collapsed: false });
 export function addSourceBox(state: BoxState, input?:string):BoxState {
  const used=new Set(state.boxes.filter((box):box is SourceBox=>box.kind==='source').map(sourceInput));

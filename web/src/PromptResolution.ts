@@ -10,7 +10,7 @@ import { cleanHairPolicy, filterHairPrompt } from './HairPolicy';
  */
 import { compileBoxes, composeWithSource, groupingKind, optionTags, parsePrompt, parseState, splitTop, type GroupingKind } from './PromptBoxes';
 
-export type EncoderRecord = { text?: string; sampling_template?: string; resolved?: string; choices?: { options: string[]; chosen: string }[]; source_text?: string; hair_policy?: unknown };
+export type EncoderRecord = { hybrid?:boolean;negative?:string;overridden?:boolean;trace?:{stage:string;side?:string;after_tags?:string[]}[];components?:{type:string;side:string;text:string}[]; text?: string; sampling_template?: string; resolved?: string; choices?: { options: string[]; chosen: string }[]; source_text?: string; hair_policy?: unknown };
 export type ResolvedChoice = { kind: GroupingKind; options: string[]; chosen?: string };
 export type EncoderResolution = { id: string; title: string; template: string; resolved: string; choices: ResolvedChoice[] };
 

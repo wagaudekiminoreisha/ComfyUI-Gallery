@@ -5,10 +5,10 @@ import {ENCODER_WIDGETS} from './EncoderFields';
 const KEY='gallery_workflow_archive';
 const MAX_BYTES=64*1024*1024;
 type Archive={version:1;codec:'gzip-base64';bytes:number;data:string};
-type Payload={properties:Record<string,any>;metadata?:Record<string,any>[];sourceMetadata?:[number,number][]};
+type Payload={properties:Record<string,any>;metadata?:Record<string,any>[];sourceMetadata?:[number,number][];hybridWidgets?:[string,string]};
 const crcTable=Uint32Array.from({length:256},(_,index)=>{let value=index;for(let bit=0;bit<8;bit++)value=value&1?0xedb88320^(value>>>1):value>>>1;return value>>>0;});
 const crc32=(bytes:Uint8Array)=>{let value=0xffffffff;for(const byte of bytes)value=crcTable[(value^byte)&255]^(value>>>8);return (value^0xffffffff)>>>0;};
-const galleryNode=(info:any)=>['GalleryImageSource','GalleryPromptEncode'].includes(info?.type||info?.comfyClass);
+const galleryNode=(info:any)=>['GalleryImageSource','GalleryPromptEncode','GalleryHybridPrompt'].includes(info?.type||info?.comfyClass);
 const galleryProperty=(name:string)=>name==='prompt_boxes'||name.startsWith('gallery_');
 const essentialMetadata=(value:Record<string,any>)=>Object.fromEntries(Object.entries(value).filter(([key])=>
     ['gallery_prefix','gallery_prefixes','gallery_origin','gallery_url','gallery_root','gallery_revision','gallery_content_hash'].includes(key)));
@@ -36,6 +36,7 @@ export function restoreWorkflowNode(info:any):any{
     const payload=decode(info.properties[KEY]);
     const properties={...info.properties,...payload.properties};delete properties[KEY];
     const widgets=Array.isArray(info.widgets_values)?[...info.widgets_values]:info.widgets_values;
+    if(payload.hybridWidgets){if(!Array.isArray(widgets)||widgets.length<2||!Array.isArray(payload.hybridWidgets)||payload.hybridWidgets.length!==2||payload.hybridWidgets.some(value=>typeof value!=='string'))throw new Error('Invalid hybrid workflow widgets.');widgets[0]=payload.hybridWidgets[0];widgets[1]=payload.hybridWidgets[1];}
     const metadata=(index:number)=>{
         if(!Number.isInteger(index)||index<0||!payload.metadata?.[index])throw new Error('Invalid Gallery workflow metadata reference.');
         return structuredClone(payload.metadata[index]);
@@ -72,6 +73,7 @@ export function compactWorkflowNode(info:any,cache?:{json?:string;archive?:Archi
         payload.properties[name]=value;delete properties[name];
     }
     const widgets=Array.isArray(info.widgets_values)?[...info.widgets_values]:info.widgets_values;
+    if((info.type||info.comfyClass)==='GalleryHybridPrompt'&&typeof widgets?.[0]==='string'&&typeof widgets?.[1]==='string'){payload.hybridWidgets=[widgets[0],widgets[1]];widgets[0]='{"version":1,"components":[]}';widgets[1]='{"version":2,"tags":[],"prefixes":[]}';}
     // Named widget values are exact references to the canonical positional values.
     const named=payload.properties.gallery_encoder_widgets;
     if((info.type||info.comfyClass)==='GalleryPromptEncode'&&named?.version===1&&Array.isArray(widgets)){
